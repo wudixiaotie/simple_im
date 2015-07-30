@@ -65,5 +65,5 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Internal functions
 %% ===================================================================
 
-setopts(WsSwocket) ->
-    inet:setopts(WsSwocket, [{active, 300}, {packet, 0}, binary]).
+setopts(Swocket) ->
+    inet:setopts(Swocket, [{active, 300}, {packet, 0}, binary]).
