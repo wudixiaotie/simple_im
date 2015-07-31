@@ -46,7 +46,7 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
              #state{listen_socket = ListenSocket, acceptor_ref = AcceptorRef} = State) ->
     case set_sockopt(State#state.listen_socket, ClientSocket) of
         ok ->
-            {ok, Pid} = supervisor:start_child(receiver_sup, [ClientSocket]),
+            {ok, Pid} = supervisor:start_child(client_sup, [ClientSocket]),
             gen_tcp:controlling_process(ClientSocket, Pid),
             case prim_inet:async_accept(ListenSocket, -1) of
                 {ok,    NewAcceptorRef} -> ok;

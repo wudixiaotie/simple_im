@@ -4,7 +4,7 @@
 
 -define (DEFAULT_PORT, 1987).
 % 10 minutes
--define (DEFAULT_HEARTBEAT_TIMEOUT, 6000).
+-define (DEFAULT_HEARTBEAT_TIMEOUT, 15000).
 % -define (DEFAULT_HEARTBEAT_TIMEOUT, 600000).
 
 % @spec get(Key) -> Value
