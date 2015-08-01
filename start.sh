@@ -1,7 +1,7 @@
 #!/bin/sh
 rebar compile
 
-erl_start="erl -pa ebin/ -pa deps/*/ebin/ -smp +Q 250000 +P 250000"
+erl_start="erl -pa ebin/ -pa deps/*/ebin/ -smp +Q 1100000 +P 1100000"
 
 case $1 in
     "o" )

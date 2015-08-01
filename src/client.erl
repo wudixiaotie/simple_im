@@ -40,17 +40,20 @@ handle_cast(_Msg, State) ->
 %% ===================================================================
 
 handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
-    io:format ("===Got msg: ~p~n", [Data]),
     {ok, Toml} = etoml:parse(Data),
     case Toml of
+        [{<<"r">>, Attrs}] ->
+            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+            io:format ("Got r id=~p~n", [MsgId]),
+            process_request(MsgId, Attrs, Socket);
         [{<<"msg">>, Attrs}] ->
             {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-            Ack = <<"[ack] id=\"", MsgId/binary, "\"">>,
-            io:format ("===Send ack: ~p~n", [Ack]),
-            gen_tcp:send(Socket, Ack);
-        [{<<"ack">>, Attrs}] ->
-            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-            io:format ("===Msg id=~p send success~n", [MsgId])
+            Ack = <<"[a] id=\"", MsgId/binary, "\"">>,
+            io:format ("Got msg id=~p~n", [MsgId]),
+            gen_tcp:send(Socket, Ack),
+            process_message(Attrs, Socket);
+        [{<<"a">>, Attrs}] ->
+            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs)
     end,
     {noreply, State, State#state.heartbeat_timeout};
 % tcp connection change to passive
@@ -69,11 +72,11 @@ handle_info(timeout, State) ->
 %% business receiver
 %% ===================================================================
 
-handle_info(Info, State) ->
-    {noreply, State, State#state.heartbeat_timeout};
+% handle_info(Info, State) ->
+%     {noreply, State, State#state.heartbeat_timeout};
 
 handle_info(Info, State) ->
-    io:format("Request received non_tcp: ~p.~n", [Info]),
+    io:format("Unknown Info: ~p.~n", [Info]),
     {noreply, State, State#state.heartbeat_timeout}.
 
 
@@ -87,3 +90,17 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 setopts(Swocket) ->
     inet:setopts(Swocket, [{active, 300}, {packet, 0}, binary]).
+
+process_request(MsgId, Attrs, Socket) ->
+    RR = case lists:keyfind(<<"c">>, 1, Attrs) of
+        {<<"c">>, <<"login">>} ->
+            {<<"userid">>, UserId} = lists:keyfind(<<"userid">>, 1, Attrs),
+            global:register_name(UserId, self()),
+            <<"[rr] id=\"", MsgId/binary, "\" c=\"success\"">>;
+        _ ->
+            <<"[rr] id=\"", MsgId/binary, "\" c=\"error\"">>
+    end,
+    gen_tcp:send(Socket, RR).
+
+process_message(Attrs, Socket) ->
+    ok.
