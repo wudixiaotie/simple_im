@@ -12,7 +12,8 @@
 -compile (export_all).
 
 start(N) ->
-    loop(N).
+    ok = loop(N),
+    tc:ct(gen_server, call, [1], 100000).
 
 loop(N) when N > 0 ->
     start_link(N),
