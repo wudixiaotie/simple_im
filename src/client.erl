@@ -44,12 +44,12 @@ handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
     case Toml of
         [{<<"r">>, Attrs}] ->
             {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-            io:format ("Got r id=~p~n", [MsgId]),
+            log:i("Got r id=~p~n", [MsgId]),
             process_request(MsgId, Attrs, Socket);
         [{<<"msg">>, Attrs}] ->
             {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
             Ack = <<"[a] id=\"", MsgId/binary, "\"">>,
-            io:format ("Got msg id=~p~n", [MsgId]),
+            log:i("Got msg id=~p~n", [MsgId]),
             gen_tcp:send(Socket, Ack),
             process_message(Attrs, Socket);
         [{<<"a">>, Attrs}] ->
@@ -76,7 +76,7 @@ handle_info(timeout, State) ->
 %     {noreply, State, State#state.heartbeat_timeout};
 
 handle_info(Info, State) ->
-    io:format("Unknown Info: ~p.~n", [Info]),
+    log:i("Unknown Info: ~p.~n", [Info]),
     {noreply, State, State#state.heartbeat_timeout}.
 
 

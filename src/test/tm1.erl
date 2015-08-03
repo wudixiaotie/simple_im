@@ -25,7 +25,6 @@ reset_table(N) ->
     generate_data(N).
 
 generate_data(N) when N > 0 ->
-    io:format ("=============~p~n", [N]),
     BN = integer_to_binary(N),
     S = #session{sid = {{1438,65258,N},self()},
                  usr = {BN,<<"server.camwowo.com">>,<<"android">>},

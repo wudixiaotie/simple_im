@@ -27,16 +27,24 @@ register(UserId, Pid) ->
 
 init([]) ->
     ets:new(session, [named_table, {read_concurrency, true}, {write_concurrency, true}]),
-    Node = env:get(session_node),
-    case Node == node() of
+    FatherNode = env:get(father_node),
+    case FatherNode == node() of
         true ->
+    loop(10000000),
             ok;
         false ->
-            gen_server:call({?MODULE, Node}, copy)
+            log:i("~p start copy session data from ~p~n", [node(), FatherNode]),
+            SessionList = gen_server:call({?MODULE, FatherNode}, copy, infinity),
+            init_session(SessionList)
     end,
     {ok, []}.
+
+handle_call(copy, _From, State) ->
+    SessionList = ets:tab2list(session),
+    {reply, SessionList, State};
 handle_call(_Request, _From, State) ->
-    {reply, node(), State}.
+    {reply, nomatch, State}.
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 handle_info(_Info, State) ->
@@ -48,3 +56,15 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+loop(N) when N > 0 ->
+    ets:insert(session, {<<"user_", (integer_to_binary(N))/binary, "@android">>, N}),
+    loop(N - 1);
+loop(0) ->
+    ok.
+
+init_session([H|T]) ->
+    ets:insert(session, H),
+    init_session(T);
+init_session([]) ->
+    ok.

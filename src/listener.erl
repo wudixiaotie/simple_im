@@ -25,7 +25,7 @@ start_link() ->
 
 init([]) ->
     Port = env:get(port),
-    io:format("start listen port: ~p~n", [Port]),
+    log:i("start listen port: ~p~n", [Port]),
     Opts = [binary,
             {packet, 0},
             {reuseaddr, true},
@@ -59,7 +59,7 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
             {stop, Error, State}
     end;
 handle_info(_Info, State) ->
-    io:format("_Info:~p~n", [_Info]),
+    log:i("_Info:~p~n", [_Info]),
     {noreply, State}.
 
 

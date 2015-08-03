@@ -6,7 +6,8 @@
 % 10 minutes
 -define (DEFAULT_HEARTBEAT_TIMEOUT, 600000).
 % 10 minutes
--define (DEFAULT_SESSION_NODE, 's1@192.168.1.137').
+% -define (DEFAULT_FATHER_NODE, 's1@192.168.1.137').
+-define (DEFAULT_FATHER_NODE, 's1@192.168.3.5').
 
 % @spec get(Key) -> Value
 get(Key) ->
@@ -20,4 +21,4 @@ get(Key) ->
 %% ===================================================================
 get_default(port) -> ?DEFAULT_PORT;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
-get_default(session_node) -> ?DEFAULT_SESSION_NODE.
+get_default(father_node) -> ?DEFAULT_FATHER_NODE.
