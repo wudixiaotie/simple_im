@@ -9,20 +9,19 @@
 -behaviour (gen_server).
 
 % APIs
--export([start_link/0]).
+-export([start_link/0, t/0, ct/0]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
           terminate/2, code_change/3]).
 
--compile (export_all).
-
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-% tc:ct(te, find, [<<"user_1@android">>], 1).
-find(UserId) ->
-    gen_server:call(?MODULE, {find, UserId}).
+ct() ->
+    tc:ct(ets, lookup, [test_ets, <<"user_1@android">>], 100000).
+t() ->
+    tc:t(ets, lookup, [test_ets, <<"user_1@android">>], 1000).
     
     
 %% ===================================================================
@@ -30,10 +29,10 @@ find(UserId) ->
 %% ===================================================================
 
 init([]) ->
-    ets:new(test_ets, [named_table]),
+    ets:new(test_ets, [named_table, {write_concurrency, true}]),
     loop(10000000),
     {ok, []}.
-handle_call({find, UserId}, _From, State) ->
+handle_call({insert, UserId}, _From, State) ->
     {reply, ets:lookup(test_ets, UserId), State};
 handle_call(_Request, _From, State) ->
     {reply, nomatch, State}.

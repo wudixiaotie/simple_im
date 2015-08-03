@@ -10,6 +10,12 @@ case $1 in
     "a" )
         $erl_start -eval "application:start(simple_im)."
         ;;
+    "n1" )
+        $erl_start -name s1@192.168.1.137
+        ;;
+    "n2" )
+        $erl_start -name s2@192.168.1.137
+        ;;
     "oa" | "ao" )
         $erl_start -eval "observer:start ()." -eval "application:start(simple_im)."
         ;;
