@@ -24,7 +24,12 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 get(UserId) ->
-    ets:lookup(session, UserId).
+    case ets:lookup(session, UserId) of
+        [] ->
+            offline;
+        [{UserId, Pid}] ->
+            Pid
+    end.
 
 register(UserId, Pid) ->
     % This place I use catch to ensure update_session will always 

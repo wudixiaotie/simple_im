@@ -10,7 +10,8 @@
           terminate/2, code_change/3]).
 
 -record(state, {socket,
-                heartbeat_timeout}).
+                heartbeat_timeout,
+                user_id}).
 
 %% ===================================================================
 %% APIs
@@ -45,17 +46,43 @@ handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
         [{<<"r">>, Attrs}] ->
             {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
             log:i("Got r id=~p~n", [MsgId]),
-            process_request(MsgId, Attrs, Socket);
-        [{<<"msg">>, Attrs}] ->
+
+            RR = case lists:keyfind(<<"c">>, 1, Attrs) of
+                {<<"c">>, <<"login">>} ->
+                    {<<"userid">>, UserId} = lists:keyfind(<<"userid">>, 1, Attrs),
+                    session:register(UserId, self()),
+                    NewState = State#state{user_id = UserId},
+                    <<"[rr] id=\"", MsgId/binary, "\" c=\"success\"">>;
+                _ ->
+                    NewState = State,
+                    <<"[rr] id=\"", MsgId/binary, "\" c=\"error\"">>
+            end,
+            gen_tcp:send(Socket, RR);
+        [{<<"m">>, Attrs}] ->
             {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
             Ack = <<"[a] id=\"", MsgId/binary, "\"">>,
             log:i("Got msg id=~p~n", [MsgId]),
             gen_tcp:send(Socket, Ack),
-            process_message(Attrs, Socket);
+
+            case lists:keyfind(<<"to">>, 1, Attrs) of
+                {<<"to">>, ToUserId} ->
+                    case session:get(ToUserId) of
+                        offline ->
+                            % hack: offline
+                            ok;
+                        ToPid ->
+                            ToPid ! {m, Data}
+                    end;
+                _ ->
+                    ignore
+            end,
+            NewState = State;
         [{<<"a">>, Attrs}] ->
-            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs)
+            % hack:offline
+            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+            NewState = State
     end,
-    {noreply, State, State#state.heartbeat_timeout};
+    {noreply, NewState, NewState#state.heartbeat_timeout};
 % tcp connection change to passive
 handle_info({tcp_passive, Swocket}, #state{socket = Swocket} = State) ->
     setopts(Swocket),
@@ -72,15 +99,16 @@ handle_info(timeout, State) ->
 %% business receiver
 %% ===================================================================
 
-% handle_info(Info, State) ->
-%     {noreply, State, State#state.heartbeat_timeout};
-
+handle_info({m, Data}, #state{socket = Socket} = State) ->
+    gen_tcp:send(Socket, Data),
+    {noreply, State, State#state.heartbeat_timeout};
 handle_info(Info, State) ->
     log:i("Unknown Info: ~p.~n", [Info]),
     {noreply, State, State#state.heartbeat_timeout}.
 
 
-terminate(_Reason, _State) -> ok.
+terminate(_Reason, #state{user_id = UserId}) ->
+    session:unregister(UserId).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 
@@ -90,17 +118,3 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 setopts(Swocket) ->
     inet:setopts(Swocket, [{active, 300}, {packet, 0}, binary]).
-
-process_request(MsgId, Attrs, Socket) ->
-    RR = case lists:keyfind(<<"c">>, 1, Attrs) of
-        {<<"c">>, <<"login">>} ->
-            {<<"userid">>, UserId} = lists:keyfind(<<"userid">>, 1, Attrs),
-            global:register_name(UserId, self()),
-            <<"[rr] id=\"", MsgId/binary, "\" c=\"success\"">>;
-        _ ->
-            <<"[rr] id=\"", MsgId/binary, "\" c=\"error\"">>
-    end,
-    gen_tcp:send(Socket, RR).
-
-process_message(Attrs, Socket) ->
-    ok.

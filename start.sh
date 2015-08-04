@@ -7,22 +7,40 @@ ip="192.168.1.137"
 
 case $1 in
     "o" )
-        $erl_start -eval "observer:start ()."
+        erl_command="$erl_start -eval \"observer:start ().\""
         ;;
     "a" )
-        $erl_start -eval "application:start(simple_im)."
+        erl_command="$erl_start -eval \"application:start(simple_im).\""
         ;;
     "n1" )
-        $erl_start -name s1@$ip
+        erl_command="$erl_start -name s1@$ip"
         ;;
     "n2" )
-        $erl_start -name s2@$ip -eval "net_adm:ping('s1@$ip')."
-        ;;
-    "oa" | "ao" )
-        $erl_start -eval "observer:start ()." -eval "application:start(simple_im)."
+        erl_command="$erl_start -name s2@$ip -eval \"net_adm:ping('s1@$ip').\""
         ;;
     "" )
-        $erl_start
+        erl_command="$erl_start"
+        ;;
+    * )
+        echo "unknown args!"
+        ;;
+esac
+
+case $2 in
+    "o" )
+        $erl_command -eval "observer:start ()."
+        ;;
+    "a" )
+        $erl_command -eval "application:start(simple_im)."
+        ;;
+    "n1" )
+        $erl_command -name s1@$ip
+        ;;
+    "n2" )
+        $erl_command -name s2@$ip -eval "net_adm:ping('s1@$ip')."
+        ;;
+    "" )
+        $erl_command
         ;;
     * )
         echo "unknown args!"
