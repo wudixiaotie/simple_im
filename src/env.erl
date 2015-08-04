@@ -6,8 +6,8 @@
 % 10 minutes
 -define (DEFAULT_HEARTBEAT_TIMEOUT, 600000).
 % 10 minutes
--define (DEFAULT_FATHER_NODE, 's1@192.168.1.137').
-% -define (DEFAULT_FATHER_NODE, 's1@192.168.3.5').
+% -define (DEFAULT_FATHER_NODE, 's1@192.168.1.137').
+-define (DEFAULT_FATHER_NODE, 's1@192.168.3.5').
 
 % @spec get(Key) -> Value
 get(Key) ->

@@ -3,7 +3,8 @@ rebar compile
 
 erl_start="erl -pa ebin/ -pa deps/*/ebin/ -smp +Q 1100000 +P 1100000"
 
-ip="192.168.1.137"
+# ip="192.168.1.137"
+ip="192.168.3.5"
 
 case $1 in
     "o" )
