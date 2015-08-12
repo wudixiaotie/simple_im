@@ -9,7 +9,7 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD, {client, {client, start_link, []}, temporary, brutal_kill, worker, [client]}).
+-define(CHILD, {client, {client, start_link, []}, temporary, infinity, worker, [client]}).
 
 %% ===================================================================
 %% API functions

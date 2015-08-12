@@ -50,7 +50,7 @@ handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
             RR = case lists:keyfind(<<"c">>, 1, Attrs) of
                 {<<"c">>, <<"login">>} ->
                     {<<"userid">>, UserId} = lists:keyfind(<<"userid">>, 1, Attrs),
-                    session:register(UserId, self()),
+                    session_manager:register(UserId, self()),
                     NewState = State#state{user_id = UserId},
                     <<"[rr] id=\"", MsgId/binary, "\" c=\"success\"">>;
                 _ ->
@@ -66,7 +66,7 @@ handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
 
             case lists:keyfind(<<"to">>, 1, Attrs) of
                 {<<"to">>, ToUserId} ->
-                    case session:get(ToUserId) of
+                    case session_manager:get(ToUserId) of
                         offline ->
                             % hack: offline
                             ok;
@@ -108,7 +108,7 @@ handle_info(Info, State) ->
 
 
 terminate(_Reason, #state{user_id = UserId}) ->
-    session:unregister(UserId).
+    session_manager:unregister(UserId).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 

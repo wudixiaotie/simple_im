@@ -28,4 +28,4 @@ Ack:
 id="a_02"
 ```
 
-## Use global_name instead of mnesia session table
+## Use ets table as session store

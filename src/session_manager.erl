@@ -10,7 +10,7 @@
           terminate/2, code_change/3]).
 
 %% ===================================================================
-%% APIs
+%% Type spec
 %% ===================================================================
 
 -type userid() :: binary().
@@ -52,7 +52,6 @@ init([]) ->
     FatherNode = env:get(father_node),
     case FatherNode == node() of
         true ->
-    % loop(10000000),
             ok;
         false ->
             % The aim is to ensure that the message "{copy_from, FatherNode}" 
@@ -93,12 +92,6 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-loop(N) when N > 0 ->
-    ets:insert(session, {<<"user_", (integer_to_binary(N))/binary, "@android">>, N}),
-    loop(N - 1);
-loop(0) ->
-    ok.
 
 init_session([H|T]) ->
     ets:insert(session, H),
