@@ -31,15 +31,18 @@ get(UserId) ->
 init([]) ->
     {ok, []}.
 
-handle_call({get, UserId}, _From, State) ->
-    {reply, ?MODULE:get(UserId), State};
 handle_call(_Request, _From, State) ->
     {reply, nomatch, State}.
-
 handle_cast(_Msg, State) ->
     {noreply, State}.
+
+% {update, insert, {UserId, Pid}} | {update, delete, UserId}
+handle_info({update, Type, Session}, State) ->
+    ets:Type(session, Session),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
+
 terminate(_Reason, _State) -> ok.
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
