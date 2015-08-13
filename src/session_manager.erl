@@ -1,4 +1,4 @@
--module (session).
+-module (session_manager).
 
 -behaviour (gen_server).
 
@@ -41,7 +41,7 @@ unregister(UserId) ->
     catch ets:delete(session, UserId),
     update_session(delete, UserId).
 
-    
+
 
 %% ===================================================================
 %% gen_server callbacks
