@@ -38,7 +38,7 @@ loop(_, 0) ->
 
 t() ->
     io:format("handle_info t start:~p~n", [os:timestamp()]),
-    t(100000).
+    t(50000).
 t(N) when N > 0 ->
     ?MODULE ! t,
     t(N - 1);
@@ -80,8 +80,8 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(t, State) ->
-    % worker ! a,
-    offline_worker_name(1),
+    worker ! a,
+    % offline_worker_name(1),
     {noreply, State + 1};
 handle_info(tf, State) ->
     io:format("handle_info t finish:~p ~p~n", [os:timestamp(), State]),
