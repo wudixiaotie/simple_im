@@ -73,7 +73,7 @@ worker1() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, 0}.
+    {ok, []}.
 handle_call(_Request, _From, State) ->
     {reply, nomatch, State}.
 handle_cast(_Msg, State) ->
@@ -82,10 +82,10 @@ handle_cast(_Msg, State) ->
 handle_info(t, State) ->
     worker ! a,
     % offline_worker_name(1),
-    {noreply, State + 1};
+    {noreply, State};
 handle_info(tf, State) ->
-    io:format("handle_info t finish:~p ~p~n", [os:timestamp(), State]),
-    {noreply, 0};
+    io:format("handle_info t finish:~p ~n", [os:timestamp()]),
+    {noreply, State};
 
 handle_info(_Info, State) ->
     {noreply, State}.

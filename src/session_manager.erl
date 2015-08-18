@@ -54,6 +54,7 @@ init([]) ->
         true ->
             ok;
         false ->
+            net_adm:ping(FatherNode),
             % The aim is to ensure that the message "{copy_from, FatherNode}" 
             % save at head of the session gen_server message queue, and 
             % register process name as soon as possible. Then current node 
@@ -105,7 +106,7 @@ init_session([]) ->
 update_session(Type, Session) ->
     update_session(Type, Session, nodes()).
 update_session(Type, Session, [H|T]) ->
-    {session, H} ! {update, Type, Session},
+    {?MODULE, H} ! {update, Type, Session},
     update_session(Type, Session, T);
 update_session(_Type, _Session, []) ->
     ok.
