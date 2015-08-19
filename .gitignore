@@ -3,3 +3,4 @@ ebin
 *.beam
 .rebar
 .dump
+Mnesia.*
