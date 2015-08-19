@@ -22,6 +22,9 @@ case $1 in
     "n2" )
         erl_command="$erl_start -name s2@$ip -eval \"net_adm:ping('s1@$ip').\""
         ;;
+    "n3" )
+        erl_command="$erl_start -name s3@$ip -eval \"net_adm:ping('s1@$ip').\""
+        ;;
     "" )
         erl_command="$erl_start"
         ;;
