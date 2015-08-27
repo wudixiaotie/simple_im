@@ -21,8 +21,8 @@ start() ->
                                                     {attributes, record_info(fields, test_mnesia2)}]),
     {atomic,ok} = mnesia:create_table(test_mnesia3, [{ram_copies, NodeList},
                                                     {attributes, record_info(fields, test_mnesia3)}]),
-    {atomic,ok} = mnesia:add_table_index(test_mnesia, pid),
-    rpc_call(mnesia, stop, [], stopped).
+    {atomic,ok} = mnesia:add_table_index(test_mnesia, pid).
+    % rpc_call(mnesia, stop, [], stopped).
 
 stop() ->
     NodeList = node_list(),
