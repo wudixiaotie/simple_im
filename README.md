@@ -6,7 +6,9 @@ Request:
 [r]
 id="a_01"
 c="login"
-userid="xiaotie"
+[r.user]
+id="xiaotie"
+device="ipad"
 ```
 Request Response:  
 ```toml
@@ -19,8 +21,12 @@ Message:
 [m]
 id="a_02"
 c="hello"
-from="1@android"
-to="2@ipad"
+[m.from]
+id="1"
+device="android"
+[m.to]
+id="2"
+device="ipad"
 ```
 Ack:
 ```toml

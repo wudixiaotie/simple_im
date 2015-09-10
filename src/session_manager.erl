@@ -9,6 +9,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
           terminate/2, code_change/3]).
 
+-include("user.hrl").
+
 %% ===================================================================
 %% Type spec
 %% ===================================================================
@@ -27,19 +29,43 @@ get(UserId) ->
     case ets:lookup(session, UserId) of
         [] ->
             offline;
-        [{UserId, Pid}] ->
-            Pid
+        [{UserId, DPList}] ->
+            [Pid || {_, Pid} <- DPList]
     end.
 
-register(UserId, Pid) ->
+register(User, Pid) ->
+    UserId = User#user.id,
+    UserDevice = User#user.device,
+    DPList = case ets:lookup(session, UserId) of
+        [] ->
+            [{UserDevice, Pid}];
+        [{UserId, OriginalDPList}] ->
+            lists:keyreplace(UserDevice, 1, OriginalDPList, {UserDevice, Pid})
+    end,
+
     % This place I use catch to ensure update_session will always 
     % be execuate wether session process is down or not.
-    catch ets:insert(session, {UserId, Pid}),
-    update_session(insert, {UserId, Pid}).
+    catch ets:insert(session, {UserId, DPList}),
+    update_session(insert, {UserId, DPList}).
 
-unregister(UserId) ->
-    catch ets:delete(session, UserId),
-    update_session(delete, UserId).
+unregister(User) ->
+    UserId = User#user.id,
+    UserDevice = User#user.device,
+    DPList = case ets:lookup(session, UserId) of
+        [] ->
+            [];
+        [{UserId, OriginalDPList}] ->
+            lists:keydelete(UserDevice, 1, OriginalDPList)
+    end,
+
+    case DPList of
+        [] ->
+            catch ets:delete(session, UserId),
+            update_session(delete, UserId);
+        _ ->
+            catch ets:insert(session, {UserId, DPList}),
+            update_session(insert, {UserId, DPList})
+    end.
 
 
 

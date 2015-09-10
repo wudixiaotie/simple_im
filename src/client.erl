@@ -11,7 +11,9 @@
 
 -record(state, {socket,
                 heartbeat_timeout,
-                user_id}).
+                user}).
+
+-include("user.hrl").
 
 %% ===================================================================
 %% APIs
@@ -49,9 +51,10 @@ handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
 
             RR = case lists:keyfind(<<"c">>, 1, Attrs) of
                 {<<"c">>, <<"login">>} ->
-                    {<<"userid">>, UserId} = lists:keyfind(<<"userid">>, 1, Attrs),
-                    session_manager:register(UserId, self()),
-                    NewState = State#state{user_id = UserId},
+                    {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
+                    {ok, User} = parse_user_info(UserInfo),
+                    session_manager:register(User, self()),
+                    NewState = State#state{user = User},
                     <<"[rr] id=\"", MsgId/binary, "\" c=\"success\"">>;
                 _ ->
                     NewState = State,
@@ -65,13 +68,14 @@ handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
             gen_tcp:send(Socket, Ack),
 
             case lists:keyfind(<<"to">>, 1, Attrs) of
-                {<<"to">>, ToUserId} ->
-                    case session_manager:get(ToUserId) of
+                {<<"to">>, ToUserInfo} ->
+                    {ok, ToUser} = parse_user_info(ToUserInfo),
+                    case session_manager:get(ToUser#user.id) of
                         offline ->
                             % hack: offline
                             ok;
-                        ToPid ->
-                            ToPid ! {m, Data}
+                        ToPidList ->
+                            send_msg(ToPidList, Data)
                     end;
                 _ ->
                     ignore
@@ -107,8 +111,8 @@ handle_info(Info, State) ->
     {noreply, State, State#state.heartbeat_timeout}.
 
 
-terminate(_Reason, #state{user_id = UserId}) ->
-    session_manager:unregister(UserId).
+terminate(_Reason, #state{user = User}) ->
+    session_manager:unregister(User).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 
@@ -118,3 +122,20 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 setopts(Swocket) ->
     inet:setopts(Swocket, [{active, 300}, {packet, 0}, binary]).
+
+% [{<<"device">>,<<"android">>},{<<"id">>,<<"1">>}]
+parse_user_info(UserInfo) ->
+    case UserInfo of
+        [{<<"device">>, Device}, {<<"id">>, Id}] ->
+            {ok, #user{id = Id, device = Device}};
+        [{<<"id">>, Id}, {<<"device">>, Device}] ->
+            {ok, #user{id = Id, device = Device}};
+        _ ->
+            {error, <<"user info parse failed">>}
+    end.
+
+send_msg([H|T], Msg) ->
+    H ! {m, Msg},
+    send_msg(T, Msg);
+send_msg([], _) ->
+    ok.
