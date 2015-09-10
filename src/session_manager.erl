@@ -40,7 +40,7 @@ register(User, Pid) ->
         [] ->
             [{UserDevice, Pid}];
         [{UserId, OriginalDPList}] ->
-            lists:keyreplace(UserDevice, 1, OriginalDPList, {UserDevice, Pid})
+            lists:keystore(UserDevice, 1, OriginalDPList, {UserDevice, Pid})
     end,
 
     % This place I use catch to ensure update_session will always 
