@@ -35,10 +35,10 @@ id="a_02"
 1.Go to the root path of this project.   
 2.Run
 ```shell
-./start.sh a
+./start.sh n1 a
 ```
 to start simple im. If you want to start observer, use
 ```shell
-./start.sh ao
+./start.sh n1 ao
 ```.
 3.Start client
