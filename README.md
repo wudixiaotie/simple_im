@@ -29,3 +29,16 @@ id="a_02"
 ```
 
 ## Use ets table as session store
+
+# Guide
+## Start Simple Im
+1.Go to the root path of this project.   
+2.Run
+```shell
+./start.sh a
+```
+to start simple im. If you want to start observer, use
+```shell
+./start.sh ao
+```.
+3.Start client
