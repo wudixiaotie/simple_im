@@ -184,4 +184,6 @@ tuple_to_toml({Name, Attrs}) ->
     tuple_to_toml(Name, Attrs, <<"[", Name/binary, "]">>).
 tuple_to_toml(Name, [H|T], Result) ->
     {Key, Value} = H,
-    case is_
+    case is_list(Value) of
+        true ->
+            NewResult = <<Result/binary, " [", Name/binary, ".", Key/binary, "] ">>,
