@@ -33,6 +33,17 @@ Ack:
 [a]
 id="a_02"
 ```
+Group Message:  
+```toml
+[gm]
+id="a_02"
+c="hello"
+[gm.user]
+id="1"
+device="android"
+[gm.group]
+id="123"
+```
 
 ## Use ets table as session store
 

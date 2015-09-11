@@ -62,21 +62,24 @@ handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
             end,
             gen_tcp:send(Socket, RR);
         [{<<"m">>, Attrs}] ->
-            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-            Ack = <<"[a] id=\"", MsgId/binary, "\"">>,
-            log:i("Got msg id=~p~n", [MsgId]),
-            gen_tcp:send(Socket, Ack),
+            send_ack(Socket, Attrs),
 
             case lists:keyfind(<<"to">>, 1, Attrs) of
                 {<<"to">>, ToUserInfo} ->
                     {ok, ToUser} = parse_user_info(ToUserInfo),
-                    case session_manager:get(ToUser#user.id) of
-                        offline ->
-                            % hack: offline
-                            ok;
-                        ToPidList ->
-                            send_msg(ToPidList, Data)
-                    end;
+                    send_msg_2_single_user(ToUser#user.id, Data);
+                _ ->
+                    ignore
+            end,
+            NewState = State;
+        [{<<"gm">>, Attrs}] ->
+            send_ack(Socket, Attrs),
+
+            case lists:keyfind(<<"group">>, 1, Attrs) of
+                {<<"group">>, [{<<"id">>, GroupId}]} ->
+                    % UserIdList = group:get_user_id_list(GroupId),
+                    UserIdList = [<<"22">>, <<"23">>],
+                    send_msg_2_multiple_users(UserIdList, Data);
                 _ ->
                     ignore
             end,
@@ -104,6 +107,9 @@ handle_info(timeout, State) ->
 %% ===================================================================
 
 handle_info({m, Data}, #state{socket = Socket} = State) ->
+    gen_tcp:send(Socket, Data),
+    {noreply, State, State#state.heartbeat_timeout};
+handle_info({gm, Data}, #state{socket = Socket} = State) ->
     gen_tcp:send(Socket, Data),
     {noreply, State, State#state.heartbeat_timeout};
 handle_info(Info, State) ->
@@ -134,8 +140,31 @@ parse_user_info(UserInfo) ->
             {error, <<"user info parse failed">>}
     end.
 
-send_msg([H|T], Msg) ->
+send_ack(Socket, Attrs) ->
+    {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+    Ack = <<"[a] id=\"", MsgId/binary, "\"">>,
+    log:i("Got msg id=~p~n", [MsgId]),
+    gen_tcp:send(Socket, Ack).
+
+send_msg_2_single_user(UserId, Msg) ->
+    case session_manager:get(UserId) of
+        offline ->
+            % hack: offline
+            log:i("offline msg: ~p~n", [Msg]),
+            ok;
+        ToPidList ->
+            send_msg_to_pid(ToPidList, Msg)
+    end.
+
+send_msg_2_multiple_users([H|T], Msg) ->
+    send_msg_2_single_user(H, Msg),
+    send_msg_2_multiple_users(T, Msg);
+send_msg_2_multiple_users([], Msg) ->
+    ok.
+
+
+send_msg_to_pid([H|T], Msg) ->
     H ! {m, Msg},
-    send_msg(T, Msg);
-send_msg([], _) ->
+    send_msg_to_pid(T, Msg);
+send_msg_to_pid([], _) ->
     ok.
