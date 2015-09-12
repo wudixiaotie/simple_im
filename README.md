@@ -57,5 +57,14 @@ id="123"
 to start simple im. If you want to start observer, use
 ```shell
 ./start.sh n1 ao
-```.
-3.Start client
+```
+3.Start [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path: 
+```shell
+./start.sh a
+```
+4.See the server and client log.
+```log
+Got r id=<<"a_01">>
+Got r id=<<"a_01">>
+Got msg id=<<"a_02">>
+```
