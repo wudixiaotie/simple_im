@@ -49,8 +49,8 @@ id="123"
 
 # Guide
 ## Start Simple Im
-1.create database tables, execute .sql files in db/postgresql.  
-2.Go to the root path of this project.   
+1. create database tables, execute .sql files in db/postgresql.  
+2. Go to the root path of this project.   
 3. Run
 ```shell
 ./start.sh n1 a
