@@ -190,7 +190,7 @@ tuple_to_toml(Name, [H|T], Result) ->
     case is_list(Value) of
         true ->
             {ok, Bin} = list_to_toml(Value),
-            NewResult = <<Result/binary, " [", Name/binary, ".", Key/binary, "] ", Bin/binary>>;
+            NewResult = <<Result/binary, " [", Name/binary, ".", Key/binary, "]", Bin/binary>>;
         _ ->
             {ok, Bin} = key_value_to_toml({Key, Value}),
             NewResult = <<Result/binary, " ", Bin/binary>>
