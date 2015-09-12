@@ -1,6 +1,11 @@
 -module (utility).
 
--export ([tuple_to_toml/1]).
+-export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0, random_number/1]).
+
+
+%% ===================================================================
+%% APIs
+%% ===================================================================
 
 tuple_to_toml({Name, Attrs}) ->
     AttrsRev = lists:reverse(Attrs),
@@ -19,6 +24,23 @@ tuple_to_toml(Name, [H|T], Result) ->
 tuple_to_toml(_, _, Result) ->
     {ok, Result}.
 
+md5_hex_32(Bin) ->
+    MD5_16 = erlang:md5(Bin),
+    Md5 = << <<(hex(A)), (hex(B))>> || <<A:4,B:4>> <= MD5_16 >>,
+    {ok, Md5}.
+
+random_binary_16() ->
+    {ok, base64:encode(crypto:strong_rand_bytes(12))}.
+
+random_number(Max) ->
+    <<A:32, B:32, C:32>> = crypto:strong_rand_bytes (12),
+    random:seed (A, B, C),
+    {ok, random:uniform(Max)}.
+
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
 
 list_to_toml(List) ->
     ListRev = lists:reverse(List),
@@ -31,3 +53,22 @@ list_to_toml([], Result) ->
 
 key_value_to_toml({Key, Value}) ->
     {ok, <<Key/binary, " = \"", Value/binary, "\"">>}.
+
+
+
+hex(0)  -> $0;
+hex(1)  -> $1;
+hex(2)  -> $2;
+hex(3)  -> $3;
+hex(4)  -> $4;
+hex(5)  -> $5;
+hex(6)  -> $6;
+hex(7)  -> $7;
+hex(8)  -> $8;
+hex(9)  -> $9;
+hex(10) -> $a;
+hex(11) -> $b;
+hex(12) -> $c;
+hex(13) -> $d;
+hex(14) -> $e;
+hex(15) -> $f.

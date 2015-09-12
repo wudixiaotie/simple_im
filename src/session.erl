@@ -1,4 +1,4 @@
--module (session_manager).
+-module (session).
 
 -behaviour (gen_server).
 

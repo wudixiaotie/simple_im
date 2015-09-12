@@ -75,7 +75,7 @@ handle_info(Info, State) ->
 
 
 terminate(_Reason, #state{user = User}) ->
-    session_manager:unregister(User).
+    session:unregister(User).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 
@@ -96,7 +96,7 @@ process_packet([H|T], #state{socket = Socket} = State) ->
                 {<<"c">>, <<"login">>} ->
                     {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
                     {ok, User} = parse_user_info(UserInfo),
-                    session_manager:register(User, self()),
+                    session:register(User, self()),
                     NewState = State#state{user = User},
                     <<"[rr] id = \"", MsgId/binary, "\" c = \"success\"">>;
                 _ ->
@@ -154,7 +154,7 @@ send_ack(Socket, Attrs) ->
     gen_tcp:send(Socket, Ack).
 
 send_msg_2_single_user(UserId, Msg) ->
-    case session_manager:get(UserId) of
+    case session:get(UserId) of
         offline ->
             % hack: offline
             log:i("offline msg: ~p~n", [Msg]),

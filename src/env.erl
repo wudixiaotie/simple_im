@@ -8,7 +8,13 @@
 
 -define (DEFAULT_FATHER_NODE, 's1@192.168.1.137').
 
--define (DEFAULT_SESSION_POOLSIZE, 10).
+-define (DEFAULT_DB_HOST, 'localhost').
+
+-define (DEFAULT_DB_USERNAME, 'postgres').
+
+-define (DEFAULT_DB_PASSWORD, 'postgres').
+
+-define (DEFAULT_DB_DATABASE, 'test').
 
 % @spec get(Key) -> Value
 get(Key) ->
@@ -23,4 +29,9 @@ get(Key) ->
 get_default(port) -> ?DEFAULT_PORT;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
 get_default(father_node) -> ?DEFAULT_FATHER_NODE;
-get_default(session_poolsize) -> ?DEFAULT_SESSION_POOLSIZE.
+
+% database
+get_default(db_host) -> ?DEFAULT_DB_HOST;
+get_default(db_username) -> ?DEFAULT_DB_USERNAME;
+get_default(db_password) -> ?DEFAULT_DB_PASSWORD;
+get_default(db_database) -> ?DEFAULT_DB_DATABASE.

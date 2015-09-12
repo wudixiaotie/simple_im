@@ -3,7 +3,8 @@ CREATE TABLE public.users
     id          integer,
     name        varchar(20) NOT NUlL,
     phone       char(11) NOT NUlL,
-    password    varchar(200) NOT NUlL,
+    password    char(32) NOT NUlL,
+    salt        char(16) NOT NULL,
     updated     timestamp without time zone NOT NUlL,
     created     timestamp without time zone NOT NUlL,
     PRIMARY KEY (id)
