@@ -205,9 +205,9 @@ list_to_toml(List) ->
     list_to_toml(ListRev, <<"">>).
 list_to_toml([{Key, Value}|T], Result) ->
     {ok, Bin} = key_value_to_toml({Key, Value}),
-    list_to_toml(T, <<Result/binary, Bin/binary>>);
+    list_to_toml(T, <<Result/binary, " ", Bin/binary>>);
 list_to_toml([], Result) ->
     {ok, Result}.
 
 key_value_to_toml({Key, Value}) ->
-    {ok, <<Key/binary, " = \"", Value/binary, "\" ">>}.
+    {ok, <<Key/binary, " = \"", Value/binary, "\"">>}.
