@@ -49,8 +49,9 @@ id="123"
 
 # Guide
 ## Start Simple Im
-1.Go to the root path of this project.   
-2.Run
+1.create database tables, execute .sql files in db/postgresql.  
+2.Go to the root path of this project.   
+3. Run
 ```shell
 ./start.sh n1 a
 ```
@@ -58,13 +59,19 @@ to start simple im. If you want to start observer, use
 ```shell
 ./start.sh n1 ao
 ```
-3.Start [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path: 
+4. Start [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path: 
 ```shell
 ./start.sh a
 ```
-4.See the server and client log.
+5. See the server and client log.
 ```log
 Got r id=<<"a_01">>
 Got r id=<<"a_01">>
 Got msg id=<<"a_02">>
 ```
+
+
+# TODO List:
+1.Users DB Module
+2.Groups DB Module
+3.User password encryption
