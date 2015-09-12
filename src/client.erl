@@ -14,6 +14,8 @@
                 user}).
 
 -include("user.hrl").
+% hack
+-compile (export_all).
 
 %% ===================================================================
 %% APIs
@@ -62,11 +64,11 @@ handle_info(timeout, State) ->
 %% business receiver
 %% ===================================================================
 
-handle_info({m, Attrs} = Msg, #state{socket = Socket} = State) ->
-    send_msg_to_client(Msg),
+handle_info({m, Attrs}, #state{socket = Socket} = State) ->
+    send_msg_to_client(Socket, Attrs),
     {noreply, State, State#state.heartbeat_timeout};
 handle_info({gm, Attrs}, #state{socket = Socket} = State) ->
-    send_msg_to_client(Msg),
+    send_msg_to_client(Socket, Attrs),
     {noreply, State, State#state.heartbeat_timeout};
 handle_info(Info, State) ->
     log:i("Unknown Info: ~p.~n", [Info]),
@@ -97,10 +99,10 @@ process_packet([H|T], #state{socket = Socket} = State) ->
                     {ok, User} = parse_user_info(UserInfo),
                     session_manager:register(User, self()),
                     NewState = State#state{user = User},
-                    <<"[rr] id=\"", MsgId/binary, "\" c=\"success\"">>;
+                    <<"[rr] id = \"", MsgId/binary, "\" c = \"success\"">>;
                 _ ->
                     NewState = State,
-                    <<"[rr] id=\"", MsgId/binary, "\" c=\"error\"">>
+                    <<"[rr] id = \"", MsgId/binary, "\" c = \"error\"">>
             end,
             gen_tcp:send(Socket, RR);
         {<<"m">>, Attrs} = Msg ->
@@ -131,7 +133,7 @@ process_packet([H|T], #state{socket = Socket} = State) ->
             {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
             NewState = State
     end,
-    process_toml(T, NewState);
+    process_packet(T, NewState);
 process_packet([], NewState) ->
     {ok, NewState}.
 
@@ -148,7 +150,7 @@ parse_user_info(UserInfo) ->
 
 send_ack(Socket, Attrs) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-    Ack = <<"[a] id=\"", MsgId/binary, "\"">>,
+    Ack = <<"[a] id = \"", MsgId/binary, "\"">>,
     log:i("Got msg id=~p~n", [MsgId]),
     gen_tcp:send(Socket, Ack).
 
@@ -165,7 +167,7 @@ send_msg_2_single_user(UserId, Msg) ->
 send_msg_2_multiple_users([H|T], Msg) ->
     send_msg_2_single_user(H, Msg),
     send_msg_2_multiple_users(T, Msg);
-send_msg_2_multiple_users([], Msg) ->
+send_msg_2_multiple_users([], _) ->
     ok.
 
 
@@ -176,14 +178,36 @@ send_msg_to_pid([], _) ->
     ok.
 
 
-send_msg_to_client(Msg) ->
-    Bin = tuple_to_toml(Msg),
+send_msg_to_client(Socket, Msg) ->
+    {ok, Bin} = tuple_to_toml(Msg),
     gen_tcp:send(Socket, Bin).
 
 tuple_to_toml({Name, Attrs}) ->
-    tuple_to_toml(Name, Attrs, <<"[", Name/binary, "]">>).
+    AttrsRev = lists:reverse(Attrs),
+    tuple_to_toml(Name, AttrsRev, <<"[", Name/binary, "]">>).
 tuple_to_toml(Name, [H|T], Result) ->
     {Key, Value} = H,
     case is_list(Value) of
         true ->
-            NewResult = <<Result/binary, " [", Name/binary, ".", Key/binary, "] ">>,
+            {ok, Bin} = list_to_toml(Value),
+            NewResult = <<Result/binary, " [", Name/binary, ".", Key/binary, "] ", Bin/binary>>;
+        _ ->
+            {ok, Bin} = key_value_to_toml({Key, Value}),
+            NewResult = <<Result/binary, " ", Bin/binary>>
+    end,
+    tuple_to_toml(Name, T, NewResult);
+tuple_to_toml(_, _, Result) ->
+    {ok, Result}.
+
+
+list_to_toml(List) ->
+    ListRev = lists:reverse(List),
+    list_to_toml(ListRev, <<"">>).
+list_to_toml([{Key, Value}|T], Result) ->
+    {ok, Bin} = key_value_to_toml({Key, Value}),
+    list_to_toml(T, <<Result/binary, Bin/binary>>);
+list_to_toml([], Result) ->
+    {ok, Result}.
+
+key_value_to_toml({Key, Value}) ->
+    {ok, <<Key/binary, " = \"", Value/binary, "\" ">>}.
