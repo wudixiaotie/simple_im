@@ -1,7 +1,7 @@
 # simple_im
 ## I use toml as transmission protocol instead of xml or json.
 ## Use postgresql as database for user & group information store.
-## The pg connection pool is implement by myself instead of use poolboy, why? Because the [pg driver](https://github.com/epgsql/epgsql) allow concurrent pgsql:equery on same connection.
+## The pg connection pool implement by myself instead of use poolboy, why? Because the [pg driver](https://github.com/epgsql/epgsql) allow concurrent pgsql:equery on same connection.
 ### Protocol
 Request:  
 ```toml
