@@ -9,7 +9,7 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(Args), {pg_conn, {epgsql, connect, Args}, permanent, brutal_kill, worker, [epgsql]}).
+-define(CHILD(Args), {pg_worker, {pg_worker, start_link, Args}, permanent, brutal_kill, worker, [pg_worker]}).
 
 %% ===================================================================
 %% API functions
@@ -32,4 +32,4 @@ init([]) ->
         {timeout, 4000}
     ]]),
 
-    {ok, { {simple_one_for_one, 0, 1}, [DbDatabase] } }.
+    {ok, { {simple_one_for_one, 10, 5}, [ConnSpec] } }.
