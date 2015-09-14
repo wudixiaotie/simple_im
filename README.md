@@ -74,6 +74,6 @@ Got msg id=<<"a_02">>
 
 
 # TODO List:
-1. Users DB Module
-2. Groups DB Module
-3. User password encryption
+1. finish Users DB Module
+2. finish Groups DB Module
+3. add time to message
