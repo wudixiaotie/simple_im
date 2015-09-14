@@ -1,3 +1,9 @@
+%% ===================================================================
+%% Author xiaotie
+%% 2015-8-2
+%% session store, search, synchronous from father node
+%% ===================================================================
+
 -module (session).
 
 -behaviour (gen_server).

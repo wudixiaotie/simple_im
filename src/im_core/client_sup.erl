@@ -1,3 +1,9 @@
+%% ===================================================================
+%% Author xiaotie
+%% 2015-8-2
+%% simple_one_for_one supervisor for client server
+%% ===================================================================
+
 -module(client_sup).
 
 -behaviour(supervisor).

@@ -1,3 +1,9 @@
+%% ===================================================================
+%% Author xiaotie
+%% 2015-9-12
+%% utility for simple im
+%% ===================================================================
+
 -module (utility).
 
 -export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0, random_number/1]).

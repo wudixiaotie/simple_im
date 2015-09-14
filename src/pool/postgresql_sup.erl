@@ -1,4 +1,10 @@
--module (pg_sup).
+%% ===================================================================
+%% Author xiaotie
+%% 2015-9-14
+%% postgresql client supervisor
+%% ===================================================================
+
+-module (postgresql_sup).
 
 -behaviour(supervisor).
 
@@ -9,7 +15,7 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(Args), {pg_worker, {pg_worker, start_link, Args}, permanent, brutal_kill, worker, [pg_worker]}).
+-define(CHILD(Args), {postgresql_worker, {postgresql_worker, start_link, Args}, permanent, brutal_kill, worker, [postgresql_worker]}).
 
 %% ===================================================================
 %% API functions
@@ -27,9 +33,9 @@ init([]) ->
     DbUsername = env:get(db_username),
     DbPassword = env:get(db_password),
     DbDatabase = env:get(db_database),
-    ConnSpec = ?CHILD([DbHost, DbUsername, DbPassword, [
+    Spec = ?CHILD([DbHost, DbUsername, DbPassword, [
         {database, DbDatabase},
         {timeout, 4000}
     ]]),
 
-    {ok, { {simple_one_for_one, 10, 5}, [ConnSpec] } }.
+    {ok, { {simple_one_for_one, 10, 5}, [Spec] } }.

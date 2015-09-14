@@ -3,12 +3,13 @@
 %% 2015-9-12
 %% postgresql client pool manager
 %% ===================================================================
--module (pg).
+
+-module (postgresql).
 
 -behaviour(gen_server).
 
 % APIs
--export([start_link/0, query/1, query/2]).
+-export([start_link/0, exec/1, exec/2]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -25,12 +26,12 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-query(QueryStr) ->
-    query(QueryStr, []).
+exec(QueryStr) ->
+    exec(QueryStr, []).
 
-query(QueryStr, Parameters) ->
+exec(QueryStr, Parameters) ->
     {ok, Cursor} = gen_server:call(?MODULE, get_cursor),
-    case catch ets:lookup_element(pg_conn, Cursor, 2) of
+    case catch ets:lookup_element(postgresql_connection, Cursor, 2) of
         {'EXIT', _} ->
             {error, get_conn_failed};
         Conn ->
@@ -44,8 +45,8 @@ query(QueryStr, Parameters) ->
 %% ===================================================================
 
 init([]) ->
-    ets:new(pg_conn, [named_table, public, {read_concurrency, true}]),
-    pg_sup:start_link(),
+    ets:new(postgresql_connection, [named_table, public, {read_concurrency, true}]),
+    postgresql_sup:start_link(),
     DbPoolSize = env:get(db_poolsize),
     ok = create_connection(DbPoolSize),
     {ok, #state{cursor = 1, pool_size = DbPoolSize}}.
@@ -74,5 +75,5 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 create_connection(0) ->
     ok;
 create_connection(N) ->
-    supervisor:start_child(pg_sup, [N]),
+    supervisor:start_child(postgresql_sup, [N]),
     create_connection(N - 1).
