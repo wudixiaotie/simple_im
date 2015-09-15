@@ -9,14 +9,24 @@ Request:
 id="a_01"
 c="login"
 [r.user]
-id="xiaotie"
+phone="13812341234"
+password="888888"
 device="ipad"
 ```
 Request Response:  
+failed(s means status, value 1 is failed):
 ```toml
 [rr]
 id="a_01"
-c="login fail: Unknow Request"
+s=1
+c="password not match"
+```
+success(s means status, value 0 is success):
+```toml
+[rr]
+id="a_01"
+s=0
+user_id=1
 ```
 Message:  
 ```toml
@@ -24,10 +34,10 @@ Message:
 id="a_02"
 c="hello"
 [m.from]
-id="1"
+id=1
 device="android"
 [m.to]
-id="2"
+id=2
 device="ipad"
 ```
 Ack:
@@ -41,10 +51,10 @@ Group Message:
 id="a_02"
 c="hello"
 [gm.user]
-id="1"
+id=1
 device="android"
 [gm.group]
-id="123"
+id=123
 ```
 
 ## Use ets table as session store
@@ -53,7 +63,7 @@ id="123"
 ## Start Simple Im
 1.Create database tables, execute .sql files in db/postgresql.  
 2.Go to the root path of this project.   
-3.Run
+3.Make sure your ip address is the ip variable of the file start.sh, then run
 ```shell
 ./start.sh n1 a
 ```

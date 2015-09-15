@@ -92,72 +92,84 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 setopts(Swocket) ->
     inet:setopts(Swocket, [{active, 300}, {packet, 0}, binary]).
 
-process_packet([H|T], #state{socket = Socket} = State) ->
-    case H of
-        {<<"r">>, Attrs} ->
-            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-            log:i("Got r id=~p~n", [MsgId]),
 
-            RR = case lists:keyfind(<<"c">>, 1, Attrs) of
-                {<<"c">>, <<"login">>} ->
-                    {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
-                    {ok, User} = parse_user_info(UserInfo),
-                    session:register(User, self()),
-                    NewState = State#state{user = User},
-                    <<"[rr] id = \"", MsgId/binary, "\" c = \"success\"">>;
-                _ ->
+process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
+    {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+    log:i("Got r id=~p~n", [MsgId]),
+
+    RR = case lists:keyfind(<<"c">>, 1, Attrs) of
+        {<<"c">>, <<"login">>} ->
+            {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
+            {ok, User} = parse_user_info(UserInfo),
+            case users:verify(User#user.phone, User#user.password) of
+                {ok, true, UserId} ->
+                    NewUser = User#user{id = UserId},
+                    session:register(NewUser, self()),
+                    NewState = State#state{user = NewUser},
+                    UserIdBin = erlang:integer_to_binary(UserId),
+                    <<"[rr] id = \"", MsgId/binary, "\" s = 0 user_id = ", UserIdBin/binary>>;
+                {ok, false} ->
                     NewState = State,
-                    <<"[rr] id = \"", MsgId/binary, "\" c = \"error\"">>
-            end,
-            gen_tcp:send(Socket, RR);
-        {<<"m">>, Attrs} = Msg ->
-            send_ack(Socket, Attrs),
-
-            case lists:keyfind(<<"to">>, 1, Attrs) of
-                {<<"to">>, ToUserInfo} ->
-                    {ok, ToUser} = parse_user_info(ToUserInfo),
-                    send_msg_2_single_user(ToUser#user.id, Msg);
-                _ ->
-                    ignore
-            end,
-            NewState = State;
-        {<<"gm">>, Attrs} = Msg ->
-            send_ack(Socket, Attrs),
-
-            case lists:keyfind(<<"group">>, 1, Attrs) of
-                {<<"group">>, [{<<"id">>, GroupId}]} ->
-                    % UserIdList = group:get_user_id_list(GroupId),
-                    UserIdList = [<<"22">>, <<"23">>],
-                    send_msg_2_multiple_users(UserIdList, Msg);
-                _ ->
-                    ignore
-            end,
-            NewState = State;
-        {<<"a">>, Attrs} ->
-            % hack:offline
-            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-            NewState = State
+                    <<"[rr] id = \"", MsgId/binary, "\" s = 1 c = \"password not match\"">>
+            end;
+        _ ->
+            NewState = State,
+            <<"[rr] id = \"", MsgId/binary, "\" c = \"error\"">>
     end,
+    gen_tcp:send(Socket, RR),
     process_packet(T, NewState);
+process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
+    send_ack(Socket, Attrs),
+    case lists:keyfind(<<"to">>, 1, Attrs) of
+        {<<"to">>, ToUserInfo} ->
+            {ok, ToUser} = parse_user_info(ToUserInfo),
+            send_msg_2_single_user(ToUser#user.id, Msg);
+        _ ->
+            ignore
+    end,
+    process_packet(T, State);
+process_packet([{<<"gm">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
+    send_ack(Socket, Attrs),
+    case lists:keyfind(<<"group">>, 1, Attrs) of
+        {<<"group">>, [{<<"id">>, GroupId}]} ->
+            {ok, UserIdList} = groups:get_user_id_list(GroupId),
+            ok = send_msg_2_multiple_users(UserIdList, Msg);
+        _ ->
+            ignore
+    end,
+    process_packet(T, State);
+process_packet([{<<"a">>, Attrs}|T], State) ->
+    % hack:offline
+    {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+    process_packet(T, State);
 process_packet([], NewState) ->
     {ok, NewState}.
 
-% [{<<"device">>,<<"android">>},{<<"id">>,<<"1">>}]
+
+% [{<<"device">>,<<"android">>},{<<"id">>,<<"1">>},{<<"phone">>, <<"18501260698">>}]
 parse_user_info(UserInfo) ->
-    case UserInfo of
-        [{<<"device">>, Device}, {<<"id">>, Id}] ->
-            {ok, #user{id = Id, device = Device}};
-        [{<<"id">>, Id}, {<<"device">>, Device}] ->
-            {ok, #user{id = Id, device = Device}};
-        _ ->
-            {error, <<"user info parse failed">>}
-    end.
+    parse_user_info(UserInfo, #user{}).
+parse_user_info([{<<"id">>, IdBin}|T], User) when is_binary(IdBin) ->
+    Id = erlang:binary_to_integer(IdBin),
+    parse_user_info(T, User#user{id = Id});
+parse_user_info([{<<"id">>, Id}|T], User) ->
+    parse_user_info(T, User#user{id = Id});
+parse_user_info([{<<"device">>, Device}|T], User) ->
+    parse_user_info(T, User#user{device = Device});
+parse_user_info([{<<"phone">>, Phone}|T], User) ->
+    parse_user_info(T, User#user{phone = Phone});
+parse_user_info([{<<"password">>, Password}|T], User) ->
+    parse_user_info(T, User#user{password = Password});
+parse_user_info([], User) ->
+    {ok, User}.
+
 
 send_ack(Socket, Attrs) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     Ack = <<"[a] id = \"", MsgId/binary, "\"">>,
     log:i("Got msg id=~p~n", [MsgId]),
     gen_tcp:send(Socket, Ack).
+
 
 send_msg_2_single_user(UserId, Msg) ->
     case session:get(UserId) of
@@ -168,6 +180,7 @@ send_msg_2_single_user(UserId, Msg) ->
         ToPidList ->
             send_msg_to_pid(ToPidList, Msg)
     end.
+
 
 send_msg_2_multiple_users([H|T], Msg) ->
     send_msg_2_single_user(H, Msg),

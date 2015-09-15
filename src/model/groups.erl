@@ -6,7 +6,7 @@
 
 -module (groups).
 
--export ([create/2, add_members/2, add_member/2]).
+-export ([create/3, add_members/2, add_member/2, get_user_id_list/1]).
 
 -compile (export_all).
 
@@ -15,31 +15,28 @@
 %% API functions
 %% ===================================================================
 
-create(Name, Members) ->
+create(Name, CreaterId, Members) ->
     {ok, _, [{GroupId}]} = postgresql:exec(<<"select nextval('groups_id_seq');">>),
-    InsertStr = <<"insert into groups(id, name, updated_at, created_at) values($1, $2, now(), now());">>,
-    {ok, 1} = postgresql:exec(InsertStr, [GroupId, Name]),
-    add_members(GroupId, Members).
+    InsertStr = <<"insert into groups(id, name, creater_id, updated_at, created_at) values($1, $2, $3, now(), now());">>,
+    {ok, 1} = postgresql:exec(InsertStr, [GroupId, Name, CreaterId]),
+    add_members(GroupId, [CreaterId|Members]).
 
 
-add_members(GroupId, Members) when is_integer(GroupId) ->
-    GroupIdBin = erlang:integer_to_binary(GroupId),
-    add_members(GroupIdBin, Members);
+add_members(GroupId, [H|T]) ->
+    ok = add_member(GroupId, H),
+    add_members(GroupId, T);
 add_members(_, []) ->
-    ok;
-add_members(GroupIdBin, [H|T]) ->
-    ok = add_member(GroupIdBin, H),
-    add_members(GroupIdBin, T).
-
-
-add_member(GroupId, UserId) when is_integer(GroupId) ->
-    GroupIdBin = erlang:integer_to_binary(GroupId),
-    add_member(GroupIdBin, UserId);
-add_member(GroupIdBin, UserId) when is_integer(UserId) ->
-    UserIdBin = erlang:integer_to_binary(UserId),
-    add_member(GroupIdBin, UserIdBin);
-add_member(GroupIdBin, UserIdBin) ->
-    InsertStr = <<"insert into group_members(group_id, user_id, updated_at, created_at) values(",
-                  GroupIdBin/binary, ", ", UserIdBin/binary, ", now(), now());">>,
-    {ok, 1} = postgresql:exec(InsertStr),
     ok.
+
+
+add_member(GroupId, UserId) ->
+    InsertStr = <<"insert into group_members(group_id, user_id, updated_at, created_at) ",
+                  "values($1, $2, now(), now());">>,
+    {ok, 1} = postgresql:exec(InsertStr, [GroupId, UserId]),
+    ok.
+
+
+get_user_id_list(GroupId) ->
+    QueryStr = <<"select user_id from group_members where group_id = $1">>,
+    {ok, _, UserIdList} = postgresql:exec(QueryStr, [GroupId]),
+    {ok, UserIdList}.

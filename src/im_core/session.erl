@@ -54,6 +54,9 @@ register(User, Pid) ->
     catch ets:insert(session, {UserId, DPList}),
     update_session(insert, {UserId, DPList}).
 
+
+unregister(undefined) ->
+    ok;
 unregister(User) ->
     UserId = User#user.id,
     UserDevice = User#user.device,
