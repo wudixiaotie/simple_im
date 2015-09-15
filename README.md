@@ -62,8 +62,14 @@ id=123
 # Guide
 ## Start Simple Im
 1.Create database tables, execute .sql files in db/postgresql.  
-2.Go to the root path of this project.   
-3.Make sure your ip address is the ip variable of the file start.sh, then run
+2.Run
+```shell
+./start.sh n1
+```
+to open the console, run users:create/3, groups:create/3 to create some users and groups for test.
+Then quite by type q().
+3.Go to the root path of this project.   
+4.Make sure your ip address is the ip variable of the file start.sh, then run
 ```shell
 ./start.sh n1 a
 ```
@@ -71,11 +77,13 @@ to start simple im. If you want to start observer, use
 ```shell
 ./start.sh n1 ao
 ```
-4.Start [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path: 
+5.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
+change the test user info of the client at client_manager.erl then in a new shell type 
 ```shell
 ./start.sh a
 ```
-5.See the server and client log.
+to start the client.
+6.See the server and client log.
 ```log
 Got r id=<<"a_01">>
 Got r id=<<"a_01">>
