@@ -82,7 +82,7 @@ change the test user info of the client at client_manager.erl then in a new shel
 ```shell
 ./start.sh a
 ```
-to start the client.
+to start the client.  
 6.See the server and client log.
 ```log
 Got r id=<<"a_01">>
