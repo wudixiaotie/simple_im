@@ -24,6 +24,13 @@
 
 -define (DEFAULT_DB_POOLSIZE, 10).
 
+-define (DEFAULT_REDIS_POOLS, [{pool0, [{size, 10},
+                                        {max_overflow, 20},
+                                        {host, "127.0.0.1"},
+                                        {port, 6379}]}]).
+
+-define (DEFAULT_REDIS_GLOBAL_OR_LOCAL, local).
+
 % @spec get(Key) -> Value
 get(Key) ->
     case application:get_env(simple_im, Key) of
@@ -43,4 +50,8 @@ get_default(db_host) -> ?DEFAULT_DB_HOST;
 get_default(db_username) -> ?DEFAULT_DB_USERNAME;
 get_default(db_password) -> ?DEFAULT_DB_PASSWORD;
 get_default(db_database) -> ?DEFAULT_DB_DATABASE;
-get_default(db_poolsize) -> ?DEFAULT_DB_POOLSIZE.
+get_default(db_poolsize) -> ?DEFAULT_DB_POOLSIZE;
+
+% redis
+get_default(redis_pools) -> ?DEFAULT_REDIS_POOLS;
+get_default(redis_global_or_local) -> ?DEFAULT_REDIS_GLOBAL_OR_LOCAL.
