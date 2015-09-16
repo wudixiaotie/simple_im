@@ -6,7 +6,14 @@
 
 -module (users).
 
--export ([create/3, verify/2]).
+-export ([create/3, verify/2, find/1, add_friend/2,
+          get_friend_user_id_list/1]).
+
+
+
+%% ===================================================================
+%% APIs
+%% ===================================================================
 
 create(Name, Phone, Password) ->
     {ok, Salt} = utility:random_binary_16(),
@@ -16,8 +23,9 @@ create(Name, Phone, Password) ->
     {ok, 1} = postgresql:exec(InsertStr, [Name, Phone, EncryptedPassword, Salt]),
     ok.
 
+
 verify(Phone, Password) ->
-    QueryStr = <<"select id, password, salt from users where phone = $1">>,
+    QueryStr = <<"select id, password, salt from users where phone = $1;">>,
     case postgresql:exec(QueryStr, [Phone]) of
         {ok, _, []} ->
             {error, user_does_not_exist};
@@ -31,3 +39,40 @@ verify(Phone, Password) ->
         {error, Reason} ->
             {error, Reason}
     end.
+
+
+find({phone, Phone}) ->
+    QueryStr = <<"select id, name from users where phone = $1;">>,
+    {ok, _, [Result]} = postgresql:exec(QueryStr, [Phone]),
+    {ok, Result}.
+
+
+add_friend(UserId, FriendUserId) ->
+    InsertStr = <<"insert into user_relations values($1, $2, now(), now());">>,
+    {ok, 1} = postgresql:exec(InsertStr, [UserId, FriendUserId]),
+    ok.
+
+
+get_friend_user_id_list(UserId) ->
+    QueryStr = <<"select friend_user_id from user_relations where user_id = $1;">>,
+    {ok, _, Result} = postgresql:exec(QueryStr, [UserId]),
+    unpack(Result).
+
+
+delete_friend(UserId, FriendUserId) ->
+    DeleteStr = <<"delete from user_relations where user_id = $1 and friend_user_id = $2;">>,
+    {ok, 1} = postgresql:exec(DeleteStr, [UserId, FriendUserId]),
+    ok.
+
+
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
+
+unpack(TupleList) ->
+    unpack(TupleList, []).
+unpack([{Value}|T], Result) ->
+    unpack(T, [Value|Result]);
+unpack([], Result) ->
+    {ok, Result}.

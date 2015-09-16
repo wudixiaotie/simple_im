@@ -26,17 +26,13 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-exec(QueryStr) ->
-    exec(QueryStr, []).
 
-exec(QueryStr, Parameters) ->
-    {ok, Cursor} = gen_server:call(?MODULE, get_cursor),
-    case catch ets:lookup_element(postgresql_connection, Cursor, 2) of
-        {'EXIT', _} ->
-            {error, get_conn_failed};
-        Conn ->
-            epgsql:equery(Conn, QueryStr, Parameters)
-    end.
+exec(Sql) ->
+    exec(Sql, []).
+
+
+exec(Sql, Parameters) ->
+    run(equery, [Sql, Parameters]).
 
 
 
@@ -51,6 +47,7 @@ init([]) ->
     ok = create_connection(DbPoolSize),
     {ok, #state{cursor = 1, pool_size = DbPoolSize}}.
 
+
 handle_call(get_cursor, _From, #state{cursor = Cursor} = State) ->
     case Cursor + 1 > State#state.pool_size of
         true ->
@@ -61,6 +58,7 @@ handle_call(get_cursor, _From, #state{cursor = Cursor} = State) ->
     {reply, {ok, Cursor}, State#state{cursor = NewCursor}};
 handle_call(_Request, _From, State) ->
     {reply, nomatch, State}.
+
 
 handle_cast(_Msg, State) -> {noreply, State}.
 handle_info(_Info, State) -> {noreply, State}.
@@ -77,3 +75,13 @@ create_connection(0) ->
 create_connection(N) ->
     supervisor:start_child(postgresql_sup, [N]),
     create_connection(N - 1).
+
+
+run(F, A) ->
+    {ok, Cursor} = gen_server:call(?MODULE, get_cursor),
+    case catch ets:lookup_element(postgresql_connection, Cursor, 2) of
+        {'EXIT', _} ->
+            {error, get_conn_failed};
+        Conn ->
+            apply(epgsql, F, [Conn|A])
+    end.
