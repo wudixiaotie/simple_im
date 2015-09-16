@@ -8,11 +8,24 @@
 
 -export ([store/2, get/1]).
 
-% you can use redis ssdb mongodb mysql postgresql as your offline message db.
+% offline message expired after 7 days
+-define (OFFLINE_EXPIRATION_TIME, "604800").
+
+
+
+%% ===================================================================
+%% APIs
+%% ===================================================================
 
 store(UserId, Msg) ->
-
+    redis:q([<<"SETEX">>, Msg, ?OFFLINE_EXPIRATION_TIME, "bar"]).
     ok.
 
 get(UserId) ->
     {ok, []}.
+
+
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================

@@ -22,12 +22,14 @@
 -include("user.hrl").
 
 
+
 %% ===================================================================
 %% APIs
 %% ===================================================================
 
 start_link(Socket) ->
     gen_server:start_link(?MODULE, [Socket], []).
+
 
 
 %% ===================================================================
@@ -39,10 +41,13 @@ init([Socket]) ->
                    heartbeat_timeout = env:get(heartbeat_timeout)},
     setopts(State#state.socket),
     {ok, State, State#state.heartbeat_timeout}.
+
+
 handle_call(_Request, _From, State) ->
     {reply, nomatch, State, State#state.heartbeat_timeout}.
 handle_cast(_Msg, State) ->
     {noreply, State, State#state.heartbeat_timeout}.
+
 
 
 %% ===================================================================
@@ -65,6 +70,7 @@ handle_info(timeout, State) ->
     {noreply, State, State#state.heartbeat_timeout};
 
 
+
 %% ===================================================================
 %% business receiver
 %% ===================================================================
@@ -83,6 +89,7 @@ handle_info(Info, State) ->
 terminate(_Reason, #state{user = User}) ->
     session:unregister(User).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
+
 
 
 %% ===================================================================
