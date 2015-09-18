@@ -18,14 +18,23 @@
 %% ===================================================================
 
 store(UserId, Msg) ->
-    redis:q([<<"SETEX">>, Msg, ?OFFLINE_EXPIRATION_TIME, "bar"]),
+    {ok, Key} = make_key(UserId),
+    {ok, _} = redis:q([<<"RPUSH">>, Key, Msg]),
     ok.
 
 get(UserId) ->
-    {ok, []}.
+    {ok, Key} = make_key(UserId),
+    {ok, Result} = redis:q([<<"LRANGE">>, Key, <<"0">>, <<"-1">>]),
+    {ok, <<"OK">>} = redis:q([<<"LTRIM">>, Key, <<"1">>, <<"0">>]),
+    {ok, Result}.
 
 
 
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+make_key(UserId) ->
+    UserIdBin = integer_to_binary(UserId),
+    Key = <<"offline_", UserIdBin/binary>>,
+    {ok, Key}.

@@ -6,7 +6,8 @@
 
 -module (utility).
 
--export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0, random_number/1]).
+-export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0, random_number/1, guid/0]).
+
 
 
 %% ===================================================================
@@ -30,18 +31,28 @@ tuple_to_toml(Name, [H|T], Result) ->
 tuple_to_toml(_, _, Result) ->
     {ok, Result}.
 
+
 md5_hex_32(Bin) ->
     MD5_16 = erlang:md5(Bin),
     Md5 = << <<(hex(A)), (hex(B))>> || <<A:4,B:4>> <= MD5_16 >>,
     {ok, Md5}.
 
+
 random_binary_16() ->
     {ok, base64:encode(crypto:strong_rand_bytes(12))}.
+
 
 random_number(Max) ->
     <<A:32, B:32, C:32>> = crypto:strong_rand_bytes (12),
     random:seed (A, B, C),
     {ok, random:uniform(Max)}.
+
+
+guid() ->
+    RandomBytes = crypto:strong_rand_bytes(6),
+    TimestampBytes = erlang:md5(erlang:term_to_binary(os:timestamp())),
+    {ok, base64:encode(<<RandomBytes/binary, TimestampBytes/binary>>)}.
+
 
 
 %% ===================================================================
@@ -59,7 +70,6 @@ list_to_toml([], Result) ->
 
 key_value_to_toml({Key, Value}) ->
     {ok, <<Key/binary, " = \"", Value/binary, "\"">>}.
-
 
 
 hex(0)  -> $0;
