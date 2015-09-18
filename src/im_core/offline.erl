@@ -18,7 +18,7 @@
 %% ===================================================================
 
 store(UserId, Msg) ->
-    redis:q([<<"SETEX">>, Msg, ?OFFLINE_EXPIRATION_TIME, "bar"]).
+    redis:q([<<"SETEX">>, Msg, ?OFFLINE_EXPIRATION_TIME, "bar"]),
     ok.
 
 get(UserId) ->

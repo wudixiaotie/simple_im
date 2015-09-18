@@ -52,8 +52,16 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
              #state{listen_socket = ListenSocket, acceptor_ref = AcceptorRef} = State) ->
     case set_sockopt(State#state.listen_socket, ClientSocket) of
         ok ->
-            {ok, Pid} = supervisor:start_child(client_sup, [ClientSocket]),
-            gen_tcp:controlling_process(ClientSocket, Pid),
+            case {inet:sockname(ClientSocket), inet:peername(ClientSocket)} of
+                {{ok, {Addr, Port}}, {ok, {PAddr, PPort}}} ->
+                    log:i("listener accept socket: (~w),~nclient:~s(~p),~nserver:~s(~p)",
+                          [ClientSocket, inet_parse:ntoa(PAddr), PPort,
+                           inet_parse:ntoa(Addr), Port]),
+                    {ok, Pid} = supervisor:start_child(client_sup, [ClientSocket]),
+                    gen_tcp:controlling_process(ClientSocket, Pid);
+                _ ->
+                    ok
+            end,
             case prim_inet:async_accept(ListenSocket, -1) of
                 {ok,    NewAcceptorRef} -> ok;
                 {error, NewAcceptorRef} ->
