@@ -100,6 +100,7 @@ setopts(Swocket) ->
     inet:setopts(Swocket, [{active, 300}, {packet, 0}, binary]).
 
 
+% request
 process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got r id=~p~n", [MsgId]),
@@ -125,6 +126,7 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
     end,
     gen_tcp:send(Socket, RR),
     process_packet(T, NewState);
+% message
 process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     send_ack(Socket, Attrs),
     case lists:keyfind(<<"to">>, 1, Attrs) of
@@ -135,6 +137,7 @@ process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
             ignore
     end,
     process_packet(T, State);
+% group message
 process_packet([{<<"gm">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     send_ack(Socket, Attrs),
     case lists:keyfind(<<"group">>, 1, Attrs) of
@@ -145,6 +148,7 @@ process_packet([{<<"gm">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
             ignore
     end,
     process_packet(T, State);
+% ack
 process_packet([{<<"a">>, Attrs}|T], State) ->
     % hack:offline
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
