@@ -64,7 +64,7 @@ handle_info({tcp_passive, Swocket}, #state{socket = Swocket} = State) ->
     {noreply, State, State#state.heartbeat_timeout};
 % connection closed
 handle_info({tcp_closed, _Socket}, State) ->
-    {stop, tcp_closed, State};
+    {noreply, State#state{socket = undefined}, State#state.heartbeat_timeout};
 handle_info(timeout, State) ->
     proc_lib:hibernate(gen_server, enter_loop, [?MODULE, [], State]),
     {noreply, State, State#state.heartbeat_timeout};
@@ -100,24 +100,38 @@ setopts(Swocket) ->
     inet:setopts(Swocket, [{active, 300}, {packet, 0}, binary]).
 
 
+% request
 process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got r id=~p~n", [MsgId]),
 
-    RR = case lists:keyfind(<<"c">>, 1, Attrs) of
-        {<<"c">>, <<"login">>} ->
+    RR = case lists:keyfind(<<"t">>, 1, Attrs) of
+        {<<"t">>, <<"login">>} ->
             {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
             {ok, User} = parse_user_info(UserInfo),
             case users:verify(User#user.phone, User#user.password) of
                 {ok, true, UserId} ->
-                    NewUser = User#user{id = UserId},
+                    {ok, Token} = utility:random_binary_16(),
+                    NewUser = User#user{id = UserId, token = Token},
                     session:register(NewUser, self()),
                     NewState = State#state{user = NewUser},
                     UserIdBin = erlang:integer_to_binary(UserId),
-                    <<"[rr] id = \"", MsgId/binary, "\" s = 0 user_id = ", UserIdBin/binary>>;
+                    <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 0 [r.user] id = ",
+                       UserIdBin/binary, " token = \"", Token/binary, "\"">>;
                 {ok, false} ->
                     NewState = State,
-                    <<"[rr] id = \"", MsgId/binary, "\" s = 1 c = \"password not match\"">>
+                    <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"password not match\"">>
+            end;
+        {<<"t">>, <<"reconnect">>} ->
+            NewState = State,
+            {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
+            {ok, User} = parse_user_info(UserInfo),
+            case session:verify(User) of
+                ok ->
+                    <<"[rr] id = \"", MsgId/binary, "\" t = \"reconnect\" s = 0">>;
+                Reason ->
+                    <<"[rr] id = \"", MsgId/binary,
+                      "\"t = \"reconnect\" s = 1 r = \"", Reason/binary, "\"">>
             end;
         _ ->
             NewState = State,
@@ -125,6 +139,7 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
     end,
     gen_tcp:send(Socket, RR),
     process_packet(T, NewState);
+% message
 process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     send_ack(Socket, Attrs),
     case lists:keyfind(<<"to">>, 1, Attrs) of
@@ -135,6 +150,7 @@ process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
             ignore
     end,
     process_packet(T, State);
+% group message
 process_packet([{<<"gm">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     send_ack(Socket, Attrs),
     case lists:keyfind(<<"group">>, 1, Attrs) of
@@ -145,6 +161,7 @@ process_packet([{<<"gm">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
             ignore
     end,
     process_packet(T, State);
+% ack
 process_packet([{<<"a">>, Attrs}|T], State) ->
     % hack:offline
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
@@ -163,6 +180,8 @@ parse_user_info([{<<"id">>, Id}|T], User) ->
     parse_user_info(T, User#user{id = Id});
 parse_user_info([{<<"device">>, Device}|T], User) ->
     parse_user_info(T, User#user{device = Device});
+parse_user_info([{<<"token">>, Token}|T], User) ->
+    parse_user_info(T, User#user{token = Token});
 parse_user_info([{<<"phone">>, Phone}|T], User) ->
     parse_user_info(T, User#user{phone = Phone});
 parse_user_info([{<<"password">>, Password}|T], User) ->
@@ -179,7 +198,7 @@ send_ack(Socket, Attrs) ->
 
 
 send_msg_2_single_user(UserId, Msg) ->
-    case session:get(UserId) of
+    case session:get_pid_list(UserId) of
         offline ->
             % hack: offline
             log:i("offline msg: ~p~n", [Msg]),

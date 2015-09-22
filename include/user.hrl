@@ -1,4 +1,5 @@
--record (user, {id :: binary(),
+-record (user, {id :: integer(),
                 device :: binary(),
+                token :: binary(),
                 phone :: binary(),
                 password :: binary()}).

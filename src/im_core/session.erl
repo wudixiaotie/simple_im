@@ -9,7 +9,7 @@
 -behaviour (gen_server).
 
 % APIs
--export([start_link/0, get/1, register/2, unregister/1]).
+-export([start_link/0, get_pid_list/1, register/2, unregister/1, verify/1]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -31,49 +31,68 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-get(UserId) ->
+
+get_pid_list(UserId) ->
     case ets:lookup(session, UserId) of
         [] ->
             offline;
-        [{UserId, DPList}] ->
-            [Pid || {_, Pid} <- DPList]
+        [{UserId, DeviceList}] ->
+            [Pid || {_, _, Pid} <- DeviceList]
     end.
+
 
 register(User, Pid) ->
     UserId = User#user.id,
-    UserDevice = User#user.device,
-    DPList = case ets:lookup(session, UserId) of
+    Device = User#user.device,
+    Token = User#user.token,
+    DeviceList = case ets:lookup(session, UserId) of
         [] ->
-            [{UserDevice, Pid}];
-        [{UserId, OriginalDPList}] ->
-            lists:keystore(UserDevice, 1, OriginalDPList, {UserDevice, Pid})
+            [{Device, Pid}];
+        [{UserId, OriginalDeviceList}] ->
+            lists:keystore(Device, 1, OriginalDeviceList, {Device, Token, Pid})
     end,
 
     % This place I use catch to ensure update_session will always 
     % be execuate wether session process is down or not.
-    catch ets:insert(session, {UserId, DPList}),
-    update_session(insert, {UserId, DPList}).
+    catch ets:insert(session, {UserId, DeviceList}),
+    update_session(insert, {UserId, DeviceList}).
 
 
 unregister(undefined) ->
     ok;
 unregister(User) ->
     UserId = User#user.id,
-    UserDevice = User#user.device,
-    DPList = case ets:lookup(session, UserId) of
+    Device = User#user.device,
+    DeviceList = case ets:lookup(session, UserId) of
         [] ->
             [];
-        [{UserId, OriginalDPList}] ->
-            lists:keydelete(UserDevice, 1, OriginalDPList)
+        [{UserId, OriginalDeviceList}] ->
+            lists:keydelete(Device, 1, OriginalDeviceList)
     end,
 
-    case DPList of
+    case DeviceList of
         [] ->
             catch ets:delete(session, UserId),
             update_session(delete, UserId);
         _ ->
-            catch ets:insert(session, {UserId, DPList}),
-            update_session(insert, {UserId, DPList})
+            catch ets:insert(session, {UserId, DeviceList}),
+            update_session(insert, {UserId, DeviceList})
+    end.
+
+
+verify(User) ->
+    verify(User#user.id, User#user.device, User#user.token).
+verify(UserId, Device, Token) ->
+    case  ets:lookup(session, UserId) of
+        [] ->
+            offline;
+        [{UserId, DeviceList}] ->
+            case lists:keyfind(Device, 1, DeviceList) of
+                {Device, Token, _} ->
+                    ok;
+                _ ->
+                    not_match
+            end
     end.
 
 
@@ -100,14 +119,17 @@ init([]) ->
     end,
     {ok, []}.
 
+
 handle_call(copy, _From, State) ->
     SessionList = ets:tab2list(session),
     {reply, SessionList, State};
 handle_call(_Request, _From, State) ->
     {reply, nomatch, State}.
 
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
+
 
 handle_info({copy_from, FatherNode}, State) ->
     log:i("~p start copy session data from ~p~n", [node(), FatherNode]),
@@ -120,6 +142,7 @@ handle_info({update, Type, Session}, State) ->
     {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
+
 
 terminate(_Reason, _State) -> ok.
 code_change(_OldVer, State, _Extra) -> {ok, State}.
@@ -134,6 +157,7 @@ init_session([H|T]) ->
     init_session(T);
 init_session([]) ->
     ok.
+
 
 -spec update_session(Type :: insert | delete,
                      Session :: userid() |
