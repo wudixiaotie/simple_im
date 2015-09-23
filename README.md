@@ -1,34 +1,66 @@
 # simple_im
-## I use toml as transmission protocol instead of xml or json.
-## Use postgresql as database for user & group information store.
-## The pg connection pool implement by myself instead of use poolboy, why? Because the [pg driver](https://github.com/epgsql/epgsql) allow concurrent pgsql:equery on same connection.
-### Protocol
-Request:  
+#### I use toml as transmission protocol instead of xml or json.
+#### Use postgresql as database for user & group information store.
+#### The pg connection pool implement by myself instead of use poolboy, why? Because the [pg driver](https://github.com/epgsql/epgsql) allow concurrent pgsql:equery on same connection.
+## Protocol
+### Request:  
+#### login:  
 ```toml
 [r]
 id="a_01"
-c="login"
+t="login"
 [r.user]
 phone="13812341234"
 password="888888"
 device="ipad"
 ```
-Request Response:  
+#### reconnect:  
+```toml
+[r]
+id="b_01"
+t="reconnect"
+[r.user]
+id=1
+device="android"
+token="w5Y2B+Y5eXNxS1t4"
+```
+### Request Response:  
+#### login:  
 failed(s means status, value 1 is failed):
 ```toml
 [rr]
 id="a_01"
 s=1
-c="password not match"
+t="login"
+r="password not match"
 ```
 success(s means status, value 0 is success):
 ```toml
 [rr]
 id="a_01"
+t="login"
 s=0
-user_id=1
+[rr.user]
+id=1
+token="w5Y2B+Y5eXNxS1t4"
 ```
-Message:  
+#### reconnect:  
+failed(s means status, value 1 is failed):
+```toml
+[rr]
+id="b_01"
+t="reconnect"
+r="offline"
+s=1
+```
+success(s means status, value 0 is success):
+```toml
+[rr]
+id="b_01"
+t="reconnect"
+s=0
+```
+### Message:  
 ```toml
 [m]
 id="a_02"
@@ -40,12 +72,12 @@ device="android"
 id=2
 device="ipad"
 ```
-Ack:
+### Ack:
 ```toml
 [a]
 id="a_02"
 ```
-Group Message:  
+### Group Message:  
 ```toml
 [gm]
 id="a_02"
