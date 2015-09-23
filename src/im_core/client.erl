@@ -105,7 +105,7 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got r id=~p~n", [MsgId]),
 
-    RR = case lists:keyfind(<<"t">>, 1, Attrs) of
+    case lists:keyfind(<<"t">>, 1, Attrs) of
         {<<"t">>, <<"login">>} ->
             {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
             {ok, User} = parse_user_info(UserInfo),
@@ -116,29 +116,35 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
                     session:register(NewUser, self()),
                     NewState = State#state{user = NewUser},
                     UserIdBin = erlang:integer_to_binary(UserId),
-                    <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 0 [r.user] id = ",
-                       UserIdBin/binary, " token = \"", Token/binary, "\"">>;
+                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 0 [rr.user] id = ",
+                            UserIdBin/binary, " token = \"", Token/binary, "\"">>,
+                    gen_tcp:send(Socket, RR),
+                    process_packet(T, NewState);
                 {ok, false} ->
-                    NewState = State,
-                    <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"password not match\"">>
+                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"password not match\"">>,
+                    gen_tcp:send(Socket, RR),
+                    process_packet(T, State)
             end;
         {<<"t">>, <<"reconnect">>} ->
-            NewState = State,
             {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
             {ok, User} = parse_user_info(UserInfo),
             case session:verify(User) of
                 ok ->
-                    <<"[rr] id = \"", MsgId/binary, "\" t = \"reconnect\" s = 0">>;
+                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"reconnect\" s = 0">>,
+                    gen_tcp:send(Socket, RR),
+                    process_packet(T, State);
                 Reason ->
-                    <<"[rr] id = \"", MsgId/binary,
-                      "\"t = \"reconnect\" s = 1 r = \"", Reason/binary, "\"">>
+                    RR = <<"[rr] id = \"", MsgId/binary,
+                            "\"t = \"reconnect\" s = 1 r = \"", Reason/binary, "\"">>,
+                    gen_tcp:send(Socket, RR),
+                    gen_tcp:close(Socket),
+                    process_packet([], State#state{socket = undefined})
             end;
         _ ->
-            NewState = State,
-            <<"[rr] id = \"", MsgId/binary, "\" c = \"error\"">>
-    end,
-    gen_tcp:send(Socket, RR),
-    process_packet(T, NewState);
+            RR = <<"[rr] id = \"", MsgId/binary, "\" c = \"error\"">>,
+            gen_tcp:send(Socket, RR),
+            process_packet(T, State)
+    end;
 % message
 process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     send_ack(Socket, Attrs),

@@ -12,7 +12,9 @@
 % 10 minutes
 -define (DEFAULT_HEARTBEAT_TIMEOUT, 600000).
 
--define (DEFAULT_FATHER_NODE, 's1@192.168.1.137').
+-define (DEFAULT_NODE_LIST, ['s1@simple_im.com',
+                             's2@simple_im.com',
+                             's3@simple_im.com']).
 
 -define (DEFAULT_DB_HOST, "localhost").
 
@@ -43,7 +45,7 @@ get(Key) ->
 %% ===================================================================
 get_default(port) -> ?DEFAULT_PORT;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
-get_default(father_node) -> ?DEFAULT_FATHER_NODE;
+get_default(node_list) -> ?DEFAULT_NODE_LIST;
 
 % database
 get_default(db_host) -> ?DEFAULT_DB_HOST;

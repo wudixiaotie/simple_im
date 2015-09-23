@@ -93,15 +93,19 @@ id=123
 
 # Guide
 ## Start Simple Im
-1.Create database tables, execute .sql files in db/postgresql.  
-2.Run
+#### 1.Download the porject, and go to the root path of this porject.
+#### 2.Create database tables, execute .sql files in db/postgresql.  
+#### 3.Create test data.  
+Run
 ```shell
 ./start.sh n1
 ```
 to open the console, run users:create/3, groups:create/3 to create some users and groups for test.
 Then quite by type q().
-3.Go to the root path of this project.   
-4.Make sure your ip address is the ip variable of the file start.sh, then run
+#### 3.Add dns of simple_im.com:    
+Edit /etc/hosts file, add line of 'your IP address   simple_im.com', make sure your ip address is the real ip, not localhost or 127.0.0.1  
+#### 4.Start project:  
+For single node run
 ```shell
 ./start.sh n1 a
 ```
@@ -109,13 +113,23 @@ to start simple im. If you want to start observer, use
 ```shell
 ./start.sh n1 ao
 ```
-5.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
+For multiple nodes run
+```shell
+./start.sh n1 a
+```
+```shell
+./start.sh n2 a
+```
+```shell
+./start.sh n3 a
+```
+#### 5.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
 change the test user info of the client at client_manager.erl then in a new shell type 
 ```shell
 ./start.sh a
 ```
 to start the client.  
-6.See the server and client log.
+#### 6.See the server and client log.
 ```log
 Got r id=<<"a_01">>
 Got r id=<<"a_01">>
@@ -124,6 +138,5 @@ Got msg id=<<"a_02">>
 
 
 # TODO List:
-1. finish Users DB Module
-2. finish Groups DB Module
-3. add time to message
+1. build a http server for most of the request.Like ask for server ip&port, login, reconnect.
+2. add time to message

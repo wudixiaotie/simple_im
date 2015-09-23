@@ -103,19 +103,20 @@ verify(UserId, Device, Token) ->
 
 init([]) ->
     ets:new(session, [named_table, public, {read_concurrency, true}, {write_concurrency, true}]),
-    FatherNode = env:get(father_node),
-    case FatherNode == node() of
-        true ->
-            ok;
-        false ->
-            net_adm:ping(FatherNode),
+    Node = node(),
+    case get_available_node() of
+        {ok, Node} ->
+            ignore;
+        {ok, FatherNode} ->
             % The aim is to ensure that the message "{copy_from, FatherNode}" 
             % save at head of the session gen_server message queue, and 
             % register process name as soon as possible. Then current node 
             % will receive message when other node update session, so 
             % gen_server:"session" will process update session after 
             % copy session data from FatherNode, rather than the opposite.
-            self() ! {copy_from, FatherNode}
+            self() ! {copy_from, FatherNode};
+        _ ->
+            ignore
     end,
     {ok, []}.
 
@@ -151,6 +152,20 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+get_available_node() ->
+    NodeList = env:get(node_list),
+    get_available_node(NodeList).
+get_available_node([H|T])  ->
+    case net_adm:ping(H) of
+        pong ->
+            {ok, H};
+        pang ->
+            get_available_node(T)
+    end;
+get_available_node([]) ->
+    {error, all_unavailable}.
+
 
 init_session([H|T]) ->
     ets:insert(session, H),

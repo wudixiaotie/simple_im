@@ -30,7 +30,7 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    Port = env:get(port),
+    {ok, Port} = get_free_port(),
     log:i("start listen port: ~p~n", [Port]),
     Opts = [binary,
             {packet, 0},
@@ -86,6 +86,21 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+get_free_port() ->
+    DefaultPort = env:get(port),
+    get_free_port(DefaultPort).
+get_free_port(Port) when Port < 65536 ->
+    case gen_tcp:connect("localhost", Port, []) of
+        {error, _Reason} ->
+            {ok, Port};
+        {ok, Socket} ->
+            gen_tcp:close(Socket),
+            get_free_port(Port + 1)
+    end;
+get_free_port(_) ->
+    {error, out_of_range}.
+
 
 %% Taken from prim_inet.  We are merely copying some socket options from the
 %% listening socket to the new TCP socket.

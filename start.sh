@@ -3,9 +3,6 @@ rebar compile
 
 erl_start="erl -pa ebin/ -pa deps/*/ebin/ -smp +Q 1100000 +P 1100000"
 
-ip="192.168.1.137"
-# ip="192.168.3.5"
-
 case $1 in
     "o" )
         erl_command="$erl_start -eval \"observer:start().\""
@@ -17,13 +14,13 @@ case $1 in
         erl_command="$erl_start -eval \"observer:start().\" -eval \"application:start(simple_im).\""
         ;;
     "n1" )
-        erl_command="$erl_start -name s1@$ip"
+        erl_command="$erl_start -name s1@simple_im.com"
         ;;
     "n2" )
-        erl_command="$erl_start -name s2@$ip -eval \"net_adm:ping('s1@$ip').\""
+        erl_command="$erl_start -name s2@simple_im.com"
         ;;
     "n3" )
-        erl_command="$erl_start -name s3@$ip -eval \"net_adm:ping('s1@$ip').\""
+        erl_command="$erl_start -name s3@simple_im.com"
         ;;
     "" )
         erl_command="$erl_start"
@@ -44,10 +41,10 @@ case $2 in
         $erl_command -eval "observer:start()." -eval "application:start(simple_im)."
         ;;
     "n1" )
-        $erl_command -name s1@$ip
+        $erl_command -name s1@simple_im.com
         ;;
     "n2" )
-        $erl_command -name s2@$ip -eval "net_adm:ping('s1@$ip')."
+        $erl_command -name s2@simple_im.com 
         ;;
     "" )
         $erl_command
