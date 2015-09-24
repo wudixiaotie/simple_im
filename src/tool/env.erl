@@ -43,6 +43,7 @@ get(Key) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
 get_default(port) -> ?DEFAULT_PORT;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
 get_default(node_list) -> ?DEFAULT_NODE_LIST;
