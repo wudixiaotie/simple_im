@@ -9,6 +9,9 @@
 -export ([get/1]).
 
 -define (DEFAULT_PORT, 1987).
+
+-define (DEFAULT_HTTP_PORT, 8080).
+
 % 10 minutes
 -define (DEFAULT_HEARTBEAT_TIMEOUT, 600000).
 
@@ -45,6 +48,7 @@ get(Key) ->
 %% ===================================================================
 
 get_default(port) -> ?DEFAULT_PORT;
+get_default(http_port) -> ?DEFAULT_HTTP_PORT;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
 get_default(node_list) -> ?DEFAULT_NODE_LIST;
 

@@ -6,7 +6,8 @@
 
 -module (utility).
 
--export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0, random_number/1, guid/0]).
+-export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0,
+          random_number/1, guid/0, get_free_port/1]).
 
 
 
@@ -52,6 +53,18 @@ guid() ->
     RandomBytes = crypto:strong_rand_bytes(6),
     TimestampBytes = erlang:md5(erlang:term_to_binary(os:timestamp())),
     {ok, base64:encode(<<RandomBytes/binary, TimestampBytes/binary>>)}.
+
+
+get_free_port(Port) when Port < 65536 ->
+    case gen_tcp:connect("localhost", Port, []) of
+        {error, _Reason} ->
+            {ok, Port};
+        {ok, Socket} ->
+            gen_tcp:close(Socket),
+            get_free_port(Port + 1)
+    end;
+get_free_port(_) ->
+    {error, out_of_range}.
 
 
 

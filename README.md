@@ -110,21 +110,21 @@ Edit /etc/hosts file, add line of 'your IP address   simple_im.com', make sure y
 #### 4.Start project:  
 For single node run
 ```shell
-./start.sh n1 a
+./start.sh n1 im
 ```
 to start simple im. If you want to start observer, use
 ```shell
-./start.sh n1 ao
+./start.sh n1 im o
 ```
 For multiple nodes run
 ```shell
-./start.sh n1 a
+./start.sh n1 im
 ```
 ```shell
-./start.sh n2 a
+./start.sh n2 im
 ```
 ```shell
-./start.sh n3 a
+./start.sh n3 im
 ```
 #### 5.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
 change the test user info of the client at client_manager.erl then in a new shell type 
