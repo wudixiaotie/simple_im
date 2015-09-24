@@ -1,5 +1,6 @@
 # simple_im
 #### I use toml as transmission protocol instead of xml or json.
+#### Use ets table as session store.
 #### Use postgresql as database for user & group information store.
 #### The pg connection pool implement by myself instead of use poolboy, why? Because the [pg driver](https://github.com/epgsql/epgsql) allow concurrent pgsql:equery on same connection.
 ## Protocol
@@ -89,7 +90,9 @@ device="android"
 id=123
 ```
 
-## Use ets table as session store
+## Http request:
+### Ask for which node to login/reconnect
+
 
 # Guide
 ## Start Simple Im

@@ -68,6 +68,9 @@ list_to_toml([{Key, Value}|T], Result) ->
 list_to_toml([], Result) ->
     {ok, Result}.
 
+key_value_to_toml({Key, Value}) when is_integer(Value) ->
+    ValueBin = integer_to_binary(Value),
+    {ok, <<Key/binary, " = ", ValueBin/binary, "">>};
 key_value_to_toml({Key, Value}) ->
     {ok, <<Key/binary, " = \"", Value/binary, "\"">>}.
 
