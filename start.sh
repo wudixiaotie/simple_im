@@ -44,7 +44,6 @@ case $3 in
         $erl_command -eval "observer:start()."
         ;;
     "" )
-        echo $erl_command
         $erl_command
         ;;
     * )

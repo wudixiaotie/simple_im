@@ -108,7 +108,7 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
     case lists:keyfind(<<"t">>, 1, Attrs) of
         {<<"t">>, <<"login">>} ->
             {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
-            {ok, User} = parse_user_info(UserInfo),
+            {ok, User} = users:parse(UserInfo),
             case users:verify(User#user.phone, User#user.password) of
                 {ok, true, UserId} ->
                     {ok, Token} = utility:random_binary_16(),
@@ -127,7 +127,7 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
             end;
         {<<"t">>, <<"reconnect">>} ->
             {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
-            {ok, User} = parse_user_info(UserInfo),
+            {ok, User} = users:parse(UserInfo),
             case session:verify(User) of
                 ok ->
                     RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"reconnect\" s = 0">>,
@@ -150,7 +150,7 @@ process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     send_ack(Socket, Attrs),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserInfo} ->
-            {ok, ToUser} = parse_user_info(ToUserInfo),
+            {ok, ToUser} = users:parse(ToUserInfo),
             send_msg_2_single_user(ToUser#user.id, Msg);
         _ ->
             ignore
@@ -174,26 +174,6 @@ process_packet([{<<"a">>, Attrs}|T], State) ->
     process_packet(T, State);
 process_packet([], NewState) ->
     {ok, NewState}.
-
-
-% [{<<"device">>,<<"android">>},{<<"id">>,<<"1">>},{<<"phone">>, <<"18501260698">>}]
-parse_user_info(UserInfo) ->
-    parse_user_info(UserInfo, #user{}).
-parse_user_info([{<<"id">>, IdBin}|T], User) when is_binary(IdBin) ->
-    Id = erlang:binary_to_integer(IdBin),
-    parse_user_info(T, User#user{id = Id});
-parse_user_info([{<<"id">>, Id}|T], User) ->
-    parse_user_info(T, User#user{id = Id});
-parse_user_info([{<<"device">>, Device}|T], User) ->
-    parse_user_info(T, User#user{device = Device});
-parse_user_info([{<<"token">>, Token}|T], User) ->
-    parse_user_info(T, User#user{token = Token});
-parse_user_info([{<<"phone">>, Phone}|T], User) ->
-    parse_user_info(T, User#user{phone = Phone});
-parse_user_info([{<<"password">>, Password}|T], User) ->
-    parse_user_info(T, User#user{password = Password});
-parse_user_info([], User) ->
-    {ok, User}.
 
 
 send_ack(Socket, Attrs) ->

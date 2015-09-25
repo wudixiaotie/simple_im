@@ -11,9 +11,9 @@
 id="a_01"
 t="login"
 [r.user]
-phone="13812341234"
-password="888888"
+id=1
 device="ipad"
+token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
 ```
 #### reconnect:  
 ```toml
@@ -22,8 +22,8 @@ id="b_01"
 t="reconnect"
 [r.user]
 id=1
-device="android"
-token="w5Y2B+Y5eXNxS1t4"
+device="ipad"
+token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
 ```
 ### Request Response:  
 #### login:  
@@ -33,7 +33,7 @@ failed(s means status, value 1 is failed):
 id="a_01"
 s=1
 t="login"
-r="password not match"
+r="token error"
 ```
 success(s means status, value 0 is success):
 ```toml
@@ -41,9 +41,6 @@ success(s means status, value 0 is success):
 id="a_01"
 t="login"
 s=0
-[rr.user]
-id=1
-token="w5Y2B+Y5eXNxS1t4"
 ```
 #### reconnect:  
 failed(s means status, value 1 is failed):
@@ -51,7 +48,7 @@ failed(s means status, value 1 is failed):
 [rr]
 id="b_01"
 t="reconnect"
-r="offline"
+r="token error"
 s=1
 ```
 success(s means status, value 0 is success):
@@ -92,6 +89,10 @@ id=123
 
 ## Http request:
 ### Ask for which node to login/reconnect
+#### login:
+curl --data-urlencode "phone=18501260698&password=888888" http://simple_im.com/server/login
+#### reconnect:
+curl --data-urlencode "id=1&token=AAklxuC39JJtttUMwKHq3teKwOzWtmJc" http://localhost:8080/server/reconnect
 
 
 # Guide
@@ -139,6 +140,16 @@ Got r id=<<"a_01">>
 Got msg id=<<"a_02">>
 ```
 
+
+# Redis Data Structure
+### Offline message
+Type: LIST
+Key: <<"offline_", UserId/binary>>
+Value: Msg
+### Relationship between client and node
+Type: HASH
+Key: <<"client_", Token/binary>>
+Value: [<<"ip">>, Ip,<<"port">>, Port, <<"id">>, UserId]
 
 # TODO List:
 1. build a http server for most of the request.Like ask for server ip&port, login, reconnect.

@@ -7,7 +7,9 @@
 -module (users).
 
 -export ([create/3, verify/2, find/1, add_friend/2,
-          get_friend_user_id_list/1]).
+          get_friend_user_id_list/1, parse/1]).
+
+-include("user.hrl").
 
 
 
@@ -65,6 +67,11 @@ delete_friend(UserId, FriendUserId) ->
     ok.
 
 
+% [{<<"device">>,<<"android">>},{<<"id">>,<<"1">>},{<<"phone">>, <<"18501260698">>}]
+parse(TupleList) ->
+    parse(TupleList, #user{}).
+
+
 
 %% ===================================================================
 %% Internal functions
@@ -76,3 +83,20 @@ unpack([{Value}|T], Result) ->
     unpack(T, [Value|Result]);
 unpack([], Result) ->
     {ok, Result}.
+
+
+parse([{<<"id">>, IdBin}|T], User) when is_binary(IdBin) ->
+    Id = erlang:binary_to_integer(IdBin),
+    parse(T, User#user{id = Id});
+parse([{<<"id">>, Id}|T], User) ->
+    parse(T, User#user{id = Id});
+parse([{<<"device">>, Device}|T], User) ->
+    parse(T, User#user{device = Device});
+parse([{<<"token">>, Token}|T], User) ->
+    parse(T, User#user{token = Token});
+parse([{<<"phone">>, Phone}|T], User) ->
+    parse(T, User#user{phone = Phone});
+parse([{<<"password">>, Password}|T], User) ->
+    parse(T, User#user{password = Password});
+parse([], User) ->
+    {ok, User}.

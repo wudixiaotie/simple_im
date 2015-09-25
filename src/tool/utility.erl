@@ -16,21 +16,7 @@
 %% ===================================================================
 
 tuple_to_toml({Name, Attrs}) ->
-    AttrsRev = lists:reverse(Attrs),
-    tuple_to_toml(Name, AttrsRev, <<"[", Name/binary, "]">>).
-tuple_to_toml(Name, [H|T], Result) ->
-    {Key, Value} = H,
-    case is_list(Value) of
-        true ->
-            {ok, Bin} = list_to_toml(Value),
-            NewResult = <<Result/binary, " [", Name/binary, ".", Key/binary, "]", Bin/binary>>;
-        _ ->
-            {ok, Bin} = key_value_to_toml({Key, Value}),
-            NewResult = <<Result/binary, " ", Bin/binary>>
-    end,
-    tuple_to_toml(Name, T, NewResult);
-tuple_to_toml(_, _, Result) ->
-    {ok, Result}.
+    tuple_to_toml(none, {Name, Attrs}).
 
 
 md5_hex_32(Bin) ->
@@ -50,7 +36,7 @@ random_number(Max) ->
 
 
 guid() ->
-    RandomBytes = crypto:strong_rand_bytes(6),
+    RandomBytes = crypto:strong_rand_bytes(8),
     TimestampBytes = erlang:md5(erlang:term_to_binary(os:timestamp())),
     {ok, base64:encode(<<RandomBytes/binary, TimestampBytes/binary>>)}.
 
@@ -72,14 +58,24 @@ get_free_port(_) ->
 %% Internal functions
 %% ===================================================================
 
-list_to_toml(List) ->
-    ListRev = lists:reverse(List),
-    list_to_toml(ListRev, <<"">>).
-list_to_toml([{Key, Value}|T], Result) ->
-    {ok, Bin} = key_value_to_toml({Key, Value}),
-    list_to_toml(T, <<Result/binary, " ", Bin/binary>>);
-list_to_toml([], Result) ->
+tuple_to_toml(none, {Name, Attrs}) ->
+    tuple_to_toml(Name, Attrs, [], <<"[", Name/binary, "]">>);
+tuple_to_toml(FatherName, {Name, Attrs}) ->
+    tuple_to_toml(Name, Attrs, [], <<"[", FatherName/binary, ".", Name/binary, "]">>).
+
+tuple_to_toml(Name, [{Key, Value}|T], ChildBinList, Result) when is_list(Value) ->
+    {ok, ChildBin} = tuple_to_toml(Name, {Key, Value}),
+    tuple_to_toml(Name, T, [ChildBin|ChildBinList], Result);
+tuple_to_toml(Name, [H|T], ChildBinList, Result) ->
+    {ok, Bin} = key_value_to_toml(H),
+    NewResult = <<Result/binary, " ", Bin/binary>>,
+    tuple_to_toml(Name, T, ChildBinList, NewResult);
+tuple_to_toml(Name, [], [H|T], Result) ->
+    NewResult = <<Result/binary, " ", H/binary>>,
+    tuple_to_toml(Name, [], T, NewResult);
+tuple_to_toml(_, _, _, Result) ->
     {ok, Result}.
+
 
 key_value_to_toml({Key, Value}) when is_integer(Value) ->
     ValueBin = integer_to_binary(Value),
