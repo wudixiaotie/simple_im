@@ -12,6 +12,10 @@
 
 
 
+%% ===================================================================
+%% API functions
+%% ===================================================================
+
 init(Req, Opts) ->
     Path = cowboy_req:path_info(Req),
     Method = cowboy_req:method(Req),
@@ -31,10 +35,11 @@ handle_request([<<"login">>], <<"POST">>, true, Req) ->
     Toml = case users:verify(User#user.phone, User#user.password) of
         {ok, true, UserId} ->
             {ok, Token} = utility:guid(),
-            [Ip, Port] = get_node(),
-            redis:q([<<"HMSET">>, token_key(Token), <<"ip">>, Ip, <<"port">>, Port]),
+            [IP, Port] = get_node(),
+            {ok, <<"OK">>} = redis:q([<<"HMSET">>, redis:key({token, Token}),
+                                      <<"ip">>, IP, <<"port">>, Port]),
             {<<"response">>, [{<<"status">>, 0},
-                              {<<"server">>, Ip},
+                              {<<"server">>, IP},
                               {<<"port">>, Port},
                               {<<"user">>, [{<<"token">>, Token},
                                             {<<"id">>, UserId}]}]};
@@ -48,13 +53,13 @@ handle_request([<<"login">>], <<"POST">>, true, Req) ->
 handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     {ok, User} = users:parse(PostVals),
-    Result = redis:q([<<"HMGET">>, token_key(User#user.token), <<"ip">>, <<"port">>]),
+    Result = redis:q([<<"HMGET">>, redis:key({token, User#user.token}), <<"ip">>, <<"port">>]),
     Toml = case Result of
         {ok, [undefined, undefined]} ->
             {<<"response">>, [{<<"status">>, 1}]};
-        {ok, [Ip, Port]} ->
+        {ok, [IP, Port]} ->
             {<<"response">>, [{<<"status">>, 0},
-                              {<<"server">>, Ip},
+                              {<<"server">>, IP},
                               {<<"port">>, Port}]};
         _ ->
             {<<"response">>, [{<<"status">>, 2}]}
@@ -65,10 +70,6 @@ handle_request(_, _, _, Req) ->
     Toml = {<<"response">>, [{<<"status">>, 404}]},
     {ok, TomlBin} = utility:tuple_to_toml(Toml),
     cowboy_req:reply(404, [], TomlBin, Req).
-
-
-token_key(Token) ->
-    <<"client_", Token/binary>>.
 
 
 get_node() ->

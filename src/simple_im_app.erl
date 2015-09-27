@@ -5,6 +5,8 @@
 %% Application callbacks
 -export([start/2, stop/1]).
 
+
+
 %% ===================================================================
 %% Application callbacks
 %% ===================================================================
@@ -42,4 +44,5 @@ start_http_server() ->
     {ok, _} = cowboy:start_http(http, 100, [{port, Port}], [
         {env, [{dispatch, Dispatch}]}
     ]),
+    log:i("Http server start listen port: ~p~n", [Port]),
     http_server_sup:start_link().

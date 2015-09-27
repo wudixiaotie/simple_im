@@ -104,24 +104,21 @@ setopts(Swocket) ->
 process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got r id=~p~n", [MsgId]),
-
     case lists:keyfind(<<"t">>, 1, Attrs) of
         {<<"t">>, <<"login">>} ->
             {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
             {ok, User} = users:parse(UserInfo),
-            case users:verify(User#user.phone, User#user.password) of
-                {ok, true, UserId} ->
-                    {ok, Token} = utility:random_binary_16(),
-                    NewUser = User#user{id = UserId, token = Token},
-                    session:register(NewUser, self()),
-                    NewState = State#state{user = NewUser},
-                    UserIdBin = erlang:integer_to_binary(UserId),
-                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 0 [rr.user] id = ",
-                            UserIdBin/binary, " token = \"", Token/binary, "\"">>,
+            case redis:q([<<"KEYS">>, redis:key({token, User#user.token})]) of
+                {ok, []} ->
+                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"Token error\"">>,
                     gen_tcp:send(Socket, RR),
-                    process_packet(T, NewState);
-                {ok, false} ->
-                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"password not match\"">>,
+                    process_packet(T, State);
+                {ok, [User#user.token]} ->
+                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 0">>,
+                    gen_tcp:send(Socket, RR),
+                    process_packet(T, State#state{user = User});
+                _ ->
+                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"Unknown error\"">>,
                     gen_tcp:send(Socket, RR),
                     process_packet(T, State)
             end;

@@ -98,5 +98,7 @@ parse([{<<"phone">>, Phone}|T], User) ->
     parse(T, User#user{phone = Phone});
 parse([{<<"password">>, Password}|T], User) ->
     parse(T, User#user{password = Password});
+parse([_|T], User) ->
+    parse(T, User);
 parse([], User) ->
     {ok, User}.

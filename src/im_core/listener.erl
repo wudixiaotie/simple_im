@@ -17,12 +17,15 @@
 
 -record(state, {listen_socket, acceptor_ref}).
 
+
+
 %% ===================================================================
 %% APIs
 %% ===================================================================
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
 
 
 %% ===================================================================
@@ -32,7 +35,7 @@ start_link() ->
 init([]) ->
     DefaultPort = env:get(port),
     {ok, Port} = utility:get_free_port(DefaultPort),
-    log:i("start listen port: ~p~n", [Port]),
+    log:i("IM server start listen port: ~p~n", [Port]),
     Opts = [binary,
             {packet, 0},
             {reuseaddr, true},
@@ -82,6 +85,7 @@ terminate(_Reason, State) ->
     gen_tcp:close(State#state.listen_socket),
     ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
+
 
 
 %% ===================================================================

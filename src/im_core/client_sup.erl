@@ -17,12 +17,16 @@
 %% Helper macro for declaring children of supervisor
 -define(CHILD, {client, {client, start_link, []}, temporary, infinity, worker, [client]}).
 
+
+
 %% ===================================================================
 %% API functions
 %% ===================================================================
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+
 
 %% ===================================================================
 %% Supervisor callbacks

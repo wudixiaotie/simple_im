@@ -1,9 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-9-22
-%% client factory supervisor
+%% 2015-9-26
+%% cclient factory supervisor
 %% ===================================================================
--module (client_factory_sup).
+
+-module (cf_sup).
 
 -behaviour(supervisor).
 
@@ -14,7 +15,7 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(Mod, Args), {Mod, {Mod, start_link, Args}, temporary, brutal_kill, worker, [Mod]}).
+-define(CHILD, {cf_worker, {cf_worker, start_link, []}, permanent, brutal_kill, worker, [cf_worker]}).
 
 
 
@@ -32,4 +33,4 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {simple_one_for_one, 0, 1}, [?CHILD(mcp_worker, [])] } }.
+    {ok, { {simple_one_for_one, 0, 1}, [?CHILD] } }.

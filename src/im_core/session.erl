@@ -24,6 +24,7 @@
 -type userid() :: binary().
 
 
+
 %% ===================================================================
 %% APIs
 %% ===================================================================
@@ -49,7 +50,15 @@ register(User, Pid) ->
         [] ->
             [{Device, Pid}];
         [{UserId, OriginalDeviceList}] ->
-            lists:keystore(Device, 1, OriginalDeviceList, {Device, Token, Pid})
+            % lists:keystore(Device, 1, OriginalDeviceList, {Device, Token, Pid})
+            case lists:keytake(Device, 1, OriginalDeviceList) of
+                {value, {Device, OriginalToken, OriginalPid}, NewDeviceList} ->
+                    {ok, _} = redis:q([<<"DEL">>, redis:key({token, OriginalToken})]),
+                    true = exit(OriginalPid, be_replaced),
+                    [{Device, Token, Pid}|NewDeviceList];
+                false ->
+                    [{Device, Token, Pid}|OriginalDeviceList]
+            end
     end,
 
     % This place I use catch to ensure update_session will always 

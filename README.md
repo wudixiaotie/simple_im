@@ -90,9 +90,9 @@ id=123
 ## Http request:
 ### Ask for which node to login/reconnect
 #### login:
-curl --data-urlencode "phone=18501260698&password=888888" http://simple_im.com/server/login
+curl -d "phone=18501260698" --data-urlencode "password=888888" http://simple_im.com/server/login
 #### reconnect:
-curl --data-urlencode "id=1&token=AAklxuC39JJtttUMwKHq3teKwOzWtmJc" http://localhost:8080/server/reconnect
+curl -d "id=1" --data-urlencode "token=AAklxuC39JJtttUMwKHq3teKwOzWtmJc" http://localhost:8080/server/reconnect
 
 
 # Guide
@@ -149,7 +149,7 @@ Value: Msg
 ### Relationship between client and node
 Type: HASH
 Key: <<"client_", Token/binary>>
-Value: [<<"ip">>, Ip,<<"port">>, Port, <<"id">>, UserId]
+Value: [<<"ip">>, Ip,<<"port">>, Port]
 
 # TODO List:
 1. build a http server for most of the request.Like ask for server ip&port, login, reconnect.

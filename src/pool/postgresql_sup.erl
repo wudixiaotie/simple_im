@@ -17,6 +17,8 @@
 %% Helper macro for declaring children of supervisor
 -define(CHILD(Args), {postgresql_worker, {postgresql_worker, start_link, Args}, permanent, brutal_kill, worker, [postgresql_worker]}).
 
+
+
 %% ===================================================================
 %% API functions
 %% ===================================================================
@@ -33,8 +35,10 @@ init([]) ->
     DbUsername = env:get(db_username),
     DbPassword = env:get(db_password),
     DbDatabase = env:get(db_database),
+    DbPort = env:get(db_port),
     Spec = ?CHILD([DbHost, DbUsername, DbPassword, [
         {database, DbDatabase},
+        {port, DbPort},
         {timeout, 4000}
     ]]),
 

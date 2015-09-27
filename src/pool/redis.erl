@@ -1,6 +1,6 @@
 -module (redis).
 
--export ([start_link/0, q/1]).
+-export ([start_link/0, q/1, key/1]).
 
 
 
@@ -18,3 +18,7 @@ start_link() ->
 
 q(Request) ->
     sharded_eredis:q(Request).
+
+
+key({token, Token}) ->
+    <<"client_", Token/binary>>.
