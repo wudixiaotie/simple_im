@@ -37,7 +37,8 @@ handle_request([<<"login">>], <<"POST">>, true, Req) ->
             {ok, Token} = utility:guid(),
             [IP, Port] = get_node(),
             {ok, <<"OK">>} = redis:q([<<"HMSET">>, redis:key({token, Token}),
-                                      <<"ip">>, IP, <<"port">>, Port]),
+                                      <<"ip">>, IP, <<"port">>, Port,
+                                      <<"user_id">>, UserId]),
             {<<"response">>, [{<<"status">>, 0},
                               {<<"server">>, IP},
                               {<<"port">>, Port},
@@ -53,11 +54,13 @@ handle_request([<<"login">>], <<"POST">>, true, Req) ->
 handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     {ok, User} = users:parse(PostVals),
-    Result = redis:q([<<"HMGET">>, redis:key({token, User#user.token}), <<"ip">>, <<"port">>]),
+    UserIdBin = utility:int_2_bin_str(User#user.id),
+    Result = redis:q([<<"HMGET">>, redis:key({token, User#user.token}),
+                      <<"ip">>, <<"port">>, <<"user_id">>]),
     Toml = case Result of
-        {ok, [undefined, undefined]} ->
+        {ok, [undefined, undefined, undefined]} ->
             {<<"response">>, [{<<"status">>, 1}]};
-        {ok, [IP, Port]} ->
+        {ok, [IP, Port, UserIdBin]} ->
             {<<"response">>, [{<<"status">>, 0},
                               {<<"server">>, IP},
                               {<<"port">>, Port}]};

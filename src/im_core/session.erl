@@ -92,15 +92,15 @@ unregister(User) ->
 verify(User) ->
     verify(User#user.id, User#user.device, User#user.token).
 verify(UserId, Device, Token) ->
-    case  ets:lookup(session, UserId) of
+    case ets:lookup(session, UserId) of
         [] ->
             offline;
         [{UserId, DeviceList}] ->
             case lists:keyfind(Device, 1, DeviceList) of
-                {Device, Token, _} ->
-                    ok;
+                {Device, Token, Pid} ->
+                    {ok, Pid};
                 _ ->
-                    not_match
+                    {error, not_match}
             end
     end.
 

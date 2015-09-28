@@ -7,7 +7,7 @@
 -module (utility).
 
 -export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0,
-          random_number/1, guid/0, get_free_port/1]).
+          random_number/1, guid/0, get_free_port/1, int_2_bin_str/1]).
 
 
 
@@ -51,6 +51,10 @@ get_free_port(Port) when Port < 65536 ->
     end;
 get_free_port(_) ->
     {error, out_of_range}.
+
+
+int_2_bin_str(Integer) ->
+    erlang:list_to_binary(erlang:integer_to_list(Integer)).
 
 
 

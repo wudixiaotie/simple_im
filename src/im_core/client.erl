@@ -9,7 +9,7 @@
 -behaviour(gen_server).
 
 % APIs
--export([start_link/1]).
+-export([start_link/2]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -27,8 +27,8 @@
 %% APIs
 %% ===================================================================
 
-start_link(Socket) ->
-    gen_server:start_link(?MODULE, [Socket], []).
+start_link(Socket, User) ->
+    gen_server:start_link(?MODULE, [Socket, User], []).
 
 
 
@@ -36,9 +36,11 @@ start_link(Socket) ->
 %% gen_server callbacks
 %% ===================================================================
 
-init([Socket]) ->
+init([Socket, User]) ->
+    session:register(User, self()),
     State = #state{socket = Socket,
-                   heartbeat_timeout = env:get(heartbeat_timeout)},
+                   heartbeat_timeout = env:get(heartbeat_timeout),
+                   user = User},
     setopts(State#state.socket),
     {ok, State, State#state.heartbeat_timeout}.
 
@@ -51,16 +53,21 @@ handle_cast(_Msg, State) ->
 
 
 %% ===================================================================
-%% tcp receiver
+%% socket
 %% ===================================================================
 
+handle_info({new_socket, NewSocket}, #state{socket = Socket} = State) ->
+    gen_tcp:close(Socket),
+    ok = clean_mail_box(Socket),
+    setopts(NewSocket),
+    {noreply, State#state{socket = NewSocket}, State#state.heartbeat_timeout};
 handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
     {ok, Toml} = etoml:parse(Data),
     {ok, NewState} = process_packet(Toml, State),
     {noreply, NewState, NewState#state.heartbeat_timeout};
 % tcp connection change to passive
-handle_info({tcp_passive, Swocket}, #state{socket = Swocket} = State) ->
-    setopts(Swocket),
+handle_info({tcp_passive, Socket}, #state{socket = Socket} = State) ->
+    setopts(Socket),
     {noreply, State, State#state.heartbeat_timeout};
 % connection closed
 handle_info({tcp_closed, _Socket}, State) ->
@@ -96,8 +103,22 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Internal functions
 %% ===================================================================
 
-setopts(Swocket) ->
-    inet:setopts(Swocket, [{active, 300}, {packet, 0}, binary]).
+setopts(Socket) ->
+    inet:setopts(Socket, [{active, 300}, {packet, 0}, binary]).
+
+
+clean_mail_box(Socket) ->
+    receive
+        {tcp, Socket, _} ->
+            clean_mail_box(Socket);
+        {tcp_passive, Socket} ->
+            clean_mail_box(Socket);
+        {tcp_closed, Socket} ->
+            clean_mail_box(Socket)
+    after
+        0 ->
+            ok
+    end.
 
 
 % request
@@ -105,40 +126,8 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got r id=~p~n", [MsgId]),
     case lists:keyfind(<<"t">>, 1, Attrs) of
-        {<<"t">>, <<"login">>} ->
-            {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
-            {ok, User} = users:parse(UserInfo),
-            case redis:q([<<"KEYS">>, redis:key({token, User#user.token})]) of
-                {ok, []} ->
-                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"Token error\"">>,
-                    gen_tcp:send(Socket, RR),
-                    process_packet(T, State);
-                {ok, [User#user.token]} ->
-                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 0">>,
-                    gen_tcp:send(Socket, RR),
-                    process_packet(T, State#state{user = User});
-                _ ->
-                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"Unknown error\"">>,
-                    gen_tcp:send(Socket, RR),
-                    process_packet(T, State)
-            end;
-        {<<"t">>, <<"reconnect">>} ->
-            {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
-            {ok, User} = users:parse(UserInfo),
-            case session:verify(User) of
-                ok ->
-                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"reconnect\" s = 0">>,
-                    gen_tcp:send(Socket, RR),
-                    process_packet(T, State);
-                Reason ->
-                    RR = <<"[rr] id = \"", MsgId/binary,
-                            "\"t = \"reconnect\" s = 1 r = \"", Reason/binary, "\"">>,
-                    gen_tcp:send(Socket, RR),
-                    gen_tcp:close(Socket),
-                    process_packet([], State#state{socket = undefined})
-            end;
         _ ->
-            RR = <<"[rr] id = \"", MsgId/binary, "\" c = \"error\"">>,
+            RR = <<"[rr] id = \"", MsgId/binary, "\" c = \"Unknown request\"">>,
             gen_tcp:send(Socket, RR),
             process_packet(T, State)
     end;

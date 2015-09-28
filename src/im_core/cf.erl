@@ -13,13 +13,13 @@
 -behaviour(gen_server).
 
 % APIs
--export([start_link/0]).
+-export([start_link/0, make/1]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
           terminate/2, code_change/3]).
 
--record (state, {queue :: queue(), max :: integer()}).
+-record (state, {queue, max :: integer()}).
 
 
 
@@ -31,9 +31,16 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
-make() ->
-    {ok, Pid} = gen_server:call(?MODULE, get_worker),
-    ok.
+make(Socket) ->
+    {ok, WorkerName} = gen_server:call(?MODULE, get_worker),
+    case whereis(WorkerName) of
+        undefined ->
+            error;
+        WorkerPid ->
+            WorkerPid ! {make, Socket},
+            gen_tcp:controlling_process(Socket, WorkerPid),
+            ok
+    end.
 
 
 %% ===================================================================
@@ -44,7 +51,7 @@ init([]) ->
     cf_sup:start_link(),
     ConnectSize = env:get(connect_size),
     ok = create_multiple_worker(ConnectSize),
-    State = #state{queue = queue::new(), max = ConnectSize},
+    State = #state{queue = queue:new(), max = ConnectSize},
     {ok, State}.
 
 
@@ -52,13 +59,13 @@ handle_call(get_worker, _From, State) ->
     case queue:out(State#state.queue) of
         {empty, _} ->
             NewMax = State#state.max + 1,
-            {ok, Pid} = create_single_worker(NewMax),
-            {reply, {ok, Pid}, State#state{max = NewMax}};
+            {ok, WorkerName} = create_single_worker(NewMax),
+            {reply, {ok, WorkerName}, State#state{max = NewMax}};
         {{value, WorkerName}, NewQueue} ->
             {reply, {ok, WorkerName}, State#state{queue = NewQueue}}
-    end,
-    {reply, nomatch, NewState};
+    end;
 handle_call(_Request, _From, State) -> {reply, nomatch, State}.
+
 
 
 handle_cast(_Msg, State) -> {noreply, State}.
@@ -87,7 +94,8 @@ create_multiple_worker(N) ->
 
 create_single_worker(Index) ->
     Name = worker_name(Index),
-    supervisor:start_child(cf_sup, [Name]).
+    supervisor:start_child(cf_sup, [Name]),
+    {ok, Name}.
 
 
 worker_name(Index) ->

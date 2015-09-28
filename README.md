@@ -149,7 +149,7 @@ Value: Msg
 ### Relationship between client and node
 Type: HASH
 Key: <<"client_", Token/binary>>
-Value: [<<"ip">>, Ip,<<"port">>, Port]
+Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
 1. build a http server for most of the request.Like ask for server ip&port, login, reconnect.

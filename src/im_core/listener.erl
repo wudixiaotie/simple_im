@@ -61,8 +61,7 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
                     log:i("listener accept socket: (~w),~nserver:~s(~p),~nclient:~s(~p)~n",
                           [ClientSocket, inet_parse:ntoa(ServerAddr), ServerPort,
                            inet_parse:ntoa(ClientAddr), ClientPort]),
-                    {ok, Pid} = supervisor:start_child(client_sup, [ClientSocket]),
-                    gen_tcp:controlling_process(ClientSocket, Pid);
+                    cf:make(ClientSocket);
                 _ ->
                     ok
             end,
