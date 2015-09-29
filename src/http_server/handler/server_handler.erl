@@ -36,9 +36,11 @@ handle_request([<<"login">>], <<"POST">>, true, Req) ->
         {ok, true, UserId} ->
             {ok, Token} = utility:guid(),
             [IP, Port] = get_node(),
-            {ok, <<"OK">>} = redis:q([<<"HMSET">>, redis:key({token, Token}),
+            TokenKey = redis:key({token, Token}),
+            {ok, <<"OK">>} = redis:q([<<"HMSET">>, TokenKey,
                                       <<"ip">>, IP, <<"port">>, Port,
                                       <<"user_id">>, UserId]),
+            {ok, <<"1">>} = redis:q([<<"EXPIRE">>, TokenKey, 100]),
             {<<"response">>, [{<<"status">>, 0},
                               {<<"server">>, IP},
                               {<<"port">>, Port},
@@ -76,4 +78,4 @@ handle_request(_, _, _, Req) ->
 
 
 get_node() ->
-    [<<"192.168.1.137">>, <<"1987">>].
+    [<<"192.168.3.5">>, <<"1987">>].

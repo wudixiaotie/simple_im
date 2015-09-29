@@ -43,17 +43,22 @@ get_pid_list(UserId) ->
 
 
 register(User, Pid) ->
-    UserId = User#user.id,
     Device = User#user.device,
-    Token = User#user.token,
+    case utility:index_of(env:get(device_list), Device) of
+        {ok, -1} ->
+            ok = delete_token_from_redis(User#user.token),
+            {error, <<"Wrong device">>};
+        _ ->
+            register(User#user.id, Device, User#user.token, Pid)
+    end.
+register(UserId, Device, Token, Pid) ->
     DeviceList = case ets:lookup(session, UserId) of
         [] ->
-            [{Device, Pid}];
+            [{Device, Token, Pid}];
         [{UserId, OriginalDeviceList}] ->
-            % lists:keystore(Device, 1, OriginalDeviceList, {Device, Token, Pid})
             case lists:keytake(Device, 1, OriginalDeviceList) of
                 {value, {Device, OriginalToken, OriginalPid}, NewDeviceList} ->
-                    {ok, _} = redis:q([<<"DEL">>, redis:key({token, OriginalToken})]),
+                    ok = delete_token_from_redis(OriginalToken),
                     true = exit(OriginalPid, be_replaced),
                     [{Device, Token, Pid}|NewDeviceList];
                 false ->
@@ -90,7 +95,13 @@ unregister(User) ->
 
 
 verify(User) ->
-    verify(User#user.id, User#user.device, User#user.token).
+    Device = User#user.device,
+    case utility:index_of(env:get(device_list), Device) of
+        {ok, -1} ->
+            {error, <<"Wrong device">>};
+        _ ->
+            verify(User#user.id, Device, User#user.token)
+    end.
 verify(UserId, Device, Token) ->
     case ets:lookup(session, UserId) of
         [] ->
@@ -100,7 +111,7 @@ verify(UserId, Device, Token) ->
                 {Device, Token, Pid} ->
                     {ok, Pid};
                 _ ->
-                    {error, not_match}
+                    {error, <<"Token not match">>}
             end
     end.
 
@@ -192,4 +203,9 @@ update_session(Type, Session, [H|T]) ->
     {?MODULE, H} ! {update, Type, Session},
     update_session(Type, Session, T);
 update_session(_Type, _Session, []) ->
+    ok.
+
+
+delete_token_from_redis(Token) ->
+    {ok, _} = redis:q([<<"DEL">>, redis:key({token, Token})]),
     ok.

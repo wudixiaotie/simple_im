@@ -38,6 +38,8 @@ start_link(Socket, User) ->
 
 init([Socket, User]) ->
     session:register(User, self()),
+    RR = <<"[rr] id=\"a_01\" t=\"login\" s=0">>,
+    gen_tcp:send(Socket, RR),
     State = #state{socket = Socket,
                    heartbeat_timeout = env:get(heartbeat_timeout),
                    user = User},

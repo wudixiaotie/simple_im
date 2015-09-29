@@ -68,7 +68,6 @@ id=1
 device="android"
 [m.to]
 id=2
-device="ipad"
 ```
 ### Ack:
 ```toml
@@ -89,11 +88,27 @@ id=123
 
 ## Http request:
 ### Ask for which node to login/reconnect
-#### login:
-curl -d "phone=18501260698" --data-urlencode "password=888888" http://simple_im.com/server/login
-#### reconnect:
-curl -d "id=1" --data-urlencode "token=AAklxuC39JJtttUMwKHq3teKwOzWtmJc" http://localhost:8080/server/reconnect
 
+#### login:
+##### request:
+curl -d "phone=18501260698" --data-urlencode "password=888888" http://simple_im.com/server/login
+##### response:
+[response]
+status = 0
+server = "192.168.3.5"
+port = "1987"
+[response.user]
+id = 1
+token = "rylFLDGW4NN0h4leO97O/Gibar8KQS8l"
+
+#### reconnect:
+##### request:
+curl -d "id=1" --data-urlencode "token=rylFLDGW4NN0h4leO97O/Gibar8KQS8l" http://localhost:8080/server/reconnect
+##### response:
+[response]
+status = 0
+server = "192.168.3.5"
+port = "1987"
 
 # Guide
 ## Start Simple Im

@@ -54,17 +54,23 @@ handle_info({tcp, Socket, Data}, State) ->
     case lists:keyfind(<<"t">>, 1, Attrs) of
         {<<"t">>, <<"login">>} ->
             UserIdBin = utility:int_2_bin_str(User#user.id),
-            case redis:q([<<"HGET">>, redis:key({token, User#user.token}), <<"user_id">>]) of
+            TokenKey = redis:key({token, User#user.token}),
+            case redis:q([<<"HGET">>, TokenKey, <<"user_id">>]) of
                 {ok, undefined} ->
                     RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"Token error\"">>,
                     gen_tcp:send(Socket, RR),
                     gen_tcp:close(Socket);
                 {ok, UserIdBin} ->
+                    {ok, <<"1">>} = redis:q([<<"PERSIST">>, TokenKey]),
                     case session:verify(User) of
                         offline ->
                             new_client(Socket, User);
                         {ok, Pid} ->
-                            client_change_socket(Pid, Scoket);
+                            client_change_socket(Pid, Socket, User);
+                        {error, <<"Wrong device">>} ->
+                            RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"Wrong device\"">>,
+                            gen_tcp:send(Socket, RR),
+                            gen_tcp:close(Socket);
                         {error, _} ->
                             new_client(Socket, User)
                     end;
@@ -81,7 +87,7 @@ handle_info({tcp, Socket, Data}, State) ->
                     gen_tcp:send(Socket, RR),
                     gen_tcp:close(Socket);
                 {ok, Pid} ->
-                    client_change_socket(Pid, Scoket);
+                    client_change_socket(Pid, Socket, User);
                 {error, Reason} ->
                     RR = <<"[rr] id = \"", MsgId/binary,
                            "\"t = \"reconnect\" s = 1 r = \"", Reason/binary, "\"">>,
@@ -93,6 +99,7 @@ handle_info({tcp, Socket, Data}, State) ->
             gen_tcp:send(Socket, RR),
             gen_tcp:close(Socket)
     end,
+    free_worker(State#state.name),
     {noreply, State};
 handle_info(_Info, State) -> {noreply, State}.
 
@@ -106,17 +113,16 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% ===================================================================
 
 free_worker(Name) ->
-    cf ! {free, Name}.
+    cf ! {free_worker, Name}.
 
 
 new_client(Socket, User) ->
     {ok, Pid} = supervisor:start_child(client_sup, [Socket, User]),
-    log:i("Start a new client ~p ~p", [User, Pid]),
+    log:i("Start a new client ~p ~p~n", [User, Pid]),
     gen_tcp:controlling_process(Socket, Pid).
 
 
-
-client_change_socket(Pid, Scoket) ->
+client_change_socket(Pid, Socket, User) ->
     Node = node(),
     case node(Pid) of
         Node ->

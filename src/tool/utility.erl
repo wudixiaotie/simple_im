@@ -7,7 +7,8 @@
 -module (utility).
 
 -export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0,
-          random_number/1, guid/0, get_free_port/1, int_2_bin_str/1]).
+          random_number/1, guid/0, get_free_port/1, int_2_bin_str/1,
+          index_of/2]).
 
 
 
@@ -57,6 +58,10 @@ int_2_bin_str(Integer) ->
     erlang:list_to_binary(erlang:integer_to_list(Integer)).
 
 
+index_of(List, Item) ->
+    index_of(List, Item, 0).
+
+
 
 %% ===================================================================
 %% Internal functions
@@ -104,3 +109,11 @@ hex(12) -> $c;
 hex(13) -> $d;
 hex(14) -> $e;
 hex(15) -> $f.
+
+
+index_of([H|_], Item, Index) when H == Item ->
+    {ok, Index};
+index_of([_|T], Item, Index) ->
+    index_of(T, Item, Index + 1);
+index_of([], _, _) ->
+    {ok, -1}.

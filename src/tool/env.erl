@@ -42,6 +42,8 @@
 
 -define (DEFAULT_REDIS_GLOBAL_OR_LOCAL, local).
 
+-define (DEFAULT_DEVICE_LIST, [<<"android">>, <<"iphone">>, <<"ipad">>]).
+
 
 
 %% ===================================================================
@@ -78,4 +80,6 @@ get_default(http_db_poolsize) -> ?DEFAULT_HTTP_DB_POOLSIZE;
 
 % redis
 get_default(redis_pools) -> ?DEFAULT_REDIS_POOLS;
-get_default(redis_global_or_local) -> ?DEFAULT_REDIS_GLOBAL_OR_LOCAL.
+get_default(redis_global_or_local) -> ?DEFAULT_REDIS_GLOBAL_OR_LOCAL;
+
+get_default(device_list) -> ?DEFAULT_DEVICE_LIST.
