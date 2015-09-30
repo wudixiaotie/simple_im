@@ -30,4 +30,3 @@ init([]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(postgresql, [http], worker),
             ?CHILD(redis, [], worker)]} }.
-

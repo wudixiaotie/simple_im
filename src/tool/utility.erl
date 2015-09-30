@@ -8,7 +8,7 @@
 
 -export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0,
           random_number/1, guid/0, get_free_port/1, int_2_bin_str/1,
-          index_of/2]).
+          index_of/2, ip_port/2]).
 
 
 
@@ -60,6 +60,18 @@ int_2_bin_str(Integer) ->
 
 index_of(List, Item) ->
     index_of(List, Item, 0).
+
+
+ip_port(IP, Port) when is_tuple(IP) ->
+    ip_port(inet_parse:ntoa(IP), Port);
+ip_port(IP, Port) when is_list(IP) ->
+    ip_port(erlang:list_to_binary(IP), Port);
+ip_port(IP, Port) when is_integer(Port) ->
+    ip_port(IP, erlang:integer_to_binary(Port));
+ip_port(IP, Port) when is_list(IP) ->
+    ip_port(IP, erlang:list_to_binary(Port));
+ip_port(IP, Port) ->
+    <<IP/binary, ":", Port/binary>>.
 
 
 

@@ -71,6 +71,37 @@ handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
     end,
     {ok, TomlBin} = utility:tuple_to_toml(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
+handle_request([<<"failed">>], <<"POST">>, true, Req) ->
+    {ok, PostVals, _} = cowboy_req:body_qs(Req),
+    {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
+    Result = redis:q([<<"HMGET">>, redis:key({token, Token}),
+                      <<"ip">>, <<"port">>]),
+    Toml = case Result of
+        {ok, [undefined, undefined]} ->
+            {<<"response">>, [{<<"status">>, 1}]};
+        {ok, [IP, Port]} ->
+            case gen_tcp:connect(erlang:binary_to_list(IP),
+                                 erlang:binary_to_integer(Port), []) of
+                {ok, Socket} ->
+                    gen_tcp:close(Socket),
+                    {<<"response">>, [{<<"status">>, 3},
+                                      {<<"r">>, <<"IM is online">>}]};
+                {error, _Reason} ->
+                    redis:q([<<"HDEL">>, redis:key(im_list), utility:ip_port(IP, Port)]),
+                    [NewIP, NewPort] = get_node(),
+                    redis:q([<<"HMSET">>, redis:key({token, Token}),
+                             <<"ip">>, NewIP, <<"port">>, NewPort]),
+                    {<<"response">>, [{<<"status">>, 0},
+                                      {<<"server">>, NewIP},
+                                      {<<"port">>, NewPort}]};
+                _ ->
+                    {<<"response">>, [{<<"status">>, 2}]}
+            end;
+        _ ->
+            {<<"response">>, [{<<"status">>, 2}]}
+    end,
+    {ok, TomlBin} = utility:tuple_to_toml(Toml),
+    cowboy_req:reply(200, [], TomlBin, Req);
 handle_request(_, _, _, Req) ->
     Toml = {<<"response">>, [{<<"status">>, 404}]},
     {ok, TomlBin} = utility:tuple_to_toml(Toml),
@@ -78,4 +109,7 @@ handle_request(_, _, _, Req) ->
 
 
 get_node() ->
-    [<<"192.168.3.5">>, <<"1987">>].
+    {ok, Result} = redis:q([<<"HGETALL">>, <<"im_list">>]),
+    [H,_|_] = Result,
+    IPPort = erlang:binary_to_list(H),
+    re:split(IPPort, ":").

@@ -34,4 +34,3 @@ init([]) ->
             ?CHILD(cf, worker),
             ?CHILD(client_sup, supervisor),
             ?CHILD(listener, worker)]} }.
-

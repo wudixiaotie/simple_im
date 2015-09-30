@@ -45,6 +45,9 @@ init([]) ->
     {ok, ListenSocket} = gen_tcp:listen(Port, Opts),
     {ok, AcceptorRef} = prim_inet:async_accept(ListenSocket, -1),
     State = #state{listen_socket = ListenSocket, acceptor_ref = AcceptorRef},
+    
+    {ok, [{IP, _, _}, _]} = inet:getif(),
+    redis:q([<<"HSET">>, redis:key(im_list), utility:ip_port(IP, Port), 1]),
     {ok, State}.
 
 
@@ -61,7 +64,7 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
                     log:i("listener accept socket: (~w),~nserver:~s(~p),~nclient:~s(~p)~n",
                           [ClientSocket, inet_parse:ntoa(ServerAddr), ServerPort,
                            inet_parse:ntoa(ClientAddr), ClientPort]),
-                    cf:make(ClientSocket);
+                    ok = cf:make(ClientSocket);
                 _ ->
                     ok
             end,

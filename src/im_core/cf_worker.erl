@@ -15,7 +15,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
           terminate/2, code_change/3]).
 
--record (state, {name :: atom()}).
+-record (state, {name :: atom(), timer_ref}).
 
 -include("user.hrl").
 
@@ -44,8 +44,16 @@ handle_cast(_Msg, State) -> {noreply, State}.
 
 handle_info({make, Socket}, State) ->
     inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
+    {ok, TimerRef} = timer:send_after(2000, free),
+    {noreply, State#state{timer_ref = TimerRef}};
+handle_info(free, #state{timer_ref = undefined} = State) ->
     {noreply, State};
+handle_info(free, State) ->
+    free_worker(State#state.name),
+    timer:cancel(State#state.timer_ref),
+    {noreply, State#state{timer_ref = undefined}};
 handle_info({tcp, Socket, Data}, State) ->
+    timer:cancel(State#state.timer_ref),
     {ok, Toml} = etoml:parse(Data),
     [{<<"r">>, Attrs}|_] = Toml,
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),

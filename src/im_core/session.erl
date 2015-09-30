@@ -81,6 +81,7 @@ unregister(User) ->
         [] ->
             [];
         [{UserId, OriginalDeviceList}] ->
+            ok = delete_token_from_redis(User#user.token),
             lists:keydelete(Device, 1, OriginalDeviceList)
     end,
 

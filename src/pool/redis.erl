@@ -21,4 +21,6 @@ q(Request) ->
 
 
 key({token, Token}) ->
-    <<"client_", Token/binary>>.
+    <<"client_", Token/binary>>;
+key(im_list) ->
+    <<"im_list">>.
