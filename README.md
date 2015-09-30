@@ -93,6 +93,7 @@ id=123
 ##### request:
 curl -d "phone=18501260698" --data-urlencode "password=888888" http://simple_im.com/server/login
 ##### response:
+```toml
 [response]
 status = 0
 server = "192.168.3.5"
@@ -100,15 +101,34 @@ port = "1987"
 [response.user]
 id = 1
 token = "rylFLDGW4NN0h4leO97O/Gibar8KQS8l"
+```
 
 #### reconnect:
 ##### request:
 curl -d "id=1" --data-urlencode "token=rylFLDGW4NN0h4leO97O/Gibar8KQS8l" http://localhost:8080/server/reconnect
 ##### response:
+```toml
 [response]
 status = 0
 server = "192.168.3.5"
 port = "1987"
+```
+
+### report IM offline
+##### request:
+curl --data-urlencode "token=CVT1Y6M00u6OO25TJNYCt3VNff8Khlm3" "http://localhost:8080/server/failed"
+##### response:
+```toml
+[response]
+status = 3
+r = "IM is online"
+```
+```toml
+[response]
+status = 0
+server = "192.168.3.5"
+port = "1987"
+```
 
 # Guide
 ## Start Simple Im
