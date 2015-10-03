@@ -7,8 +7,8 @@
 -module (utility).
 
 -export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0,
-          random_number/1, guid/0, get_free_port/1, int_2_bin_str/1,
-          index_of/2, ip_port/2]).
+          random_number/1, guid/0, free_port/1, index_of/2,
+          ip_port/2, timestamp/0]).
 
 
 
@@ -42,20 +42,16 @@ guid() ->
     {ok, base64:encode(<<RandomBytes/binary, TimestampBytes/binary>>)}.
 
 
-get_free_port(Port) when Port < 65536 ->
+free_port(Port) when Port < 65536 ->
     case gen_tcp:connect("localhost", Port, []) of
         {error, _Reason} ->
             {ok, Port};
         {ok, Socket} ->
             gen_tcp:close(Socket),
-            get_free_port(Port + 1)
+            free_port(Port + 1)
     end;
-get_free_port(_) ->
+free_port(_) ->
     {error, out_of_range}.
-
-
-int_2_bin_str(Integer) ->
-    erlang:list_to_binary(erlang:integer_to_list(Integer)).
 
 
 index_of(List, Item) ->
@@ -72,6 +68,11 @@ ip_port(IP, Port) when is_list(IP) ->
     ip_port(IP, erlang:list_to_binary(Port));
 ip_port(IP, Port) ->
     <<IP/binary, ":", Port/binary>>.
+
+
+timestamp() ->
+    {A, B, _} = os:timestamp(),
+    A * 1000000 + B.
 
 
 
@@ -99,7 +100,7 @@ tuple_to_toml(_, _, _, Result) ->
 
 
 key_value_to_toml({Key, Value}) when is_integer(Value) ->
-    ValueBin = integer_to_binary(Value),
+    ValueBin = erlang:integer_to_binary(Value),
     {ok, <<Key/binary, " = ", ValueBin/binary, "">>};
 key_value_to_toml({Key, Value}) ->
     {ok, <<Key/binary, " = \"", Value/binary, "\"">>}.

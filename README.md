@@ -1,13 +1,14 @@
 # simple_im
+### Erlang/OTP Version: 18
 #### I use toml as transmission protocol instead of xml or json.
 #### Use ets table as session store.
 #### Use postgresql as database for user & group information store.
+#### The pg connection pool implement by myself instead of use poolboy, why? Because the [pg driver](https://github.com/epgsql/epgsql) allow concurrent pgsql:equery on same connection.
 #### Use redis as cache store for :
 1. online IM service IP&Port.
 2. offline message.
 3. client token & service relationship.
 
-#### The pg connection pool implement by myself instead of use poolboy, why? Because the [pg driver](https://github.com/epgsql/epgsql) allow concurrent pgsql:equery on same connection.
 ## Protocol
 ### Request:  
 #### login:  
@@ -192,5 +193,3 @@ Key: <<"client_", Token/binary>>
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
-1. build a http server for most of the request.Like ask for server ip&port, login, reconnect.
-2. add time to message

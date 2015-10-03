@@ -58,7 +58,7 @@ handle_request([<<"login">>], <<"POST">>, true, Req) ->
 handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     {ok, User} = users:parse(PostVals),
-    UserIdBin = utility:int_2_bin_str(User#user.id),
+    UserIdBin = erlang:integer_to_binary(User#user.id),
     Result = redis:q([<<"HMGET">>, redis:key({token, User#user.token}),
                       <<"ip">>, <<"port">>, <<"user_id">>]),
     Toml = case Result of

@@ -40,7 +40,7 @@ start_http_server() ->
         ]}
     ]),
     DefaultHttpPort = env:get(http_port),
-    {ok, Port} = utility:get_free_port(DefaultHttpPort),
+    {ok, Port} = utility:free_port(DefaultHttpPort),
     {ok, _} = cowboy:start_http(http, 100, [{port, Port}], [
         {env, [{dispatch, Dispatch}]}
     ]),

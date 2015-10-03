@@ -136,10 +136,11 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
 % message
 process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     send_ack(Socket, Attrs),
+    MsgWithTimestamp = add_timestamp(Msg),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserInfo} ->
             {ok, ToUser} = users:parse(ToUserInfo),
-            send_msg_2_single_user(ToUser#user.id, Msg);
+            send_msg_2_single_user(ToUser#user.id, MsgWithTimestamp);
         _ ->
             ignore
     end,
@@ -147,10 +148,11 @@ process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
 % group message
 process_packet([{<<"gm">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     send_ack(Socket, Attrs),
+    MsgWithTimestamp = add_timestamp(Msg),
     case lists:keyfind(<<"group">>, 1, Attrs) of
         {<<"group">>, [{<<"id">>, GroupId}]} ->
             {ok, UserIdList} = groups:get_user_id_list(GroupId),
-            ok = send_msg_2_multiple_users(UserIdList, Msg);
+            ok = send_msg_2_multiple_users(UserIdList, MsgWithTimestamp);
         _ ->
             ignore
     end,
@@ -169,6 +171,12 @@ send_ack(Socket, Attrs) ->
     Ack = <<"[a] id = \"", MsgId/binary, "\"">>,
     log:i("Got msg id=~p~n", [MsgId]),
     gen_tcp:send(Socket, Ack).
+
+
+add_timestamp({Type, Attrs}) ->
+    Timestamp = utility:timestamp(),
+    NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, {<<"ts">>, Timestamp}),
+    {Type, NewAttrs}.
 
 
 send_msg_2_single_user(UserId, Msg) ->

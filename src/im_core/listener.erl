@@ -34,7 +34,7 @@ start_link() ->
 
 init([]) ->
     DefaultPort = env:get(port),
-    {ok, Port} = utility:get_free_port(DefaultPort),
+    {ok, Port} = utility:free_port(DefaultPort),
     log:i("IM server start listen port: ~p~n", [Port]),
     Opts = [binary,
             {packet, 0},
