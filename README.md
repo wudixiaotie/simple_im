@@ -2,6 +2,11 @@
 #### I use toml as transmission protocol instead of xml or json.
 #### Use ets table as session store.
 #### Use postgresql as database for user & group information store.
+#### Use redis as cache store for :
+1. online IM service IP&Port.
+2. offline message.
+3. client token & service relationship.
+
 #### The pg connection pool implement by myself instead of use poolboy, why? Because the [pg driver](https://github.com/epgsql/epgsql) allow concurrent pgsql:equery on same connection.
 ## Protocol
 ### Request:  
@@ -91,7 +96,7 @@ id=123
 
 #### login:
 ##### request:
-curl -d "phone=18501260698" --data-urlencode "password=888888" http://simple_im.com/server/login
+curl -d "phone=18501260698" --data-urlencode "password=888888" http://localhost:8080/server/login
 ##### response:
 ```toml
 [response]
@@ -114,7 +119,7 @@ server = "192.168.3.5"
 port = "1987"
 ```
 
-### report IM offline
+### report IM offline and get new IM service IP&Port
 ##### request:
 curl --data-urlencode "token=CVT1Y6M00u6OO25TJNYCt3VNff8Khlm3" "http://localhost:8080/server/failed"
 ##### response:
@@ -178,12 +183,12 @@ Got msg id=<<"a_02">>
 
 # Redis Data Structure
 ### Offline message
-Type: LIST
-Key: <<"offline_", UserId/binary>>
+Type: LIST  
+Key: <<"offline_", UserId/binary>>  
 Value: Msg
 ### Relationship between client and node
-Type: HASH
-Key: <<"client_", Token/binary>>
+Type: HASH  
+Key: <<"client_", Token/binary>>  
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:

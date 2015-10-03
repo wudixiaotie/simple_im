@@ -10,6 +10,8 @@
 
 -include("user.hrl").
 
+-compile (export_all).
+
 
 
 %% ===================================================================
@@ -109,7 +111,8 @@ handle_request(_, _, _, Req) ->
 
 
 get_node() ->
-    {ok, Result} = redis:q([<<"HGETALL">>, <<"im_list">>]),
-    [H,_|_] = Result,
-    IPPort = erlang:binary_to_list(H),
+    {ok, IMList} = redis:q([<<"HKEYS">>, <<"im_list">>]),
+    {ok, Index} = utility:random_number(erlang:length(IMList)),
+    IM = lists:nth(Index, IMList),
+    IPPort = erlang:binary_to_list(IM),
     re:split(IPPort, ":").
