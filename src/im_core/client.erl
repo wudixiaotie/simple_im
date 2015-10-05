@@ -114,7 +114,7 @@ handle_info(Info, State) ->
 
 terminate(Reason, #state{msg_cache = MsgCache, user = User}) ->
     log:i("Client terminate with reason: ~p~n", [Reason]),
-    offline:store(User#user.id, State#state.msg_cache),
+    offline:store(User#user.id, MsgCache),
     session:unregister(User).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
