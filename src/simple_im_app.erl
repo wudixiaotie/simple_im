@@ -36,7 +36,8 @@ start_http_server() ->
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/health", health_handler, []},
-            {"/server/[...]", server_handler, []}
+            {"/server/[...]", server_handler, []},
+            {"/offline", offline_handler, []}
         ]}
     ]),
     DefaultHttpPort = env:get(http_port),

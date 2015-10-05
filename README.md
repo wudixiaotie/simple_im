@@ -136,6 +136,16 @@ server = "192.168.3.5"
 port = "1987"
 ```
 
+### Get offline message
+##### request:
+curl -d "user_id=1" "http://localhost:8080/offline"
+##### response:
+```text
+[m] id="a_02" c="hello" [m.from] id=2 device="android" [m.to] id=1
+[m] id="b_02" c="hello" [m.from] id=3 device="android" [m.to] id=1
+```
+
+
 # Guide
 ## Start Simple Im
 #### 1.Download the porject, and go to the root path of this porject.

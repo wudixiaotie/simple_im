@@ -17,22 +17,31 @@
 %% APIs
 %% ===================================================================
 
-store(UserId, Msg) ->
-    {ok, Key} = make_key(UserId),
-    {ok, _} = redis:q([<<"RPUSH">>, Key, Msg]),
-    ok.
+store(UserId, MsgList) ->
+    store(UserId, MsgList, []).
+
 
 get(UserId) ->
     {ok, Key} = make_key(UserId),
-    {ok, Result} = redis:q([<<"LRANGE">>, Key, <<"0">>, <<"-1">>]),
-    {ok, <<"OK">>} = redis:q([<<"LTRIM">>, Key, <<"1">>, <<"0">>]),
-    {ok, Result}.
+    {ok, MsgIdList} = redis:q([<<"LRANGE">>, Key, <<"0">>, <<"-1">>]),
+    {ok, Result} = redis:q([<<"MGET">>|MsgIdList]),
+    {ok, _} = redis:q([<<"DEL">>, Key] ++ MsgIdList),
+    utility:delete_from_list(undefined, Result).
 
 
 
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+store(UserId, [{MsgId, MsgBin}|T], MsgIdList) ->
+    {ok, <<"OK">>} = redis:q([<<"SETEX">>, MsgId, ?OFFLINE_EXPIRATION_TIME, MsgBin]),
+    store(UserId, T, [MsgId|MsgIdList]);
+store(UserId, [], MsgIdList) ->
+    {ok, Key} = make_key(UserId),
+    {ok, _} = redis:q([<<"RPUSH">>, Key] ++ MsgIdList),
+    ok.
+
 
 make_key(UserId) ->
     UserIdBin = integer_to_binary(UserId),

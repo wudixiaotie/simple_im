@@ -8,7 +8,7 @@
 
 -export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0,
           random_number/1, guid/0, free_port/1, index_of/2,
-          ip_port/2, timestamp/0]).
+          ip_port/2, timestamp/0, delete_from_list/2]).
 
 
 
@@ -75,6 +75,10 @@ timestamp() ->
     A * 1000000 + B.
 
 
+delete_from_list(Element, List) ->
+    delete_from_list(Element, List, []).
+
+
 
 %% ===================================================================
 %% Internal functions
@@ -130,3 +134,11 @@ index_of([_|T], Item, Index) ->
     index_of(T, Item, Index + 1);
 index_of([], _, _) ->
     {ok, -1}.
+
+
+delete_from_list(Element, [Element|T], Result) ->
+    delete_from_list(Element, T, Result);
+delete_from_list(Element, [H|T], Result) ->
+    delete_from_list(Element, T, [H|Result]);
+delete_from_list(_, [], Result) ->
+    {ok, lists:reverse(Result)}.
