@@ -103,9 +103,8 @@ handle_info({msg_cache, OriginalMsgCache}, #state{msg_cache = MsgCache} = State)
     NewState = State#state{msg_cache = MsgCache ++ OriginalMsgCache},
     {noreply, NewState, NewState#state.heartbeat_timeout};
 handle_info(timeout, State) ->
-    User = State#state.user,
-    UserId = User#user.id,
-    offlime:store(UserId, State#state.msg_cache),
+    UserId = (State#state.user)#user.id,
+    offline:store(UserId, State#state.msg_cache),
     proc_lib:hibernate(gen_server, enter_loop, [?MODULE, [], State]),
     {noreply, State, State#state.heartbeat_timeout};
 handle_info(Info, State) ->
@@ -113,8 +112,9 @@ handle_info(Info, State) ->
     {noreply, State, State#state.heartbeat_timeout}.
 
 
-terminate(Reason, #state{user = User}) ->
+terminate(Reason, #state{msg_cache = MsgCache, user = User}) ->
     log:i("Client terminate with reason: ~p~n", [Reason]),
+    offline:store(User#user.id, State#state.msg_cache),
     session:unregister(User).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
