@@ -27,29 +27,29 @@ binary_2_term(Binary) ->
 %% Internal functions
 %% ===================================================================
 
-tuple_2_binary({Name, Attrs}) ->
-    tuple_to_toml()
+% tuple_2_binary({Name, Attrs}) ->
+%     tuple_to_toml()
 
-tuple_to_toml({Name, Attrs}) ->
-    tuple_to_toml(none, {Name, Attrs}).
+% tuple_to_toml({Name, Attrs}) ->
+%     tuple_to_toml(none, {Name, Attrs}).
 
-tuple_to_toml(none, {Name, Attrs}) ->
-    tuple_to_toml(Name, Attrs, [], <<"[", Name/binary, "]">>);
-tuple_to_toml(FatherName, {Name, Attrs}) ->
-    tuple_to_toml(Name, Attrs, [], <<"[", FatherName/binary, ".", Name/binary, "]">>).
+% tuple_to_toml(none, {Name, Attrs}) ->
+%     tuple_to_toml(Name, Attrs, [], <<"[", Name/binary, "]">>);
+% tuple_to_toml(FatherName, {Name, Attrs}) ->
+%     tuple_to_toml(Name, Attrs, [], <<"[", FatherName/binary, ".", Name/binary, "]">>).
 
-tuple_to_toml(Name, [{Key, Value}|T], ChildBinList, Result) when is_list(Value) ->
-    {ok, ChildBin} = tuple_to_toml(Name, {Key, Value}),
-    tuple_to_toml(Name, T, [ChildBin|ChildBinList], Result);
-tuple_to_toml(Name, [H|T], ChildBinList, Result) ->
-    {ok, Bin} = key_value_to_toml(H),
-    NewResult = <<Result/binary, " ", Bin/binary>>,
-    tuple_to_toml(Name, T, ChildBinList, NewResult);
-tuple_to_toml(Name, [], [H|T], Result) ->
-    NewResult = <<Result/binary, " ", H/binary>>,
-    tuple_to_toml(Name, [], T, NewResult);
-tuple_to_toml(_, _, _, Result) ->
-    {ok, Result}.
+% tuple_to_toml(Name, [{Key, Value}|T], ChildBinList, Result) when is_list(Value) ->
+%     {ok, ChildBin} = tuple_to_toml(Name, {Key, Value}),
+%     tuple_to_toml(Name, T, [ChildBin|ChildBinList], Result);
+% tuple_to_toml(Name, [H|T], ChildBinList, Result) ->
+%     {ok, Bin} = key_value_to_toml(H),
+%     NewResult = <<Result/binary, " ", Bin/binary>>,
+%     tuple_to_toml(Name, T, ChildBinList, NewResult);
+% tuple_to_toml(Name, [], [H|T], Result) ->
+%     NewResult = <<Result/binary, " ", H/binary>>,
+%     tuple_to_toml(Name, [], T, NewResult);
+% tuple_to_toml(_, _, _, Result) ->
+%     {ok, Result}.
 
 
 
