@@ -64,6 +64,7 @@ handle_info({new_socket, NewSocket}, #state{socket = Socket} = State) ->
     gen_tcp:close(Socket),
     ok = clean_mailbox(Socket),
     setopts(NewSocket),
+    % hack send msg_cache to new client
     {noreply, State#state{socket = NewSocket}, State#state.heartbeat_timeout};
 handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
     {ok, Toml} = etoml:parse(Data),
@@ -96,11 +97,12 @@ handle_info({msg_pack, {MsgId, MsgWithTs}}, State) ->
 %% client logic functions
 %% ===================================================================
 
-handle_info({be_replaced, NewPid}, State) ->
+handle_info({replaced_by, NewPid}, State) ->
     NewPid ! {msg_cache, State#state.msg_cache},
-    {stop, {be_replaced, NewPid}, State};
+    {stop, {replaced_by, NewPid}, State};
 handle_info({msg_cache, OriginalMsgCache}, #state{msg_cache = MsgCache} = State) ->
     NewState = State#state{msg_cache = MsgCache ++ OriginalMsgCache},
+    % hack send msg_cache to new client
     {noreply, NewState, NewState#state.heartbeat_timeout};
 handle_info(timeout, State) ->
     UserId = (State#state.user)#user.id,

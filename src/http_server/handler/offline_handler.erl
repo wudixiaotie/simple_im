@@ -17,7 +17,6 @@
 init(Req, Opts) ->
     Method = cowboy_req:method(Req),
     HasBody = cowboy_req:has_body(Req),
-    io:format("=============~p~n", [{HasBody, cowboy_req:body_qs(Req)}]),
     Req2 = handle_request(Method, HasBody, Req),
     {ok, Req2, Opts}.
 

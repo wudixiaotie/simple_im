@@ -44,6 +44,8 @@ store(UserId, [{MsgId, MsgTuple}|T], MsgIdList) when is_tuple(MsgTuple) ->
 store(UserId, [{MsgId, MsgBin}|T], MsgIdList) ->
     {ok, <<"OK">>} = redis:q([<<"SETEX">>, MsgId, ?OFFLINE_EXPIRATION_TIME, MsgBin]),
     store(UserId, T, [MsgId|MsgIdList]);
+store(UserId, [], []) ->
+    ok;
 store(UserId, [], MsgIdList) ->
     {ok, Key} = make_key(UserId),
     {ok, _} = redis:q([<<"RPUSH">>, Key] ++ MsgIdList),

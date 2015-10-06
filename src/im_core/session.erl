@@ -59,7 +59,7 @@ register(UserId, Device, Token, Pid) ->
             case lists:keytake(Device, 1, OriginalDeviceList) of
                 {value, {Device, OriginalToken, OriginalPid}, NewDeviceList} ->
                     ok = delete_token_from_redis(OriginalToken),
-                    OriginalPid ! {be_replaced, Pid},
+                    OriginalPid ! {replaced_by, Pid},
                     [{Device, Token, Pid}|NewDeviceList];
                 false ->
                     [{Device, Token, Pid}|OriginalDeviceList]

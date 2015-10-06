@@ -13,7 +13,7 @@
 ### Request:  
 #### login:  
 ```toml
-[r]
+[[r]]
 id="a_01"
 t="login"
 [r.user]
@@ -23,7 +23,7 @@ token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
 ```
 #### reconnect:  
 ```toml
-[r]
+[[r]]
 id="b_01"
 t="reconnect"
 [r.user]
@@ -35,7 +35,7 @@ token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
 #### login:  
 failed(s means status, value 1 is failed):
 ```toml
-[rr]
+[[rr]]
 id="a_01"
 s=1
 t="login"
@@ -43,7 +43,7 @@ r="token error"
 ```
 success(s means status, value 0 is success):
 ```toml
-[rr]
+[[rr]]
 id="a_01"
 t="login"
 s=0
@@ -51,7 +51,7 @@ s=0
 #### reconnect:  
 failed(s means status, value 1 is failed):
 ```toml
-[rr]
+[[rr]]
 id="b_01"
 t="reconnect"
 r="token error"
@@ -59,14 +59,14 @@ s=1
 ```
 success(s means status, value 0 is success):
 ```toml
-[rr]
+[[rr]]
 id="b_01"
 t="reconnect"
 s=0
 ```
 ### Message:  
 ```toml
-[m]
+[[m]]
 id="a_02"
 c="hello"
 [m.from]
@@ -77,12 +77,12 @@ id=2
 ```
 ### Ack:
 ```toml
-[a]
+[[a]]
 id="a_02"
 ```
 ### Group Message:  
 ```toml
-[gm]
+[[gm]]
 id="a_02"
 c="hello"
 [gm.user]
@@ -140,9 +140,9 @@ port = "1987"
 ##### request:
 curl -d "user_id=1" "http://localhost:8080/offline"
 ##### response:
-```text
-[m] id="a_02" c="hello" [m.from] id=2 device="android" [m.to] id=1
-[m] id="b_02" c="hello" [m.from] id=3 device="android" [m.to] id=1
+```toml
+[[m]] id="a_02" c="hello" [m.from] id=2 device="android" [m.to] id=1
+[[m]] id="b_02" c="hello" [m.from] id=3 device="android" [m.to] id=1
 ```
 
 
@@ -196,10 +196,15 @@ Got msg id=<<"a_02">>
 ### Offline message
 Type: LIST  
 Key: <<"offline_", UserId/binary>>  
-Value: Msg
+Value: MsgIdList  
+
+Type: STRING  
+Key: MsgId  
+Value: MsgBin  
 ### Relationship between client and node
 Type: HASH  
 Key: <<"client_", Token/binary>>  
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
+1. Use my own toml helper for toml to erlang terms instead of kalta/etoml,because etoml is not so convenient, it can not parse <<"[m] a=1 [m] a=2 ">> to [{<<"m">>, [{<<"a">>, 1}]},{<<"m">>, [{<<"a">>, 2}]}], and it do not support Array of Tables, like <<"[[products]] sku = 738594937">>
