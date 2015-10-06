@@ -83,11 +83,11 @@ handle_info({tcp_closed, _Socket}, State) ->
 %% business receiver
 %% ===================================================================
 
-handle_info({m, Msg}, State) ->
-    NewState = send_msg_to_client(State, Msg),
-    {noreply, NewState, NewState#state.heartbeat_timeout};
-handle_info({gm, Msg}, State) ->
-    NewState = send_msg_to_client(State, Msg),
+handle_info({msg_pack, {MsgId, MsgWithTs}}, State) ->
+    {ok, MsgBin} = utility:tuple_to_toml(MsgWithTs),
+    gen_tcp:send(State#state.socket, MsgBin),
+    NewMsgCache = [{MsgId, MsgBin}|State#state.msg_cache],
+    NewState = State#state{msg_cache = NewMsgCache},
     {noreply, NewState, NewState#state.heartbeat_timeout};
 
 
@@ -159,7 +159,8 @@ process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserInfo} ->
             {ok, ToUser} = users:parse(ToUserInfo),
-            send_msg_2_single_user(ToUser#user.id, {MsgId, MsgWithTs});
+            MsgPack = {MsgId, MsgWithTs},
+            send_msg_2_single_user(ToUser#user.id, MsgPack);
         _ ->
             ignore
     end,
@@ -171,7 +172,8 @@ process_packet([{<<"gm">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
     case lists:keyfind(<<"group">>, 1, Attrs) of
         {<<"group">>, [{<<"id">>, GroupId}]} ->
             {ok, UserIdList} = groups:get_user_id_list(GroupId),
-            ok = send_msg_2_multiple_users(UserIdList, {MsgId, MsgWithTs});
+            MsgPack = {MsgId, MsgWithTs},
+            ok = send_msg_2_multiple_users(UserIdList, MsgPack);
         _ ->
             ignore
     end,
@@ -199,33 +201,26 @@ add_timestamp({Type, Attrs}) ->
     {Type, NewAttrs}.
 
 
-send_msg_2_single_user(UserId, Msg) ->
+send_msg_2_single_user(UserId, MsgPack) ->
     case session:get_pid_list(UserId) of
         offline ->
-            offline:store(UserId, [Msg]),
-            log:i("offline msg: ~p~n", [Msg]),
+            offline:store(UserId, [MsgPack]),
+            log:i("offline msg: ~p~n", [MsgPack]),
             ok;
         ToPidList ->
-            send_msg_to_pid(ToPidList, Msg)
+            send_msg_to_pid(ToPidList, MsgPack)
     end.
 
 
-send_msg_2_multiple_users([H|T], Msg) ->
-    send_msg_2_single_user(H, Msg),
-    send_msg_2_multiple_users(T, Msg);
+send_msg_2_multiple_users([H|T], MsgPack) ->
+    send_msg_2_single_user(H, MsgPack),
+    send_msg_2_multiple_users(T, MsgPack);
 send_msg_2_multiple_users([], _) ->
     ok.
 
 
-send_msg_to_pid([H|T], Msg) ->
-    H ! {m, Msg},
-    send_msg_to_pid(T, Msg);
+send_msg_to_pid([H|T], MsgPack) ->
+    H ! {msg_pack, MsgPack},
+    send_msg_to_pid(T, MsgPack);
 send_msg_to_pid([], _) ->
     ok.
-
-
-send_msg_to_client(State, {MsgId, MsgWithTs}) ->
-    {ok, MsgBin} = utility:tuple_to_toml(MsgWithTs),
-    gen_tcp:send(State#state.socket, MsgBin),
-    NewMsgCache = [{MsgId, MsgBin}|State#state.msg_cache],
-    State#state{msg_cache = NewMsgCache}.
