@@ -14,8 +14,12 @@
 %% API functions
 %% ===================================================================
 
-term_2_binary(Term) when is_tuple(Term) ->
-    ok.
+term_2_binary(Tuple) when is_tuple(Tuple) ->
+    {ok, Tuple};
+term_2_binary(List) when is_list(List) ->
+    {ok, List};
+term_2_binary(_) ->
+    {error, wrong_type}.
 
 
 binary_2_term(Binary) ->
