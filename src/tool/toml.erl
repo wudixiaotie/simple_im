@@ -7,7 +7,6 @@
 -module (toml).
 
 -export ([term_2_binary/1, binary_2_term/1]).
--compile (export_all).
 
 
 
