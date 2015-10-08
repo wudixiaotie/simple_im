@@ -53,7 +53,7 @@ handle_request([<<"login">>], <<"POST">>, true, Req) ->
         {error, _Reason} ->
             {<<"response">>, [{<<"status">>, 2}]}
     end,
-    {ok, TomlBin} = utility:tuple_to_toml(Toml),
+    {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
@@ -71,7 +71,7 @@ handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
         _ ->
             {<<"response">>, [{<<"status">>, 2}]}
     end,
-    {ok, TomlBin} = utility:tuple_to_toml(Toml),
+    {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request([<<"failed">>], <<"POST">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
@@ -102,11 +102,11 @@ handle_request([<<"failed">>], <<"POST">>, true, Req) ->
         _ ->
             {<<"response">>, [{<<"status">>, 2}]}
     end,
-    {ok, TomlBin} = utility:tuple_to_toml(Toml),
+    {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request(_, _, _, Req) ->
     Toml = {<<"response">>, [{<<"status">>, 404}]},
-    {ok, TomlBin} = utility:tuple_to_toml(Toml),
+    {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(404, [], TomlBin, Req).
 
 

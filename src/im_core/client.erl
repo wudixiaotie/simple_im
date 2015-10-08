@@ -9,7 +9,7 @@
 -behaviour(gen_server).
 
 % APIs
--export([start_link/2]).
+-export([start_link/3]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -28,8 +28,8 @@
 %% APIs
 %% ===================================================================
 
-start_link(Socket, User) ->
-    gen_server:start_link(?MODULE, [Socket, User], []).
+start_link(Socket, RR, User) ->
+    gen_server:start_link(?MODULE, [Socket, RR, User], []).
 
 
 
@@ -37,10 +37,10 @@ start_link(Socket, User) ->
 %% gen_server callbacks
 %% ===================================================================
 
-init([Socket, User]) ->
+init([Socket, RR, User]) ->
     session:register(User, self()),
-    RR = <<"[rr] id=\"a_01\" t=\"login\" s=0">>,
-    gen_tcp:send(Socket, RR),
+    {ok, RRBin} = toml:term_2_binary(RR),
+    gen_tcp:send(Socket, RRBin),
     State = #state{socket = Socket,
                    heartbeat_timeout = env:get(heartbeat_timeout),
                    user = User,
@@ -60,14 +60,16 @@ handle_cast(_Msg, State) ->
 %% socket
 %% ===================================================================
 
-handle_info({new_socket, NewSocket}, #state{socket = Socket} = State) ->
+handle_info({new_socket, NewSocket, RR}, #state{socket = Socket} = State) ->
     gen_tcp:close(Socket),
     ok = clean_mailbox(Socket),
+    {ok, RRBin} = toml:term_2_binary(RR),
+    gen_tcp:send(NewSocket, RRBin),
     setopts(NewSocket),
     % hack send msg_cache to new client
     {noreply, State#state{socket = NewSocket}, State#state.heartbeat_timeout};
 handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
-    {ok, Toml} = etoml:parse(Data),
+    {ok, Toml} = toml:binary_2_term(Data),
     {ok, NewState} = process_packet(Toml, State),
     {noreply, NewState, NewState#state.heartbeat_timeout};
 % tcp connection change to passive
@@ -85,7 +87,7 @@ handle_info({tcp_closed, _Socket}, State) ->
 %% ===================================================================
 
 handle_info({msg_pack, {MsgId, MsgWithTs}}, State) ->
-    {ok, MsgBin} = utility:tuple_to_toml(MsgWithTs),
+    {ok, MsgBin} = toml:term_2_binary(MsgWithTs),
     gen_tcp:send(State#state.socket, MsgBin),
     NewMsgCache = [{MsgId, MsgBin}|State#state.msg_cache],
     NewState = State#state{msg_cache = NewMsgCache},
@@ -115,7 +117,7 @@ handle_info(Info, State) ->
 
 
 terminate(Reason, #state{msg_cache = MsgCache, user = User}) ->
-    log:i("Client terminate with reason: ~p~n", [Reason]),
+    log:i("Client ~p terminate with reason: ~p~n", [self(), Reason]),
     offline:store(User#user.id, MsgCache),
     session:unregister(User).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
@@ -150,8 +152,12 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
     log:i("Got r id=~p~n", [MsgId]),
     case lists:keyfind(<<"t">>, 1, Attrs) of
         _ ->
-            RR = <<"[rr] id = \"", MsgId/binary, "\" c = \"Unknown request\"">>,
-            gen_tcp:send(Socket, RR),
+            RR = {<<"rr">>,
+                  [{<<"id">>, MsgId},
+                   {<<"s">>, 1},
+                   {<<"r">>, <<"Unknown request">>}]},
+            {ok, RRBin} = toml:term_2_binary(RR),
+            gen_tcp:send(Socket, RRBin),
             process_packet(T, State)
     end;
 % message
@@ -191,9 +197,11 @@ process_packet([], NewState) ->
 
 send_ack(Socket, Attrs) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-    Ack = <<"[a] id = \"", MsgId/binary, "\"">>,
+    Ack = {<<"a">>,
+           [{<<"id">>, MsgId}]},
+    {ok, AckBin} = toml:term_2_binary(Ack),
     log:i("Got msg id=~p~n", [MsgId]),
-    gen_tcp:send(Socket, Ack),
+    gen_tcp:send(Socket, AckBin),
     MsgId.
 
 

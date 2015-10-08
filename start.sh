@@ -13,6 +13,9 @@ case $1 in
     "n3" )
         erl_command="$erl_start -name s3@simple_im.com"
         ;;
+    "http" )
+        erl_command="$erl_start -eval simple_im:start(http)."
+        ;;
     "" )
         erl_command="$erl_start"
         ;;

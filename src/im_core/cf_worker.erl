@@ -54,7 +54,7 @@ handle_info(free, State) ->
     {noreply, State#state{timer_ref = undefined}};
 handle_info({tcp, Socket, Data}, State) ->
     timer:cancel(State#state.timer_ref),
-    {ok, Toml} = etoml:parse(Data),
+    {ok, Toml} = toml:binary_2_term(Data),
     [{<<"r">>, Attrs}|_] = Toml,
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
@@ -65,46 +65,89 @@ handle_info({tcp, Socket, Data}, State) ->
             TokenKey = redis:key({token, User#user.token}),
             case redis:q([<<"HGET">>, TokenKey, <<"user_id">>]) of
                 {ok, undefined} ->
-                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"Token error\"">>,
-                    gen_tcp:send(Socket, RR),
+                    RR = {<<"rr">>,
+                          [{<<"id">>, MsgId},
+                           {<<"t">>, <<"login">>},
+                           {<<"s">>, 1},
+                           {<<"r">>, <<"Token error">>}]},
+                    {ok, RRBin} = toml:term_2_binary(RR),
+                    gen_tcp:send(Socket, RRBin),
                     gen_tcp:close(Socket);
                 {ok, UserIdBin} ->
                     {ok, <<"1">>} = redis:q([<<"PERSIST">>, TokenKey]),
                     case session:verify(User) of
                         offline ->
-                            new_client(Socket, User);
+                            RR = {<<"rr">>,
+                                  [{<<"id">>, MsgId},
+                                   {<<"t">>, <<"login">>},
+                                   {<<"s">>, 0}]},
+                            new_client(Socket, RR, User);
                         {ok, Pid} ->
-                            client_change_socket(Pid, Socket, User);
+                            RR = {<<"rr">>,
+                                  [{<<"id">>, MsgId},
+                                   {<<"t">>, <<"login">>},
+                                   {<<"s">>, 0}]},
+                            client_change_socket(Pid, Socket, RR, User);
                         {error, <<"Wrong device">>} ->
-                            RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"Wrong device\"">>,
-                            gen_tcp:send(Socket, RR),
+                            RR = {<<"rr">>,
+                                  [{<<"id">>, MsgId},
+                                   {<<"t">>, <<"login">>},
+                                   {<<"s">>, 1},
+                                   {<<"r">>, <<"Wrong device">>}]},
+                            {ok, RRBin} = toml:term_2_binary(RR),
+                            gen_tcp:send(Socket, RRBin),
                             gen_tcp:close(Socket);
                         {error, _} ->
-                            new_client(Socket, User)
+                            RR = {<<"rr">>,
+                                  [{<<"id">>, MsgId},
+                                   {<<"t">>, <<"login">>},
+                                   {<<"s">>, 0}]},
+                            new_client(Socket, RR, User)
                     end;
                 _ ->
-                    RR = <<"[rr] id = \"", MsgId/binary, "\" t = \"login\" s = 1 r = \"Unknown error\"">>,
-                    gen_tcp:send(Socket, RR),
+                    RR = {<<"rr">>,
+                          [{<<"id">>, MsgId},
+                           {<<"t">>, <<"login">>},
+                           {<<"s">>, 1},
+                           {<<"r">>, <<"Unknown error">>}]},
+                    {ok, RRBin} = toml:term_2_binary(RR),
+                    gen_tcp:send(Socket, RRBin),
                     gen_tcp:close(Socket)
             end;
         {<<"t">>, <<"reconnect">>} ->
             case session:verify(User) of
                 offline ->
-                    RR = <<"[rr] id = \"", MsgId/binary,
-                           "\"t = \"reconnect\" s = 1 r = \"offline\"">>,
-                    gen_tcp:send(Socket, RR),
+                    RR = {<<"rr">>,
+                          [{<<"id">>, MsgId},
+                           {<<"t">>, <<"reconnect">>},
+                           {<<"s">>, 1},
+                           {<<"r">>, <<"offline">>}]},
+                    {ok, RRBin} = toml:term_2_binary(RR),
+                    gen_tcp:send(Socket, RRBin),
                     gen_tcp:close(Socket);
                 {ok, Pid} ->
-                    client_change_socket(Pid, Socket, User);
+                    RR = {<<"rr">>,
+                          [{<<"id">>, MsgId},
+                           {<<"t">>, <<"reconnect">>},
+                           {<<"s">>, 0}]},
+                    client_change_socket(Pid, Socket, RR, User);
                 {error, Reason} ->
-                    RR = <<"[rr] id = \"", MsgId/binary,
-                           "\"t = \"reconnect\" s = 1 r = \"", Reason/binary, "\"">>,
-                    gen_tcp:send(Socket, RR),
+                    RR = {<<"rr">>,
+                          [{<<"id">>, MsgId},
+                           {<<"t">>, <<"reconnect">>},
+                           {<<"s">>, 1},
+                           {<<"r">>, Reason}]},
+                    {ok, RRBin} = toml:term_2_binary(RR),
+                    gen_tcp:send(Socket, RRBin),
                     gen_tcp:close(Socket)
             end;
         _ ->
-            RR = <<"[rr] id = \"", MsgId/binary, "\" c = \"Unknown request\"">>,
-            gen_tcp:send(Socket, RR),
+            RR = {<<"rr">>,
+                  [{<<"id">>, MsgId},
+                   {<<"s">>, 1},
+                   {<<"r">>, <<"Unknown request">>}]},
+            {ok, RRBin} = toml:term_2_binary(RR),
+            gen_tcp:send(Socket, RRBin),
             gen_tcp:close(Socket)
     end,
     free_worker(State#state.name),
@@ -124,18 +167,18 @@ free_worker(Name) ->
     cf ! {free_worker, Name}.
 
 
-new_client(Socket, User) ->
-    {ok, Pid} = supervisor:start_child(client_sup, [Socket, User]),
+new_client(Socket, RR, User) ->
+    {ok, Pid} = supervisor:start_child(client_sup, [Socket, RR, User]),
     log:i("Start a new client ~p ~p~n", [User, Pid]),
     gen_tcp:controlling_process(Socket, Pid).
 
 
-client_change_socket(Pid, Socket, User) ->
+client_change_socket(Pid, Socket, RR, User) ->
     Node = node(),
     case node(Pid) of
         Node ->
-            Pid ! {new_socket, Socket},
+            Pid ! {new_socket, Socket, RR},
             gen_tcp:controlling_process(Socket, Pid);
         _ ->
-            new_client(Socket, User)
+            new_client(Socket, RR, User)
     end.

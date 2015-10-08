@@ -1,6 +1,6 @@
 # simple_im
 ### Erlang/OTP Version: 18
-#### I use toml as transmission protocol instead of xml or json.
+#### I use toml as transmission protocol instead of xml or json. I use my own toml helper for toml to erlang terms instead of kalta/etoml,because etoml is not so convenient, because it do not support Array of Tables, like <<"[[products]] sku = 738594937">>
 #### Use ets table as session store.
 #### Use postgresql as database for user & group information store.
 #### The pg connection pool implement by myself instead of use poolboy, why? Because the [pg driver](https://github.com/epgsql/epgsql) allow concurrent pgsql:equery on same connection.
@@ -100,7 +100,7 @@ id=123
 curl -d "phone=18501260698" --data-urlencode "password=888888" http://localhost:8080/server/login
 ##### response:
 ```toml
-[response]
+[[response]]
 status = 0
 server = "192.168.3.5"
 port = "1987"
@@ -114,7 +114,7 @@ token = "rylFLDGW4NN0h4leO97O/Gibar8KQS8l"
 curl -d "id=1" --data-urlencode "token=rylFLDGW4NN0h4leO97O/Gibar8KQS8l" http://localhost:8080/server/reconnect
 ##### response:
 ```toml
-[response]
+[[response]]
 status = 0
 server = "192.168.3.5"
 port = "1987"
@@ -125,12 +125,12 @@ port = "1987"
 curl --data-urlencode "token=CVT1Y6M00u6OO25TJNYCt3VNff8Khlm3" "http://localhost:8080/server/failed"
 ##### response:
 ```toml
-[response]
+[[response]]
 status = 3
 r = "IM is online"
 ```
 ```toml
-[response]
+[[response]]
 status = 0
 server = "192.168.3.5"
 port = "1987"
@@ -159,7 +159,7 @@ to open the console, run users:create/3, groups:create/3 to create some users an
 Then quite by type q().
 #### 3.Add dns of simple_im.com:    
 Edit /etc/hosts file, add line of 'your IP address   simple_im.com', make sure your ip address is the real ip, not localhost or 127.0.0.1  
-#### 4.Start project:  
+#### 4.Start IM server:  
 For single node run
 ```shell
 ./start.sh n1 im
@@ -178,13 +178,17 @@ For multiple nodes run
 ```shell
 ./start.sh n3 im
 ```
-#### 5.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
+#### 5.Start HTTP server:  
+```shell
+./start.sh http
+```
+#### 6.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
 change the test user info of the client at client_manager.erl then in a new shell type 
 ```shell
 ./start.sh a
 ```
 to start the client.  
-#### 6.See the server and client log.
+#### 7.See the server and client log.
 ```log
 Got r id=<<"a_01">>
 Got r id=<<"a_01">>
@@ -207,4 +211,3 @@ Key: <<"client_", Token/binary>>
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
-1. Use my own toml helper for toml to erlang terms instead of kalta/etoml,because etoml is not so convenient, it can not parse <<"[m] a=1 [m] a=2 ">> to [{<<"m">>, [{<<"a">>, 1}]},{<<"m">>, [{<<"a">>, 2}]}], and it do not support Array of Tables, like <<"[[products]] sku = 738594937">>

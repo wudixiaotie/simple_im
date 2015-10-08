@@ -6,19 +6,15 @@
 
 -module (utility).
 
--export ([tuple_to_toml/1, md5_hex_32/1, random_binary_16/0,
-          random_number/1, guid/0, free_port/1, index_of/2,
-          ip_port/2, timestamp/0, delete_from_list/2]).
+-export ([md5_hex_32/1, random_binary_16/0, random_number/1,
+          guid/0, free_port/1, index_of/2, ip_port/2,
+          timestamp/0, delete_from_list/2]).
 
 
 
 %% ===================================================================
 %% APIs
 %% ===================================================================
-
-tuple_to_toml({Name, Attrs}) ->
-    tuple_to_toml(none, {Name, Attrs}).
-
 
 md5_hex_32(Bin) ->
     MD5_16 = erlang:md5(Bin),
@@ -83,32 +79,6 @@ delete_from_list(Element, List) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-tuple_to_toml(none, {Name, Attrs}) ->
-    tuple_to_toml(Name, Attrs, [], <<"[", Name/binary, "]">>);
-tuple_to_toml(FatherName, {Name, Attrs}) ->
-    tuple_to_toml(Name, Attrs, [], <<"[", FatherName/binary, ".", Name/binary, "]">>).
-
-tuple_to_toml(Name, [{Key, Value}|T], ChildBinList, Result) when is_list(Value) ->
-    {ok, ChildBin} = tuple_to_toml(Name, {Key, Value}),
-    tuple_to_toml(Name, T, [ChildBin|ChildBinList], Result);
-tuple_to_toml(Name, [H|T], ChildBinList, Result) ->
-    {ok, Bin} = key_value_to_toml(H),
-    NewResult = <<Result/binary, " ", Bin/binary>>,
-    tuple_to_toml(Name, T, ChildBinList, NewResult);
-tuple_to_toml(Name, [], [H|T], Result) ->
-    NewResult = <<Result/binary, " ", H/binary>>,
-    tuple_to_toml(Name, [], T, NewResult);
-tuple_to_toml(_, _, _, Result) ->
-    {ok, Result}.
-
-
-key_value_to_toml({Key, Value}) when is_integer(Value) ->
-    ValueBin = erlang:integer_to_binary(Value),
-    {ok, <<Key/binary, " = ", ValueBin/binary, "">>};
-key_value_to_toml({Key, Value}) ->
-    {ok, <<Key/binary, " = \"", Value/binary, "\"">>}.
-
 
 hex(0)  -> $0;
 hex(1)  -> $1;

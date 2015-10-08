@@ -23,8 +23,10 @@ term_2_binary(_) ->
     {error, wrong_type}.
 
 
-binary_2_term(Binary) ->
+binary_2_term(Binary) when is_binary(Binary) ->
     List = erlang:binary_to_list(Binary),
+    binary_2_term(List, []);
+binary_2_term(List) ->
     binary_2_term(List, []).
 
 
@@ -46,9 +48,9 @@ tuple_2_binary(Name, [{Key, Integer}|T], TomlBin, ChildList) when is_integer(Int
 tuple_2_binary(Name, [{Key, List}|T], TomlBin, ChildList) when is_list(List) ->
     tuple_2_binary(Name, T, TomlBin, [{Key, List}|ChildList]);
 tuple_2_binary(Name, [], TomlBin, [{Key, List}|T]) when is_list(List) ->
-    SubName = <<Name/binary, ".", Key/binary>>,
-    SubTomlBin = <<TomlBin/binary, " [", SubName/binary, "]">>,
-    {ok, NewTomlBin} = tuple_2_binary(SubName, List, SubTomlBin, []),
+    ChildName = <<Name/binary, ".", Key/binary>>,
+    ChildTomlBin = <<TomlBin/binary, " [", ChildName/binary, "]">>,
+    {ok, NewTomlBin} = tuple_2_binary(ChildName, List, ChildTomlBin, []),
     tuple_2_binary(Name, [], NewTomlBin, T);
 tuple_2_binary(_, [], TomlBin, []) ->
     {ok, TomlBin};
@@ -69,115 +71,154 @@ list_2_binary([], TomlBin) ->
 
 
 binary_2_term([$[, $[|T], TomlList) ->
-    {ok, NameBin, RestStr} = get_name(T),
-    {ok, TomlTuple, RestTomlStr} = get_attrs(NameBin, RestStr),
+    {ok, NameBin, RestStr} = parse_top_name(T),
+    {ok, TomlTuple, RestTomlStr} = parse_attrs(NameBin, RestStr),
     binary_2_term(RestTomlStr, [TomlTuple|TomlList]);
 binary_2_term([], TomlList) ->
     {ok, TomlList}.
 
 
-get_name(Str) ->
-    get_name(Str, []).
-get_name([$], $]|T], Name) ->
+parse_top_name(Str) ->
+    parse_top_name(Str, []).
+parse_top_name([$], $]|T], Name) ->
     NameBin = erlang:list_to_binary(lists:reverse(Name)),
     {ok, NameBin, T};
-get_name([H|T], Name) ->
-    get_name(T, [H|Name]).
+parse_top_name([H|T], Name) ->
+    parse_top_name(T, [H|Name]).
 
 
-get_attrs(NameBin, RestStr) ->
-    get_attrs(NameBin, RestStr, []).
-get_attrs(NameBin, [$[, $[|_] = RestTomlStr, AttrList) ->
-    {ok, {NameBin, AttrList}, RestTomlStr};
-get_attrs(NameBin, [], AttrList) ->
-    {ok, {NameBin, AttrList}, []};
-get_attrs(NameBin, [$[|T], AttrList) ->
-    {ok, NewAttrList, RestStr} = get_child(NameBin, T, AttrList),
-    get_attrs(NameBin, RestStr, NewAttrList);
-get_attrs(NameBin, RestStr, AttrList) ->
-    {ok, Key, RestStr1} = get_key(RestStr),
-    {ok, Value, RestStr2} = get_value(RestStr1),
+parse_attrs(NameBin, RestStr) ->
+    parse_attrs(NameBin, RestStr, []).
+parse_attrs(NameBin, [$[, $[|_] = RestTomlStr, Attrs) ->
+    {ok, {NameBin, Attrs}, RestTomlStr};
+parse_attrs(NameBin, [], Attrs) ->
+    {ok, {NameBin, Attrs}, []};
+parse_attrs(NameBin, [$[|_] = RestStr, Attrs) ->
+    {ok, NewAttrs, RestTomlStr} = parse_children(NameBin, Attrs, RestStr),
+    {ok, {NameBin, NewAttrs}, RestTomlStr};
+parse_attrs(NameBin, RestStr, Attrs) ->
+    {ok, Key, RestStr1} = parse_key(RestStr),
+    {ok, Value, RestStr2} = parse_value(RestStr1),
     {ok, NewRestStr} = drop_space(RestStr2),
-    get_attrs(NameBin, NewRestStr, [{Key, Value}|AttrList]).
+    parse_attrs(NameBin, NewRestStr, [{Key, Value}|Attrs]).
 
 
-% get_child(NameBin, RestStr, AttrList) ->
-%     {ok, ChildTitles, RestStr1} = get_title(NameBin, RestStr, []),
-%     get_child(NameBin, RestStr1, AttrList, ChildTitles).
-% get_child(NameBin, RestStr, AttrList, [H|T]) ->
-%     case lists:keyfind(H, 1, AttrList) of
-%         false ->
-%             ,
+parse_children(Name, Attrs, RestStr) ->
+    parse_children(Name, Attrs, RestStr, []).
+parse_children(_, Attrs, [], Children) ->
+    {ok, NewAttrs} = merge_attr(Attrs, Children),
+    {ok, NewAttrs, []};
+parse_children(_, Attrs, [$[, $[|_] = RestStr, Children) ->
+    {ok, NewAttrs} = merge_attr(Attrs, Children),
+    {ok, NewAttrs, RestStr};
+parse_children(Name, Attrs, RestStr, Children) ->
+    {ok, ChildNameList, RestStr1} = parse_child_name(Name, RestStr),
+    {ok, Child, NewRestStr} = parse_child(RestStr1, ChildNameList),
+    parse_children(Name, Attrs, NewRestStr, [Child|Children]).
 
 
+parse_child_name(Name, RestStr) ->
+    parse_child_name(Name, RestStr, []).
+parse_child_name(NameBin, [$[|T], []) ->
+    parse_child_name(NameBin, T, []);
+parse_child_name(NameBin, [$]|T], Result) ->
+    NameStr = lists:reverse(Result),
+    [NameBin|ChildNameList] = re:split(NameStr, "[.]"),
+    {ok, lists:reverse(ChildNameList), T};
+parse_child_name(NameBin, [H|T], Result) ->
+    parse_child_name(NameBin, T, [H|Result]).
 
-get_title(NameBin, [$]|T], TitleStr) ->
-    TitleStr1 = lists:reverse(TitleStr),
-    [NameBin|ChildTitles] = re:split(TitleStr1, "[.]"),
-    {ok, ChildTitles, T};
-get_title(NameBin, [H|T], TitleStr) ->
-    get_title(NameBin, T, [H|TitleStr]).
+
+parse_child(RestStr, ChildNameList) ->
+    parse_child(RestStr, ChildNameList, []).
+parse_child([$[|_] = RestStr, [H|T], Attr) ->
+    parse_child(RestStr, T, [{H, Attr}]);
+parse_child([], [H|T], Attr) ->
+    parse_child([], T, [{H, Attr}]);
+parse_child(RestStr, [], [Attr]) ->
+    {ok, Attr, RestStr};
+parse_child(RestStr, [], []) ->
+    {ok, [], RestStr};
+parse_child(RestStr, ChildNameList, Attr) ->
+    {ok, Key, RestStr1} = parse_key(RestStr),
+    {ok, Value, RestStr2} = parse_value(RestStr1),
+    {ok, NewRestStr} = drop_space(RestStr2),
+    parse_child(NewRestStr, ChildNameList, [{Key, Value}|Attr]).
 
 
-get_key(RestStr) ->
-    get_key(RestStr, []).
-get_key([$\s|T], Key) ->
-    get_key(T, Key);
-get_key([$\t|T], Key) ->
-    get_key(T, Key);
-get_key([$\r|T], Key) ->
-    get_key(T, Key);
-get_key([$\n|T], Key) ->
-    get_key(T, Key);
-get_key([$=|T], Key) ->
+merge_attr(Attrs, [{ChildName, ChildAttrs}|T]) ->
+    case lists:keyfind(ChildName, 1, Attrs) of
+        false ->
+            NewAttrs = [{ChildName, ChildAttrs}|Attrs],
+            merge_attr(NewAttrs, T);
+        {ChildName, OriginChildAttrs} ->
+            {ok, NewChildAttrs} = merge_attr(OriginChildAttrs, ChildAttrs),
+            NewAttrs = lists:keystore(ChildName, 1, Attrs, {ChildName, NewChildAttrs}),
+            merge_attr(NewAttrs, T)
+    end;
+merge_attr(Attrs, []) ->
+    {ok, Attrs}.
+
+
+parse_key(RestStr) ->
+    parse_key(RestStr, []).
+parse_key([$\s|T], Key) ->
+    parse_key(T, Key);
+parse_key([$\t|T], Key) ->
+    parse_key(T, Key);
+parse_key([$\r|T], Key) ->
+    parse_key(T, Key);
+parse_key([$\n|T], Key) ->
+    parse_key(T, Key);
+parse_key([$=|T], Key) ->
     KeyBin = erlang:list_to_binary(lists:reverse(Key)),
     {ok, KeyBin, T};
-get_key([H|T], Key) ->
-    get_key(T, [H|Key]).
+parse_key([H|T], Key) ->
+    parse_key(T, [H|Key]).
 
 
-get_value([$\s|T]) ->
-    get_value(T);
-get_value([$\t|T]) ->
-    get_value(T);
-get_value([$\r|T]) ->
-    get_value(T);
-get_value([$\n|T]) ->
-    get_value(T);
-get_value([$\"|T]) ->
-    get_string_value(T, []);
-get_value(RestStr) ->
-    get_integer_value(RestStr, []).
+parse_value([$\s|T]) ->
+    parse_value(T);
+parse_value([$\t|T]) ->
+    parse_value(T);
+parse_value([$\r|T]) ->
+    parse_value(T);
+parse_value([$\n|T]) ->
+    parse_value(T);
+parse_value([$\"|T]) ->
+    parse_string_value(T, []);
+parse_value(RestStr) ->
+    parse_integer_value(RestStr, []).
 
 
-get_string_value([$\"|T], Value) ->
+parse_string_value([$\"|T], Value) ->
     ValueBin = erlang:list_to_binary(lists:reverse(Value)),
     {ok, ValueBin, T};
-get_string_value([H|T], Value) ->
-    get_string_value(T, [H|Value]).
+parse_string_value([H|T], Value) ->
+    parse_string_value(T, [H|Value]).
 
 
-get_integer_value([$0|T], Value) ->
-    get_integer_value(T, [$0|Value]);
-get_integer_value([$1|T], Value) ->
-    get_integer_value(T, [$1|Value]);
-get_integer_value([$2|T], Value) ->
-    get_integer_value(T, [$2|Value]);
-get_integer_value([$3|T], Value) ->
-    get_integer_value(T, [$3|Value]);
-get_integer_value([$4|T], Value) ->
-    get_integer_value(T, [$4|Value]);
-get_integer_value([$5|T], Value) ->
-    get_integer_value(T, [$5|Value]);
-get_integer_value([$6|T], Value) ->
-    get_integer_value(T, [$6|Value]);
-get_integer_value([$7|T], Value) ->
-    get_integer_value(T, [$7|Value]);
-get_integer_value([$8|T], Value) ->
-    get_integer_value(T, [$8|Value]);
-get_integer_value([$9|T], Value) ->
-    get_integer_value(T, [$9|Value]);
-get_integer_value(RestStr, Value) ->
+parse_integer_value([$0|T], Value) ->
+    parse_integer_value(T, [$0|Value]);
+parse_integer_value([$1|T], Value) ->
+    parse_integer_value(T, [$1|Value]);
+parse_integer_value([$2|T], Value) ->
+    parse_integer_value(T, [$2|Value]);
+parse_integer_value([$3|T], Value) ->
+    parse_integer_value(T, [$3|Value]);
+parse_integer_value([$4|T], Value) ->
+    parse_integer_value(T, [$4|Value]);
+parse_integer_value([$5|T], Value) ->
+    parse_integer_value(T, [$5|Value]);
+parse_integer_value([$6|T], Value) ->
+    parse_integer_value(T, [$6|Value]);
+parse_integer_value([$7|T], Value) ->
+    parse_integer_value(T, [$7|Value]);
+parse_integer_value([$8|T], Value) ->
+    parse_integer_value(T, [$8|Value]);
+parse_integer_value([$9|T], Value) ->
+    parse_integer_value(T, [$9|Value]);
+parse_integer_value(RestStr, Value) ->
     ValueBin = erlang:list_to_integer(lists:reverse(Value)),
     {ok, ValueBin, RestStr}.
 
@@ -192,37 +233,3 @@ drop_space([$\n|T]) ->
     drop_space(T);
 drop_space(Rest) ->
     {ok, Rest}.
-
-
-% {<<"a">>, [{<<"b">>, 3}]}
-% <<"[[a]] b = 3">>
-
-
-% {<<"a">>, [{<<"b">>, 3}, {<<"v">>, [{<<"v1">>, <<"v1v">>}, {<<"v2">>, <<"v2v">>}]}]}
-% <<"[[a]] b = 3 [a.v] v1 = \"v1v\" v2 = \"v2v\"">>
-
-
-% {<<"a">>, [{<<"b">>, 3}, {<<"v">>, [{<<"v1">>, [{<<"v1v">>, <<"fycj">>}]}, {<<"v2">>, <<"v2v">>}]}]}
-% <<"[[a]] b = 3 [a.v] v2 = \"v2v\" [a.v.v1] v1v = \"fycj\"">>
-
-
-% [{<<"a">>, [{<<"b">>, 5}]},
-%  {<<"a">>, [{<<"b">>, <<"asdf">>}]}]
-% <<"[[a]] b = 5 [[a]] b = \"asdf\"">>
-
-
-% [{<<"a">>, [{<<"b">>, 3},
-%             {<<"v">>, [{<<"v1">>, [{<<"v1v">>, <<"fycj">>}]},
-%                        {<<"v2">>, <<"v2v">>}]}]},
-%  {<<"a">>, [{<<"b">>, <<"asdf">>},
-%             {<<"s">>, [{<<"x">>, 5},
-%                        {<<"c">>, <<"hehe">>}]}]}]
-% <<"[[a]] b = 3 [a.v] v2 = \"v2v\" [a.v.v1] v1v = \"fycj\" [[a]] b = \"asdf\" [a.s] x = 5 c = \"hehe\"">>
-
-
-
-
-
-
-% <<"[[a]] x = 1 [a.v] y = 2 [a.v.f] z =3">>
-% <<"[[a]] x = 1 [a.b] y = 1 [a.f] z = 1 [a.b.c] m =2">>

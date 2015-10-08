@@ -39,12 +39,12 @@ get(UserId) ->
 %% ===================================================================
 
 store(UserId, [{MsgId, MsgTuple}|T], MsgIdList) when is_tuple(MsgTuple) ->
-    {ok, MsgBin} = utility:tuple_to_toml(MsgTuple),
+    {ok, MsgBin} = toml:term_2_binary(MsgTuple),
     store(UserId, [{MsgId, MsgBin}|T], MsgIdList);
 store(UserId, [{MsgId, MsgBin}|T], MsgIdList) ->
     {ok, <<"OK">>} = redis:q([<<"SETEX">>, MsgId, ?OFFLINE_EXPIRATION_TIME, MsgBin]),
     store(UserId, T, [MsgId|MsgIdList]);
-store(UserId, [], []) ->
+store(_, [], []) ->
     ok;
 store(UserId, [], MsgIdList) ->
     {ok, Key} = make_key(UserId),
