@@ -37,7 +37,13 @@ exec(Sql) ->
 
 
 exec(Sql, Parameters) ->
-    run(equery, [Sql, Parameters]).
+    {ok, Cursor} = gen_server:call(?MODULE, get_cursor),
+    case catch ets:lookup_element(postgresql_connection, Cursor, 2) of
+        {'EXIT', _} ->
+            {error, get_conn_failed};
+        Conn ->
+            apply(epgsql, equery, [Conn|Parameters])
+    end.
 
 
 
@@ -85,13 +91,3 @@ create_connection(0) ->
 create_connection(N) ->
     supervisor:start_child(postgresql_sup, [N]),
     create_connection(N - 1).
-
-
-run(F, A) ->
-    {ok, Cursor} = gen_server:call(?MODULE, get_cursor),
-    case catch ets:lookup_element(postgresql_connection, Cursor, 2) of
-        {'EXIT', _} ->
-            {error, get_conn_failed};
-        Conn ->
-            apply(epgsql, F, [Conn|A])
-    end.
