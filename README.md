@@ -13,22 +13,22 @@
 ### Login:
 ![Login](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/login_reconnect.png)  
 
-1. <a name="http_login_request">Http login request</a>, client authenticate with phone&password and ask for IM server.
-2. <a name="http_login_response">Http login response</a>, got id, token, IM server ip&port.
-3. <a name="im_login_request">IM login request</a>, connect IM server with id and device and token.
-4. <a name="im_login_response">IM login response</a>, got response.
+1. [Http login request](#http_login_request), client authenticate with phone&password and ask for IM server.
+2. [Http login response](#http_login_response), got id, token, IM server ip&port.
+3. [IM login request](#im_login_request), connect IM server with id and device and token.
+4. [IM login response](#im_login_request), got response.
 
 ### Reconnect:
 ![Reconnect](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/login_reconnect.png)  
 
-1. <a name="http_reconnect_request">Http reconnect request</a>, client authenticate with id&token and ask for IM server.
-2. <a name="http_reconnect_response">Http reconnect response</a>, got IM server ip&port.
-3. <a name="im_reconnect_request">IM reconnect request</a>, connect IM server with id and device and token.
-4. <a name="im_reconnect_response">IM reconnect response</a>, got response.
+1. [Http reconnect request](#http_reconnect_request), client authenticate with id&token and ask for IM server.
+2. [Http reconnect response](#http_reconnect_response), got IM server ip&port.
+3. [IM reconnect request](#im_reconnect_request), connect IM server with id and device and token.
+4. [IM reconnect response](#im_reconnect_response), got response.
 
 ## Protocol
 ### Request:  
-#### [login](#im_login_request):  
+#### <a name="im_login_request">login</a>:  
 ```toml
 [[r]]
 id="a_01"
@@ -38,7 +38,7 @@ id=1
 device="ipad"
 token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
 ```
-#### [reconnect](#im_reconnect_request):  
+#### <a name="im_reconnect_request">reconnect</a>:  
 ```toml
 [[r]]
 id="b_01"
@@ -49,7 +49,7 @@ device="ipad"
 token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
 ```
 ### Request Response:  
-#### [login](#im_login_response):  
+#### <a name="im_login_response">login</a>:  
 failed(s means status, value 1 is failed):
 ```toml
 [[rr]]
@@ -65,7 +65,7 @@ id="a_01"
 t="login"
 s=0
 ```
-#### [reconnect](#im_reconnect_response):  
+#### <a name="im_reconnect_response">reconnect</a>:  
 failed(s means status, value 1 is failed):
 ```toml
 [[rr]]
@@ -113,9 +113,9 @@ id=123
 ### Ask for which node to login/reconnect
 
 #### login:
-##### [request](#http_login_request):
+##### <a name="http_login_request">request</a>:
 curl -d "phone=18501260698" --data-urlencode "password=888888" http://localhost:8080/server/login
-##### [response](#http_login_response):
+##### <a name="http_login_response">response</a>:
 ```toml
 [[response]]
 status = 0
@@ -127,9 +127,9 @@ token = "rylFLDGW4NN0h4leO97O/Gibar8KQS8l"
 ```
 
 #### reconnect:
-##### [request](#http_reconnect_request):
+##### <a name="http_reconnect_request">request</a>:
 curl -d "id=1" --data-urlencode "token=rylFLDGW4NN0h4leO97O/Gibar8KQS8l" http://localhost:8080/server/reconnect
-##### [response](#http_reconnect_response):
+##### <a name="http_reconnect_response">response</a>:
 ```toml
 [[response]]
 status = 0
