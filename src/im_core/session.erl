@@ -41,6 +41,21 @@ get_pid_list(UserId) ->
             [Pid || {_, _, Pid} <- DeviceList]
     end.
 
+% get pid and replace token
+get_pid(User) ->
+    UserId = User#user.id,
+    case ets:lookup(session, UserId) of
+        [] ->
+            offline;
+        [{UserId, DeviceList}] ->
+            case lists:keyfind(Device, 1, DeviceList) of
+                {Device, Token, Pid} ->
+                    {ok, Pid};
+                _ ->
+                    {error, <<"Token not match">>}
+            end
+    end.
+
 
 register(User, Pid) ->
     Device = User#user.device,
