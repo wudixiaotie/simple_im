@@ -18,6 +18,7 @@
 -record (state, {name :: atom(), timer_ref}).
 
 -include("user.hrl").
+-include("message.hrl").
 
 
 
@@ -81,13 +82,15 @@ handle_info({tcp, Socket, Data}, State) ->
                                   [{<<"id">>, MsgId},
                                    {<<"t">>, <<"login">>},
                                    {<<"s">>, 0}]},
-                            new_client(Socket, RR, User);
+                            Message = #message{id = MsgId, toml = RR},
+                            new_client(Socket, Message, User);
                         {ok, Pid} ->
                             RR = {<<"rr">>,
                                   [{<<"id">>, MsgId},
                                    {<<"t">>, <<"login">>},
                                    {<<"s">>, 0}]},
-                            client_change_socket(Pid, Socket, RR, User);
+                            Message = #message{id = MsgId, toml = RR},
+                            client_change_socket(Pid, Socket, Message, User);
                         {error, <<"Wrong device">>} ->
                             RR = {<<"rr">>,
                                   [{<<"id">>, MsgId},
@@ -102,7 +105,8 @@ handle_info({tcp, Socket, Data}, State) ->
                                   [{<<"id">>, MsgId},
                                    {<<"t">>, <<"login">>},
                                    {<<"s">>, 0}]},
-                            new_client(Socket, RR, User)
+                            Message = #message{id = MsgId, toml = RR},
+                            new_client(Socket, Message, User)
                     end;
                 _ ->
                     RR = {<<"rr">>,
@@ -130,7 +134,8 @@ handle_info({tcp, Socket, Data}, State) ->
                           [{<<"id">>, MsgId},
                            {<<"t">>, <<"reconnect">>},
                            {<<"s">>, 0}]},
-                    client_change_socket(Pid, Socket, RR, User);
+                    Message = #message{id = MsgId, toml = RR},
+                    client_change_socket(Pid, Socket, Message, User);
                 {error, Reason} ->
                     RR = {<<"rr">>,
                           [{<<"id">>, MsgId},
@@ -167,18 +172,18 @@ free_worker(Name) ->
     cf ! {free_worker, Name}.
 
 
-new_client(Socket, RR, User) ->
-    {ok, Pid} = supervisor:start_child(client_sup, [Socket, RR, User]),
+new_client(Socket, Message, User) ->
+    {ok, Pid} = supervisor:start_child(client_sup, [Socket, Message, User]),
     log:i("Start a new client ~p ~p~n", [User, Pid]),
     gen_tcp:controlling_process(Socket, Pid).
 
 
-client_change_socket(Pid, Socket, RR, User) ->
+client_change_socket(Pid, Socket, Message, User) ->
     Node = node(),
     case node(Pid) of
         Node ->
-            Pid ! {new_socket, Socket, RR},
+            Pid ! {new_socket, Socket, Message},
             gen_tcp:controlling_process(Socket, Pid);
         _ ->
-            new_client(Socket, RR, User)
+            new_client(Socket, Message, User)
     end.

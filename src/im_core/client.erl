@@ -21,6 +21,7 @@
                 msg_cache}). %% [{MsgId, MsgBin},...]
 
 -include("user.hrl").
+-include("message.hrl").
 
 
 
@@ -28,8 +29,8 @@
 %% APIs
 %% ===================================================================
 
-start_link(Socket, RR, User) ->
-    gen_server:start_link(?MODULE, [Socket, RR, User], []).
+start_link(Socket, Message, User) ->
+    gen_server:start_link(?MODULE, [Socket, Message, User], []).
 
 
 
@@ -37,10 +38,9 @@ start_link(Socket, RR, User) ->
 %% gen_server callbacks
 %% ===================================================================
 
-init([Socket, RR, User]) ->
+init([Socket, Message, User]) ->
     session:register(User, self()),
-    {ok, RRBin} = toml:term_2_binary(RR),
-    gen_tcp:send(Socket, RRBin),
+    ok = send_tcp(Socket, Message),
     State = #state{socket = Socket,
                    heartbeat_timeout = env:get(heartbeat_timeout),
                    user = User,
@@ -60,11 +60,10 @@ handle_cast(_Msg, State) ->
 %% socket
 %% ===================================================================
 
-handle_info({new_socket, NewSocket, RR}, #state{socket = Socket} = State) ->
+handle_info({new_socket, NewSocket, Message}, #state{socket = Socket} = State) ->
     gen_tcp:close(Socket),
     ok = clean_mailbox(Socket),
-    {ok, RRBin} = toml:term_2_binary(RR),
-    gen_tcp:send(NewSocket, RRBin),
+    ok = send_tcp(NewSocket, Message),
     setopts(NewSocket),
     % hack send msg_cache to new client
     {noreply, State#state{socket = NewSocket}, State#state.heartbeat_timeout};
@@ -86,10 +85,9 @@ handle_info({tcp_closed, _Socket}, State) ->
 %% business receiver
 %% ===================================================================
 
-handle_info({msg_pack, {MsgId, MsgWithTs}}, State) ->
-    {ok, MsgBin} = toml:term_2_binary(MsgWithTs),
-    gen_tcp:send(State#state.socket, MsgBin),
-    NewMsgCache = [{MsgId, MsgBin}|State#state.msg_cache],
+handle_info(#message{} = Message, State) ->
+    ok = send_tcp(State#state.socket, Message),
+    NewMsgCache = [Message|State#state.msg_cache],
     NewState = State#state{msg_cache = NewMsgCache},
     {noreply, NewState, NewState#state.heartbeat_timeout};
 
@@ -128,6 +126,12 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Internal functions
 %% ===================================================================
 
+send_tcp(Socket, Message) ->
+    {ok, MsgBin} = toml:term_2_binary(Message#message.toml),
+    gen_tcp:send(Socket, MsgBin),
+    ok.
+
+
 setopts(Socket) ->
     inet:setopts(Socket, [{active, 300}, {packet, 0}, binary]).
 
@@ -147,7 +151,7 @@ clean_mailbox(Socket) ->
 
 
 % request
-process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
+process_packet([{<<"r">>, Attrs}|T], State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got r id=~p~n", [MsgId]),
     case lists:keyfind(<<"t">>, 1, Attrs) of
@@ -156,53 +160,53 @@ process_packet([{<<"r">>, Attrs}|T], #state{socket = Socket} = State) ->
                   [{<<"id">>, MsgId},
                    {<<"s">>, 1},
                    {<<"r">>, <<"Unknown request">>}]},
-            {ok, RRBin} = toml:term_2_binary(RR),
-            gen_tcp:send(Socket, RRBin),
-            process_packet(T, State)
+            Message = #message{id = MsgId, toml = RR},
+            ok = send_tcp(State#state.socket, Message),
+            NewMsgCache = [Message|State#state.msg_cache],
+            process_packet(T, State#state{msg_cache = NewMsgCache})
     end;
 % message
-process_packet([{<<"m">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
-    MsgId = send_ack(Socket, Attrs),
-    MsgWithTs = add_timestamp(Msg),
+process_packet([{<<"m">>, Attrs} = Msg|T], State) ->
+    {ok, Message, NewState} = send_ack(State, Msg),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserInfo} ->
             {ok, ToUser} = users:parse(ToUserInfo),
-            MsgPack = {MsgId, MsgWithTs},
-            send_msg_2_single_user(ToUser#user.id, MsgPack);
+            send_msg_2_single_user(ToUser#user.id, Message);
         _ ->
             ignore
     end,
-    process_packet(T, State);
+    process_packet(T, NewState);
 % group message
-process_packet([{<<"gm">>, Attrs} = Msg|T], #state{socket = Socket} = State) ->
-    MsgId = send_ack(Socket, Attrs),
-    MsgWithTs = add_timestamp(Msg),
+process_packet([{<<"gm">>, Attrs} = Msg|T], State) ->
+    {ok, Message, NewState} = send_ack(State, Msg),
     case lists:keyfind(<<"group">>, 1, Attrs) of
         {<<"group">>, [{<<"id">>, GroupId}]} ->
             {ok, UserIdList} = groups:get_user_id_list(GroupId),
-            MsgPack = {MsgId, MsgWithTs},
-            ok = send_msg_2_multiple_users(UserIdList, MsgPack);
+            ok = send_msg_2_multiple_users(UserIdList, Message);
         _ ->
             ignore
     end,
-    process_packet(T, State);
+    process_packet(T, NewState);
 % ack
 process_packet([{<<"a">>, Attrs}|T], State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-    NewMsgCache = lists:keydelete(MsgId, 1, State#state.msg_cache),
+    NewMsgCache = lists:keydelete(MsgId, 2, State#state.msg_cache),
     process_packet(T, State#state{msg_cache = NewMsgCache});
 process_packet([], NewState) ->
     {ok, NewState}.
 
 
-send_ack(Socket, Attrs) ->
+send_ack(State, {_, Attrs} = Toml) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+    log:i("Got msg id=~p~n", [MsgId]),
     Ack = {<<"a">>,
            [{<<"id">>, MsgId}]},
-    {ok, AckBin} = toml:term_2_binary(Ack),
-    log:i("Got msg id=~p~n", [MsgId]),
-    gen_tcp:send(Socket, AckBin),
-    MsgId.
+    AckMessage = #message{id = MsgId, toml = Ack},
+    NewMsgCache = [AckMessage|State#state.msg_cache],
+    ok = send_tcp(State#state.socket, AckMessage),
+    TomlWithTs = add_timestamp(Toml),
+    Message = #message{id = MsgId, toml = TomlWithTs},
+    {ok, Message, State#state{msg_cache = NewMsgCache}}.
 
 
 add_timestamp({Type, Attrs}) ->
@@ -211,26 +215,26 @@ add_timestamp({Type, Attrs}) ->
     {Type, NewAttrs}.
 
 
-send_msg_2_single_user(UserId, MsgPack) ->
+send_msg_2_single_user(UserId, Message) ->
     case session:get_pid_list(UserId) of
         offline ->
-            offline:store(UserId, [MsgPack]),
-            log:i("offline msg: ~p~n", [MsgPack]),
+            offline:store(UserId, [Message]),
+            log:i("offline msg: ~p~n", [Message]),
             ok;
         ToPidList ->
-            send_msg_to_pid(ToPidList, MsgPack)
+            send_msg_to_pid(ToPidList, Message)
     end.
 
 
-send_msg_2_multiple_users([H|T], MsgPack) ->
-    send_msg_2_single_user(H, MsgPack),
-    send_msg_2_multiple_users(T, MsgPack);
+send_msg_2_multiple_users([H|T], Message) ->
+    send_msg_2_single_user(H, Message),
+    send_msg_2_multiple_users(T, Message);
 send_msg_2_multiple_users([], _) ->
     ok.
 
 
-send_msg_to_pid([H|T], MsgPack) ->
-    H ! {msg_pack, MsgPack},
-    send_msg_to_pid(T, MsgPack);
+send_msg_to_pid([H|T], Message) ->
+    H ! Message,
+    send_msg_to_pid(T, Message);
 send_msg_to_pid([], _) ->
     ok.

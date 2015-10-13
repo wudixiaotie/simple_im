@@ -42,7 +42,7 @@ exec(Sql, Parameters) ->
         {'EXIT', _} ->
             {error, get_conn_failed};
         Conn ->
-            apply(epgsql, equery, [Conn|Parameters])
+            apply(epgsql, equery, [Conn, Sql, Parameters])
     end.
 
 

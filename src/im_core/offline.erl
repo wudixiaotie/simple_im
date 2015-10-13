@@ -11,6 +11,8 @@
 % offline message expired after 7 days
 -define (OFFLINE_EXPIRATION_TIME, 604800).
 
+-include("message.hrl").
+
 
 
 %% ===================================================================
@@ -38,10 +40,9 @@ get(UserId) ->
 %% Internal functions
 %% ===================================================================
 
-store(UserId, [{MsgId, MsgTuple}|T], MsgIdList) when is_tuple(MsgTuple) ->
-    {ok, MsgBin} = toml:term_2_binary(MsgTuple),
-    store(UserId, [{MsgId, MsgBin}|T], MsgIdList);
-store(UserId, [{MsgId, MsgBin}|T], MsgIdList) ->
+store(UserId, [Message|T], MsgIdList) ->
+    {ok, MsgBin} = toml:term_2_binary(Message#message.toml),
+    MsgId = Message#message.id,
     {ok, <<"OK">>} = redis:q([<<"SETEX">>, MsgId, ?OFFLINE_EXPIRATION_TIME, MsgBin]),
     store(UserId, T, [MsgId|MsgIdList]);
 store(_, [], []) ->
