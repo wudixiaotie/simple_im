@@ -28,11 +28,21 @@ init(Req, Opts) ->
 
 handle_request(<<"POST">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    {<<"user_id">>, UserIdBin} = lists:keyfind(<<"user_id">>, 1, PostVals),
-    UserId = erlang:binary_to_integer(UserIdBin),
-    {ok, MsgList} = offline:get(UserId),
-    {ok, Result} = list_2_binary(MsgList),
-    cowboy_req:reply(200, [], Result, Req).
+    {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
+    Result = redis:q([<<"HGET">>, redis:key({token, Token}), <<"user_id">>]),
+    case Result of
+        {ok, undefined} ->
+            Toml = {<<"response">>, [{<<"status">>, 1}, {<<"r">>, <<"Token error">>}]},
+            {ok, TomlBin} = toml:term_2_binary(Toml);
+        {ok, UserIdBin} ->
+            UserId = erlang:binary_to_integer(UserIdBin),
+            {ok, MsgList} = offline:get(UserId),
+            Toml = {<<"response">>, [{<<"status">>, 0}]},
+            {ok, TomlBin1} = toml:term_2_binary(Toml),
+            {ok, TomlBin2} = list_2_binary(MsgList),
+            TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
+    end,
+    cowboy_req:reply(200, [], TomlBin, Req).
 
 
 list_2_binary(MsgList) ->

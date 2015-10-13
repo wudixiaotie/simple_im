@@ -155,11 +155,13 @@ port = "1987"
 
 ### Get offline message
 ##### request:
-curl -d "user_id=1" "http://localhost:8080/offline"
+curl --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost:8080/offline"
 ##### response:
 ```toml
-[[m]] id="a_02" c="hello" [m.from] id=2 device="android" [m.to] id=1
-[[m]] id="b_02" c="hello" [m.from] id=3 device="android" [m.to] id=1
+[[response]] status = 0
+[[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
+[[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
+[[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
 ```
 
 
@@ -228,5 +230,6 @@ Key: <<"client_", Token/binary>>
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
+1. Bugs: there are 2 server-side client process for one client when client login multiple times
 1. Add friend
 2. Add group
