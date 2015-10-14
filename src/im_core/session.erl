@@ -9,7 +9,8 @@
 -behaviour (gen_server).
 
 % APIs
--export([start_link/0, get_pid_list/1, register/2, unregister/1, verify/1]).
+-export([start_link/0, get_pid_list/1, register/2, unregister/1, verify/1,
+         replace_token/1]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -39,21 +40,6 @@ get_pid_list(UserId) ->
             offline;
         [{UserId, DeviceList}] ->
             [Pid || {_, _, Pid} <- DeviceList]
-    end.
-
-% get pid and replace token
-get_pid(User) ->
-    UserId = User#user.id,
-    case ets:lookup(session, UserId) of
-        [] ->
-            offline;
-        [{UserId, DeviceList}] ->
-            case lists:keyfind(Device, 1, DeviceList) of
-                {Device, Token, Pid} ->
-                    {ok, Pid};
-                _ ->
-                    {error, <<"Token not match">>}
-            end
     end.
 
 
@@ -125,6 +111,25 @@ verify(UserId, Device, Token) ->
         [{UserId, DeviceList}] ->
             case lists:keyfind(Device, 1, DeviceList) of
                 {Device, Token, Pid} ->
+                    {ok, Pid};
+                _ ->
+                    {error, <<"Token not match">>}
+            end
+    end.
+
+
+replace_token(User) ->
+    UserId = User#user.id,
+    case ets:lookup(session, UserId) of
+        [] ->
+            offline;
+        [{UserId, DeviceList}] ->
+            case lists:keyfind(User#user.device, 1, DeviceList) of
+                {Device, _, Pid} ->
+                    NewDeviceList = lists:keyreplace(Device, 1, DeviceList,
+                                                     {Device, User#user.token, Pid}),
+                    catch ets:insert(session, {UserId, NewDeviceList}),
+                    update_session(insert, {UserId, NewDeviceList}),
                     {ok, Pid};
                 _ ->
                     {error, <<"Token not match">>}

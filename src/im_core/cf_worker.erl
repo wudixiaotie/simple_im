@@ -76,7 +76,7 @@ handle_info({tcp, Socket, Data}, State) ->
                     gen_tcp:close(Socket);
                 {ok, UserIdBin} ->
                     {ok, <<"1">>} = redis:q([<<"PERSIST">>, TokenKey]),
-                    case session:verify(User) of
+                    case session:replace_token(User) of
                         offline ->
                             RR = {<<"rr">>,
                                   [{<<"id">>, MsgId},
@@ -90,7 +90,7 @@ handle_info({tcp, Socket, Data}, State) ->
                                    {<<"t">>, <<"login">>},
                                    {<<"s">>, 0}]},
                             Message = #message{id = MsgId, toml = RR},
-                            client_change_socket(Pid, Socket, Message, User);
+                            client_replace_socket(Pid, Socket, Message, User);
                         {error, <<"Wrong device">>} ->
                             RR = {<<"rr">>,
                                   [{<<"id">>, MsgId},
@@ -135,7 +135,7 @@ handle_info({tcp, Socket, Data}, State) ->
                            {<<"t">>, <<"reconnect">>},
                            {<<"s">>, 0}]},
                     Message = #message{id = MsgId, toml = RR},
-                    client_change_socket(Pid, Socket, Message, User);
+                    client_replace_socket(Pid, Socket, Message, User);
                 {error, Reason} ->
                     RR = {<<"rr">>,
                           [{<<"id">>, MsgId},
@@ -178,11 +178,11 @@ new_client(Socket, Message, User) ->
     gen_tcp:controlling_process(Socket, Pid).
 
 
-client_change_socket(Pid, Socket, Message, User) ->
+client_replace_socket(Pid, Socket, Message, User) ->
     Node = node(),
     case node(Pid) of
         Node ->
-            Pid ! {new_socket, Socket, Message},
+            Pid ! {replace_socket, Socket, Message, User},
             gen_tcp:controlling_process(Socket, Pid);
         _ ->
             new_client(Socket, Message, User)

@@ -60,13 +60,14 @@ handle_cast(_Msg, State) ->
 %% socket
 %% ===================================================================
 
-handle_info({new_socket, NewSocket, Message}, #state{socket = Socket} = State) ->
-    gen_tcp:close(Socket),
+handle_info({replace_socket, NewSocket, Message, User}, #state{socket = Socket} = State) ->
+    % hack gen_tcp:close(Socket),
     ok = clean_mailbox(Socket),
     ok = send_tcp(NewSocket, Message),
     setopts(NewSocket),
+    NewState = State#state{socket = NewSocket, user = User},
     % hack send msg_cache to new client
-    {noreply, State#state{socket = NewSocket}, State#state.heartbeat_timeout};
+    {noreply, NewState, NewState#state.heartbeat_timeout};
 handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
     {ok, Toml} = toml:binary_2_term(Data),
     {ok, NewState} = process_packet(Toml, State),
