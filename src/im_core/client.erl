@@ -18,7 +18,7 @@
 -record(state, {socket,
                 heartbeat_timeout,
                 user,
-                msg_cache}). %% [{MsgId, MsgBin},...]
+                msg_cache}). %% [#message{},...]
 
 -include("user.hrl").
 -include("message.hrl").
@@ -61,12 +61,12 @@ handle_cast(_Msg, State) ->
 %% ===================================================================
 
 handle_info({replace_socket, NewSocket, Message, User}, #state{socket = Socket} = State) ->
-    % hack gen_tcp:close(Socket),
+    gen_tcp:close(Socket),
     ok = clean_mailbox(Socket),
     ok = send_tcp(NewSocket, Message),
     setopts(NewSocket),
     NewState = State#state{socket = NewSocket, user = User},
-    % hack send msg_cache to new client
+    ok = send_msg_cache(NewSocket, State#state.msg_cache),
     {noreply, NewState, NewState#state.heartbeat_timeout};
 handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
     {ok, Toml} = toml:binary_2_term(Data),
@@ -78,7 +78,7 @@ handle_info({tcp_passive, Socket}, #state{socket = Socket} = State) ->
     {noreply, State, State#state.heartbeat_timeout};
 % connection closed
 handle_info({tcp_closed, _Socket}, State) ->
-    {noreply, State#state{socket = undefined}, State#state.heartbeat_timeout};
+    {noreply, State, State#state.heartbeat_timeout};
 
 
 
@@ -103,7 +103,7 @@ handle_info({replaced_by, NewPid}, State) ->
     {stop, {replaced_by, NewPid}, State};
 handle_info({msg_cache, OriginalMsgCache}, #state{msg_cache = MsgCache} = State) ->
     NewState = State#state{msg_cache = MsgCache ++ OriginalMsgCache},
-    % hack send msg_cache to new client
+    ok = send_msg_cache(State#state.socket, MsgCache),
     {noreply, NewState, NewState#state.heartbeat_timeout};
 handle_info(timeout, State) ->
     UserId = (State#state.user)#user.id,
@@ -149,6 +149,13 @@ clean_mailbox(Socket) ->
         0 ->
             ok
     end.
+
+
+send_msg_cache(Socket, [H|T]) ->
+    send_tcp(Socket, H),
+    send_msg_cache(Socket, T);
+send_msg_cache(_, []) ->
+    ok.
 
 
 % request
