@@ -21,6 +21,16 @@ q(Request) ->
 
 
 key({token, Token}) ->
-    <<"client_", Token/binary>>;
+    Key = <<"client_", Token/binary>>,
+    {ok, Key};
+key({offline, UserId}) ->
+    UserIdBin = integer_to_binary(UserId),
+    Key = <<"offline_", UserIdBin/binary>>,
+    {ok, Key};
+key({offline_msg, UserId, MsgId}) ->
+    UserIdBin = integer_to_binary(UserId),
+    Key = <<"offline_", UserIdBin/binary, "_", MsgId/binary>>,
+    {ok, Key};
 key(im_list) ->
-    <<"im_list">>.
+    Key = <<"im_list">>,
+    {ok, Key}.

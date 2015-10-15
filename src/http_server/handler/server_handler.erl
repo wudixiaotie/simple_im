@@ -38,7 +38,7 @@ handle_request([<<"login">>], <<"POST">>, true, Req) ->
         {ok, true, UserId} ->
             {ok, Token} = utility:guid(),
             [IP, Port] = get_node(),
-            TokenKey = redis:key({token, Token}),
+            {ok, TokenKey} = redis:key({token, Token}),
             {ok, <<"OK">>} = redis:q([<<"HMSET">>, TokenKey,
                                       <<"ip">>, IP, <<"port">>, Port,
                                       <<"user_id">>, UserId]),
@@ -59,8 +59,8 @@ handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     {ok, User} = users:parse(PostVals),
     UserIdBin = erlang:integer_to_binary(User#user.id),
-    Result = redis:q([<<"HMGET">>, redis:key({token, User#user.token}),
-                      <<"ip">>, <<"port">>, <<"user_id">>]),
+    {ok, TokenKey} = redis:key({token, User#user.token}),
+    Result = redis:q([<<"HMGET">>, TokenKey, <<"ip">>, <<"port">>, <<"user_id">>]),
     Toml = case Result of
         {ok, [undefined, undefined, undefined]} ->
             {<<"response">>, [{<<"status">>, 1}]};
@@ -76,8 +76,8 @@ handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
 handle_request([<<"failed">>], <<"POST">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
-    Result = redis:q([<<"HMGET">>, redis:key({token, Token}),
-                      <<"ip">>, <<"port">>]),
+    {ok, TokenKey} = redis:key({token, Token}),
+    Result = redis:q([<<"HMGET">>, TokenKey, <<"ip">>, <<"port">>]),
     Toml = case Result of
         {ok, [undefined, undefined]} ->
             {<<"response">>, [{<<"status">>, 1}]};
@@ -89,9 +89,11 @@ handle_request([<<"failed">>], <<"POST">>, true, Req) ->
                     {<<"response">>, [{<<"status">>, 3},
                                       {<<"r">>, <<"IM is online">>}]};
                 {error, _Reason} ->
-                    redis:q([<<"HDEL">>, redis:key(im_list), utility:ip_port(IP, Port)]),
+                    {ok, IMListKey} = redis:key(im_list),
+                    redis:q([<<"HDEL">>, IMListKey, utility:ip_port(IP, Port)]),
                     [NewIP, NewPort] = get_node(),
-                    redis:q([<<"HMSET">>, redis:key({token, Token}),
+                    {ok, TokenKey} = redis:key({token, Token}),
+                    redis:q([<<"HMSET">>, TokenKey,
                              <<"ip">>, NewIP, <<"port">>, NewPort]),
                     {<<"response">>, [{<<"status">>, 0},
                                       {<<"server">>, NewIP},

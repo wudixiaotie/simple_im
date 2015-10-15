@@ -63,7 +63,7 @@ handle_info({tcp, Socket, Data}, State) ->
     case lists:keyfind(<<"t">>, 1, Attrs) of
         {<<"t">>, <<"login">>} ->
             UserIdBin = erlang:integer_to_binary(User#user.id),
-            TokenKey = redis:key({token, User#user.token}),
+            {ok, TokenKey} = redis:key({token, User#user.token}),
             case redis:q([<<"HGET">>, TokenKey, <<"user_id">>]) of
                 {ok, undefined} ->
                     RR = {<<"rr">>,

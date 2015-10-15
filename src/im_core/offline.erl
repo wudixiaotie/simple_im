@@ -24,7 +24,7 @@ store(UserId, MsgList) ->
 
 
 get(UserId) ->
-    {ok, Key} = make_key(UserId),
+    {ok, Key} = redis:key({offline, UserId}),
     case redis:q([<<"LRANGE">>, Key, <<"0">>, <<"-1">>]) of
         {ok, []} ->
             {ok, []};
@@ -40,20 +40,14 @@ get(UserId) ->
 %% Internal functions
 %% ===================================================================
 
-store(UserId, [Message|T], MsgIdList) ->
+store(UserId, [Message|T], OfflineMsgKeyList) ->
     {ok, MsgBin} = toml:term_2_binary(Message#message.toml),
-    MsgId = Message#message.id,
-    {ok, <<"OK">>} = redis:q([<<"SETEX">>, MsgId, ?OFFLINE_EXPIRATION_TIME, MsgBin]),
-    store(UserId, T, [MsgId|MsgIdList]);
+    {ok, OfflineMsgKey} = redis:key({offline_msg, UserId, Message#message.id}),
+    {ok, <<"OK">>} = redis:q([<<"SETEX">>, OfflineMsgKey, ?OFFLINE_EXPIRATION_TIME, MsgBin]),
+    store(UserId, T, [OfflineMsgKey|OfflineMsgKeyList]);
 store(_, [], []) ->
     ok;
-store(UserId, [], MsgIdList) ->
-    {ok, Key} = make_key(UserId),
-    {ok, _} = redis:q([<<"RPUSH">>, Key] ++ MsgIdList),
+store(UserId, [], OfflineMsgKeyList) ->
+    {ok, Key} = redis:key({offline, UserId}),
+    {ok, _} = redis:q([<<"RPUSH">>, Key] ++ OfflineMsgKeyList),
     ok.
-
-
-make_key(UserId) ->
-    UserIdBin = integer_to_binary(UserId),
-    Key = <<"offline_", UserIdBin/binary>>,
-    {ok, Key}.

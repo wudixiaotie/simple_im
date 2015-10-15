@@ -47,7 +47,8 @@ init([]) ->
     State = #state{listen_socket = ListenSocket, acceptor_ref = AcceptorRef},
     
     {ok, [{IP, _, _}, _]} = inet:getif(),
-    redis:q([<<"HSET">>, redis:key(im_list), utility:ip_port(IP, Port), 1]),
+    {ok, IMListKey} = redis:key(im_list),
+    redis:q([<<"HSET">>, IMListKey, utility:ip_port(IP, Port), 1]),
     {ok, State}.
 
 

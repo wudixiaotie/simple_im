@@ -29,7 +29,8 @@ init(Req, Opts) ->
 handle_request(<<"POST">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
-    Result = redis:q([<<"HGET">>, redis:key({token, Token}), <<"user_id">>]),
+    {ok, TokenKey} = redis:key({token, Token}),
+    Result = redis:q([<<"HGET">>, TokenKey, <<"user_id">>]),
     case Result of
         {ok, undefined} ->
             Toml = {<<"response">>, [{<<"status">>, 1}, {<<"r">>, <<"Token error">>}]},

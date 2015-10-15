@@ -33,13 +33,8 @@ start_http_server() ->
     ok = application:start(cowlib),
     ok = application:start(ranch),
     ok = application:start(cowboy),
-    Dispatch = cowboy_router:compile([
-        {'_', [
-            {"/health", health_handler, []},
-            {"/server/[...]", server_handler, []},
-            {"/offline", offline_handler, []}
-        ]}
-    ]),
+    RoutePath = route:path(),
+    Dispatch = cowboy_router:compile(RoutePath),
     DefaultHttpPort = env:get(http_port),
     {ok, Port} = utility:free_port(DefaultHttpPort),
     {ok, _} = cowboy:start_http(http, 100, [{port, Port}], [

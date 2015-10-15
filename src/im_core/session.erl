@@ -228,5 +228,6 @@ update_session(_Type, _Session, []) ->
 
 
 delete_token_from_redis(Token) ->
-    {ok, _} = redis:q([<<"DEL">>, redis:key({token, Token})]),
+    {ok, TokenKey} = redis:key({token, Token}),
+    {ok, _} = redis:q([<<"DEL">>, TokenKey]),
     ok.
