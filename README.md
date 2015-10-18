@@ -15,16 +15,26 @@
 
 1. [Http login request](#http_login_request), client authenticate with phone&password and ask for IM server.
 2. [Http login response](#http_login_response), got id, token, IM server ip&port.
-3. [IM login request](#im_login_request), connect IM server with id and device and token.
-4. [IM login response](#im_login_request), got response.
+3. [Http get offline request](#http_get_offline_request), use token to get offline messages.
+4. [Http get offline response](#http_get_offline_response), got offline messages.
+5. [IM login request](#im_login_request), connect IM server with id and device and token.
+6. [IM login response](#im_login_request), got response.
+7. IM send msg_cache to client.
+8. [Http clean offline request](#http_clean_offline_request), use token to delete offline messages.
+9. [Http clean offline response](#http_clean_offline_response), delete offline messages.
 
 ### Reconnect:
 ![Reconnect](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/login_reconnect.png)  
 
 1. [Http reconnect request](#http_reconnect_request), client authenticate with id&token and ask for IM server.
 2. [Http reconnect response](#http_reconnect_response), got IM server ip&port.
-3. [IM reconnect request](#im_reconnect_request), connect IM server with id and device and token.
-4. [IM reconnect response](#im_reconnect_response), got response.
+3. [Http get offline request](#http_get_offline_request), use token to get offline messages.
+4. [Http get offline response](#http_get_offline_response), got offline messages.
+5. [IM login request](#im_login_request), connect IM server with id and device and token.
+6. [IM login response](#im_login_request), got response.
+7. IM send msg_cache to client.
+8. [Http clean offline request](#http_clean_offline_request), use token to delete offline messages.
+9. [Http clean offline response](#http_clean_offline_response), delete offline messages.
 
 ## Protocol
 ### Request:  
@@ -156,7 +166,7 @@ port = "1987"
 ### Get offline message
 ##### <a name="http_get_offline_request">request</a>:
 curl --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost:8080/offline/get"
-##### <a name="http_get_offline_request">response</a>:
+##### <a name="http_get_offline_response">response</a>:
 ```toml
 [[response]] status = 0
 [[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
@@ -167,7 +177,7 @@ curl --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost
 ### Clean offline message
 ##### <a name="http_clean_offline_request">request</a>:
 curl --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost:8080/offline/clean"
-##### <a name="http_clean_offline_request">response</a>:
+##### <a name="http_clean_offline_response">response</a>:
 ```toml
 [[response]] status = 0
 ```
@@ -227,10 +237,10 @@ Got msg id=<<"a_02">>
 ### Offline message
 Type: LIST  
 Key: <<"offline_", UserId/binary>>  
-Value: MsgIdList  
+Value: [<<"offline_", UserIdBin/binary, "_", MsgId>>, ..]  
 
 Type: STRING  
-Key: MsgId  
+Key: <<"offline_", UserIdBin/binary, "_", MsgId>>  
 Value: MsgBin  
 ### Relationship between client and node
 Type: HASH  
@@ -238,7 +248,6 @@ Key: <<"client_", Token/binary>>
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
-1. Offline msgs will be empty when get offline msgs failed
 2. monitor application
 1. Add friend
 2. Add group
