@@ -6,7 +6,7 @@
 
 -module (offline).
 
--export ([store/2, get/1]).
+-export ([store/2, get/1, clean/1]).
 
 % offline message expired after 7 days
 -define (OFFLINE_EXPIRATION_TIME, 604800).
@@ -30,8 +30,18 @@ get(UserId) ->
             {ok, []};
         {ok, MsgIdList} ->
             {ok, Result} = redis:q([<<"MGET">>|MsgIdList]),
-            {ok, _} = redis:q([<<"DEL">>, Key] ++ MsgIdList),
             utility:delete_from_list(undefined, Result)
+    end.
+
+
+clean(UserId) ->
+    {ok, Key} = redis:key({offline, UserId}),
+    case redis:q([<<"LRANGE">>, Key, <<"0">>, <<"-1">>]) of
+        {ok, []} ->
+            ok;
+        {ok, MsgIdList} ->
+            {ok, _} = redis:q([<<"DEL">>, Key] ++ MsgIdList),
+            ok
     end.
 
 

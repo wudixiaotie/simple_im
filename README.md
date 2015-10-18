@@ -138,9 +138,9 @@ port = "1987"
 ```
 
 ### report IM offline and get new IM service IP&Port
-##### request:
+##### <a name="http_report_failed_request">request</a>:
 curl --data-urlencode "token=CVT1Y6M00u6OO25TJNYCt3VNff8Khlm3" "http://localhost:8080/server/failed"
-##### response:
+##### <a name="http_report_failed_response">response</a>:
 ```toml
 [[response]]
 status = 3
@@ -154,14 +154,22 @@ port = "1987"
 ```
 
 ### Get offline message
-##### request:
-curl --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost:8080/offline"
-##### response:
+##### <a name="http_get_offline_request">request</a>:
+curl --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost:8080/offline/get"
+##### <a name="http_get_offline_request">response</a>:
 ```toml
 [[response]] status = 0
 [[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
 [[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
 [[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
+```
+
+### Clean offline message
+##### <a name="http_clean_offline_request">request</a>:
+curl --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost:8080/offline/clean"
+##### <a name="http_clean_offline_request">response</a>:
+```toml
+[[response]] status = 0
 ```
 
 
@@ -231,5 +239,6 @@ Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
 1. Offline msgs will be empty when get offline msgs failed
+2. monitor application
 1. Add friend
 2. Add group

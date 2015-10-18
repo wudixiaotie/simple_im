@@ -96,10 +96,14 @@ parse_attrs(NameBin, [$[|_] = RestStr, Attrs) ->
     {ok, NewAttrs, RestTomlStr} = parse_children(NameBin, Attrs, RestStr),
     {ok, {NameBin, NewAttrs}, RestTomlStr};
 parse_attrs(NameBin, RestStr, Attrs) ->
-    {ok, Key, RestStr1} = parse_key(RestStr),
-    {ok, Value, RestStr2} = parse_value(RestStr1),
-    {ok, NewRestStr} = drop_space(RestStr2),
-    parse_attrs(NameBin, NewRestStr, [{Key, Value}|Attrs]).
+    case parse_key(RestStr) of
+        {ok, [], []} ->
+            {ok, {NameBin, Attrs}, []};
+        {ok, Key, RestStr1} ->
+            {ok, Value, RestStr2} = parse_value(RestStr1),
+            {ok, NewRestStr} = drop_space(RestStr2),
+            parse_attrs(NameBin, NewRestStr, [{Key, Value}|Attrs])
+    end.
 
 
 parse_children(Name, Attrs, RestStr) ->
@@ -172,6 +176,8 @@ parse_key([$\n|T], Key) ->
 parse_key([$=|T], Key) ->
     KeyBin = erlang:list_to_binary(lists:reverse(Key)),
     {ok, KeyBin, T};
+parse_key([], []) ->
+    {ok, [], []};
 parse_key([H|T], Key) ->
     parse_key(T, [H|Key]).
 

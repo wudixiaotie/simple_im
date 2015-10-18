@@ -18,5 +18,5 @@ path() ->
     [{'_', [
         {"/health", health_handler, []},
         {"/server/[...]", server_handler, []},
-        {"/offline", offline_handler, []}
+        {"/offline/[...]", offline_handler, []}
     ]}].
