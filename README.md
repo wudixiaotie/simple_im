@@ -10,24 +10,15 @@
 3. client token & service relationship.
 
 ## Workflow
-### Login:
-![Login](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/login_reconnect.png)  
+### Login&Reconnect:
+![Login&Reconnect](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/login_reconnect.png)  
 
-1. [Http login request](#http_login_request), client authenticate with phone&password and ask for IM server.
-2. [Http login response](#http_login_response), got id, token, IM server ip&port.
-3. [Http get offline request](#http_get_offline_request), use token to get offline messages.
-4. [Http get offline response](#http_get_offline_response), got offline messages.
-5. [IM login request](#im_login_request), connect IM server with id and device and token.
-6. [IM login response](#im_login_request), got response.
-7. IM send msg_cache to client.
-8. [Http clean offline request](#http_clean_offline_request), use token to delete offline messages.
-9. [Http clean offline response](#http_clean_offline_response), delete offline messages.
-
-### Reconnect:
-![Reconnect](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/login_reconnect.png)  
-
-1. [Http reconnect request](#http_reconnect_request), client authenticate with id&token and ask for IM server.
-2. [Http reconnect response](#http_reconnect_response), got IM server ip&port.
+1.  Login or Reconnect request:
+     1. [Http login request](#http_login_request), client authenticate with phone&password and ask for IM server.
+     2. [Http reconnect request](#http_reconnect_request), client authenticate with id&token and ask for IM server.
+2.  Login or Reconnect response:
+     1. [Http login response](#http_login_response), got id, token, IM server ip&port.
+     2. [Http reconnect response](#http_reconnect_response), got IM server ip&port.
 3. [Http get offline request](#http_get_offline_request), use token to get offline messages.
 4. [Http get offline response](#http_get_offline_response), got offline messages.
 5. [IM login request](#im_login_request), connect IM server with id and device and token.
