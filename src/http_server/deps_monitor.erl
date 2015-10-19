@@ -66,14 +66,14 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% ===================================================================
 
 start_dep(ranch) ->
-    ok = application:start(ranch),
-    Ref = has_started(ranch_sup),
+    ok = start_app(ranch),
+    Ref = erlang:monitor(process, ranch_sup),
     {ok, Ref};
 start_dep(cowboy_app) ->
-    ok = start_app(crypto),
-    ok = start_app(cowlib),
+    application:start(crypto),
+    application:start(cowlib),
     ok = start_app(cowboy),
-    Ref = has_started(cowboy_sup),
+    Ref = erlang:monitor(process, cowboy_sup),
     {ok, Ref};
 start_dep(cowboy_http) ->
     RoutePath = route:path(),
@@ -93,14 +93,6 @@ start_app(Name) ->
         ok ->
             ok;
         {error, {already_started, Name}} ->
-            ok
-    end.
-
-
-has_started(Name) ->
-    case erlang:whereis(Name) of
-        undefined ->
-            has_started(Name);
-        Pid ->
-            erlang:monitor(process, Pid)
+            timer:sleep(1000),
+            start_app(Name)
     end.

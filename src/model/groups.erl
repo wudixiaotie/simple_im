@@ -8,8 +8,6 @@
 
 -export ([create/3, add_members/2, add_member/2, get_user_id_list/1]).
 
--compile (export_all).
-
 
 
 %% ===================================================================
