@@ -20,11 +20,14 @@ loop(N) when N > 0 ->
     loop(N - 1);
 loop(0) -> ok.
 
+
+start_link(tsup) ->
+    {ok, erlang:whereis(tg)};
 start_link(Name) ->
     gen_server:start_link({global, Name}, ?MODULE, [], []).
 
 start_link() ->
-    gen_server:start_link(?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
     
 %% ===================================================================
 %% gen_server callbacks

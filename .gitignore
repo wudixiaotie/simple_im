@@ -4,3 +4,4 @@ ebin
 .rebar
 .dump
 Mnesia.*
+ttb_last_config
