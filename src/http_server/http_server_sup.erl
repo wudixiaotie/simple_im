@@ -9,8 +9,8 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(Mod, Args, Type),
-        {Mod, {Mod, start_link, Args}, permanent, 5000, Type, [Mod]}).
+-define(CHILD(Name, Mod, Args, Type),
+        {Name, {Mod, start_link, Args}, permanent, 5000, Type, [Mod]}).
 
 
 
@@ -29,6 +29,8 @@ start_link() ->
 
 init([]) ->
     {ok, { {one_for_one, 5, 10},
-           [?CHILD(postgresql, [http], worker),
-            ?CHILD(redis, [], worker),
-            ?CHILD(deps_monitor, [], worker)]} }.
+           [?CHILD(postgresql, postgresql, [http], worker),
+            ?CHILD(redis, redis, [], worker),
+            ?CHILD(ranch, dependant, [ranch], supervisor),
+            ?CHILD(cowboy_app, dependant, [cowboy_app], supervisor),
+            ?CHILD(cowboy_http, dependant, [cowboy_http], worker)]} }.
