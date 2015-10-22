@@ -1,7 +1,7 @@
 CREATE TABLE public.group_members
 (
-    group_id    INTEGER,
-    user_id     INTEGER,
+    group_id    INTEGER NOT NULL,
+    user_id     INTEGER NOT NULL,
     updated_at  TIMESTAMP WITHOUT TIME ZONE NOT NUlL,
     created_at  TIMESTAMP WITHOUT TIME ZONE NOT NUlL,
     FOREIGN KEY (group_id) REFERENCES groups(id) ON UPDATE NO ACTION ON DELETE CASCADE,
