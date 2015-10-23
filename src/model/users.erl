@@ -7,7 +7,8 @@
 -module (users).
 
 -export ([create/3, verify/2, find/1, add_contact/2,
-          find_contacts/1, parse/1]).
+          delete_contact/2, find_contacts/1,
+          find_contacts/2, parse/1]).
 
 -include("user.hrl").
 
@@ -20,21 +21,21 @@
 create(Name, Phone, Password) ->
     {ok, Salt} = utility:random_binary_16(),
     {ok, EncryptedPassword} = utility:md5_hex_32(<<Password/binary, Salt/binary>>),
-    InsertSQL = <<"INSERT INTO users(name,
-                                     phone,
-                                     password,
-                                     salt,
-                                     contact_version,
-                                     updated_at,
-                                     created_at)
-                   VALUES($1, $2, $3, $4, 0, now(), now());">>,
-    {ok, 1} = postgresql:exec(InsertSQL, [Name, Phone, EncryptedPassword, Salt]),
+    SQL = <<"INSERT INTO users(name,
+                               phone,
+                               password,
+                               salt,
+                               contact_version,
+                               updated_at,
+                               created_at)
+             VALUES($1, $2, $3, $4, 0, now(), now());">>,
+    {ok, 1} = postgresql:exec(SQL, [Name, Phone, EncryptedPassword, Salt]),
     ok.
 
 
 verify(Phone, Password) ->
-    QuerySQL = <<"SELECT id, password, salt FROM users WHERE phone = $1;">>,
-    case postgresql:exec(QuerySQL, [Phone]) of
+    SQL = <<"SELECT id, password, salt FROM users WHERE phone = $1;">>,
+    case postgresql:exec(SQL, [Phone]) of
         {ok, _, []} ->
             {error, user_does_not_exist};
         {ok, _, [{UserId, EncryptedPassword, Salt}]} ->
@@ -50,27 +51,34 @@ verify(Phone, Password) ->
 
 
 find({phone, Phone}) ->
-    QuerySQL = <<"SELECT id, name FROM users WHERE phone = $1;">>,
-    {ok, _, Result} = postgresql:exec(QuerySQL, [Phone]),
+    SQL = <<"SELECT id, name FROM users WHERE phone = $1;">>,
+    {ok, _, Result} = postgresql:exec(SQL, [Phone]),
     {ok, Result}.
 
 
 add_contact(UserId, ContactId) ->
-    InsertSQL = <<"INSERT INTO contacts VALUES($1, $2, now(), now());">>,
-    {ok, 1} = postgresql:exec(InsertSQL, [UserId, ContactId]),
+    SQL = <<"SELECT add_contact($1, $2);">>,
+    {ok, _} = postgresql:exec(SQL, [UserId, ContactId]),
+    ok.
+
+
+delete_contact(UserId, ContactId) ->
+    SQL = <<"SELECT delete_contact($1, $2);">>,
+    {ok, _} = postgresql:exec(SQL, [UserId, ContactId]),
     ok.
 
 
 find_contacts(UserId) ->
-    QuerySQL = <<"SELECT friend_user_id FROM user_relations WHERE user_id = $1;">>,
-    {ok, _, Result} = postgresql:exec(QuerySQL, [UserId]),
+    SQL = <<"SELECT contact_id FROM contacts WHERE user_id = $1;">>,
+    {ok, _, Result} = postgresql:exec(SQL, [UserId]),
     unpack(Result).
 
 
-delete_contact(UserId, ContactId) ->
-    DeleteSQL = <<"DELETE FROM user_relations WHERE user_id = $1 AND friend_user_id = $2;">>,
-    {ok, 1} = postgresql:exec(DeleteSQL, [UserId, ContactId]),
-    ok.
+find_contacts(UserId, OldVersion) ->
+    SQL = <<"SELECT contact_id FROM contacts
+             WHERE user_id = $1 AND contact_version > $2;">>,
+    {ok, _, Result} = postgresql:exec(SQL, [UserId, OldVersion]),
+    unpack(Result).
 
 
 % [{<<"device">>,<<"android">>},{<<"id">>,<<"1">>},{<<"phone">>, <<"18501260698">>}]

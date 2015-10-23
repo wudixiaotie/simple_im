@@ -12,4 +12,5 @@ WITH (
   OIDS = FALSE
 );
 CREATE INDEX contacts_user_id_index ON contacts(user_id);
+CREATE INDEX contacts_user_contact_id_index ON contacts(user_id, contact_id);
 CREATE INDEX contacts_version_index ON contacts(user_id, contact_version);
