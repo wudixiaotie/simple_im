@@ -8,7 +8,7 @@
 
 -export ([md5_hex_32/1, random_binary_16/0, random_number/1,
           guid/0, free_port/1, index_of/2, ip_port/2,
-          timestamp/0, delete_from_list/2]).
+          timestamp/0, delete_from_list/2, join/2]).
 
 
 
@@ -75,6 +75,10 @@ delete_from_list(Element, List) ->
     delete_from_list(Element, List, []).
 
 
+join(List, Separator) ->
+    join(List, Separator, []).
+
+
 
 %% ===================================================================
 %% Internal functions
@@ -112,3 +116,19 @@ delete_from_list(Element, [H|T], Result) ->
     delete_from_list(Element, T, [H|Result]);
 delete_from_list(_, [], Result) ->
     {ok, lists:reverse(Result)}.
+
+
+join([H|T], Separator, Result) when is_integer(H) ->
+    Str = erlang:integer_to_list(H),
+    NewResult = Str ++ Separator ++ Result,
+    join(T, Separator, NewResult);
+join([H|T], Separator, Result) when is_binary(H) ->
+    Str = erlang:binary_to_list(H),
+    NewResult = Str ++ Separator ++ Result,
+    join(T, Separator, NewResult);
+join([H|T], Separator, Result) ->
+    NewResult = H ++ Separator ++ Result,
+    join(T, Separator, NewResult);
+join([], Separator, Result) ->
+    NewResult = 
+    lists:reverse(Result).

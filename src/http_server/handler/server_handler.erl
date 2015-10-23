@@ -6,7 +6,7 @@
 
 -module (server_handler).
 
--export([init/2]).
+-export([init/2, handle_request/4]).
 
 -include("user.hrl").
 
@@ -17,16 +17,12 @@
 %% ===================================================================
 
 init(Req, Opts) ->
-    Path = cowboy_req:path_info(Req),
-    Method = cowboy_req:method(Req),
-    HasBody = cowboy_req:has_body(Req),
-    Req2 = handle_request(Path, Method, HasBody, Req),
-    {ok, Req2, Opts}.
+    handler_helper:init(?MODULE, Req, Opts).
 
 
 
 %% ===================================================================
-%% Internal functions
+%% Request handler
 %% ===================================================================
 
 handle_request([<<"login">>], <<"POST">>, true, Req) ->
@@ -105,9 +101,13 @@ handle_request([<<"failed">>], <<"POST">>, true, Req) ->
     {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request(_, _, _, Req) ->
-    Toml = {<<"response">>, [{<<"status">>, 404}]},
-    {ok, TomlBin} = toml:term_2_binary(Toml),
-    cowboy_req:reply(404, [], TomlBin, Req).
+    handler_helper:return404(Req).
+
+
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
 
 
 get_node() ->

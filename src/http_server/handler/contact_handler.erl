@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-10-5
-%% offline handler
+%% 2015-10-23
+%% contact handler
 %% ===================================================================
 
--module (offline_handler).
+-module (contact_handler).
 
 -export([init/2, handle_request/4]).
 
@@ -29,22 +29,11 @@ handle_request([<<"get">>], <<"POST">>, true, Req) ->
         {error, TomlBin} ->
             ok;
         {ok, UserId} ->
-            {ok, MsgList} = offline:get(UserId),
+            {<<"version">>, ContactVersion} = lists:keyfind(<<"version">>, 1, PostVals),
+            {ok, ContactIdList} = contacts:find(UserId, ContactVersion),
             Toml = {<<"response">>, [{<<"status">>, 0}]},
             {ok, TomlBin1} = toml:term_2_binary(Toml),
-            {ok, TomlBin2} = list_2_binary(MsgList),
-            TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
-    end,
-    cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([<<"clean">>], <<"POST">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case handler_helper:verify_token(PostVals) of
-        {error, TomlBin} ->
-            ok;
-        {ok, UserId} ->
-            ok = offline:clean(UserId),
-            Toml = {<<"response">>, [{<<"status">>, 0}]},
-            {ok, TomlBin} = toml:term_2_binary(Toml)
+            TomlBin = erlang:list_to_binary(ContactIdList)
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request(_, _, _, Req) ->
@@ -55,10 +44,3 @@ handle_request(_, _, _, Req) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-list_2_binary(MsgList) ->
-    list_2_binary(MsgList, <<>>).
-list_2_binary([H|T], Result) ->
-    list_2_binary(T, <<H/binary, "\r\n", Result/binary>>);
-list_2_binary([], Result) ->
-    {ok, Result}.

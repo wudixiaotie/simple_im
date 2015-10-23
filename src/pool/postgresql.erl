@@ -35,7 +35,6 @@ start_link(_) ->
 exec(Sql) ->
     exec(Sql, []).
 
-
 exec(Sql, Parameters) ->
     {ok, Cursor} = gen_server:call(?MODULE, get_cursor),
     case catch ets:lookup_element(postgresql_connection, Cursor, 2) of

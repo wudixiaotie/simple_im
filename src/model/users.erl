@@ -6,9 +6,7 @@
 
 -module (users).
 
--export ([create/3, verify/2, find/1, add_contact/2,
-          delete_contact/2, find_contacts/1,
-          find_contacts/2, parse/1]).
+-export ([create/3, verify/2, find/1, parse/1]).
 
 -include("user.hrl").
 
@@ -53,33 +51,11 @@ verify(Phone, Password) ->
 find({phone, Phone}) ->
     SQL = <<"SELECT id, name FROM users WHERE phone = $1;">>,
     {ok, _, Result} = postgresql:exec(SQL, [Phone]),
+    {ok, Result};
+find({id_list, IdList}) ->
+    SQL = <<"SELECT id, name, phone FROM users WHERE id in ($1);">>,
+    {ok, _, Result} = postgresql:exec(SQL, [IdList]),
     {ok, Result}.
-
-
-add_contact(UserId, ContactId) ->
-    SQL = <<"SELECT add_contact($1, $2);">>,
-    {ok, _} = postgresql:exec(SQL, [UserId, ContactId]),
-    ok.
-
-
-delete_contact(UserId, ContactId) ->
-    SQL = <<"SELECT delete_contact($1, $2);">>,
-    {ok, _} = postgresql:exec(SQL, [UserId, ContactId]),
-    ok.
-
-
-find_contacts(UserId) ->
-    SQL = <<"SELECT contact_id FROM contacts WHERE user_id = $1;">>,
-    {ok, _, Result} = postgresql:exec(SQL, [UserId]),
-    unpack(Result).
-
-
-find_contacts(UserId, OldVersion) ->
-    SQL = <<"SELECT contact_id FROM contacts
-             WHERE user_id = $1 AND contact_version > $2;">>,
-    {ok, _, Result} = postgresql:exec(SQL, [UserId, OldVersion]),
-    unpack(Result).
-
 
 % [{<<"device">>,<<"android">>},{<<"id">>,<<"1">>},{<<"phone">>, <<"18501260698">>}]
 parse(TupleList) ->
@@ -90,14 +66,6 @@ parse(TupleList) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-unpack(TupleList) ->
-    unpack(TupleList, []).
-unpack([{Value}|T], Result) ->
-    unpack(T, [Value|Result]);
-unpack([], Result) ->
-    {ok, Result}.
-
 
 parse([{<<"id">>, IdBin}|T], User) when is_binary(IdBin) ->
     Id = erlang:binary_to_integer(IdBin),
