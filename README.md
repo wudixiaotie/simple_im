@@ -173,6 +173,21 @@ curl --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost
 [[response]] status = 0
 ```
 
+### Contacts
+##### <a name="http_find_contacts_request">request</a>:
+curl -d "version=0" --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost:8080/contact/get"
+##### <a name="http_find_contacts_response">response</a>:
+```toml
+[[response]] status = 0
+[[user]] id = 2 name = "xiaotie" phone = "18501260698" avatar = ""
+```
+##### <a name="http_delete_contacts_request">request</a>:
+curl -X DELETE -d "contact_id=1" --data-urlencode "token=bnUZJJDkcToThKB5DHG85xLVuS4RxBG1" "http://localhost:8080/contact"
+##### <a name="http_delete_contacts_response">response</a>:
+```toml
+[[response]] status = 0
+```
+
 
 # Guide
 ## Start Simple Im

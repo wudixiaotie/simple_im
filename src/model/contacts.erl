@@ -6,7 +6,7 @@
 
 -module (contacts).
 
--export ([create/2, find/2, remove/2]).
+-export ([create/2, find/2, delete/2]).
 
 
 
@@ -14,30 +14,39 @@
 %% APIs
 %% ===================================================================
 
-create(UserId, ContactId) ->
-    SQL = <<"SELECT add_contact($1, $2);">>,
-    {ok, _} = postgresql:exec(SQL, [UserId, ContactId]),
-    ok.
-
-
-remove(UserId, ContactId) ->
-    SQL = <<"SELECT delete_contact($1, $2);">>,
-    {ok, _} = postgresql:exec(SQL, [UserId, ContactId]),
-    ok.
-
-
-find(UserId, Bin) when is_binary(Bin) ->
-    ContactVersion = erlang:binary_to_integer(Bin),
-    find(UserId, ContactVersion);
-find(UserId, 0) ->
-    SQL = <<"SELECT contact_id FROM contacts WHERE user_id = $1;">>,
-    {ok, _, Result} = postgresql:exec(SQL, [UserId]),
-    unpack(Result);
-find(UserId, ContactVersion) ->
-    SQL = <<"SELECT contact_id FROM contacts
-             WHERE user_id = $1 AND contact_version > $2;">>,
-    {ok, _, Result} = postgresql:exec(SQL, [UserId, ContactVersion]),
+create(AUserId, BUserId) ->
+    SQL = <<"SELECT create_contact($1, $2);">>,
+    {ok, _, Result} = postgresql:exec(SQL, [AUserId, BUserId]),
     unpack(Result).
+
+
+delete(AUserId, BUserId) ->
+    SQL = <<"SELECT delete_contact($1, $2);">>,
+    {ok, _, Result} = postgresql:exec(SQL, [AUserId, BUserId]),
+    unpack(Result).
+
+
+find(UserId, 0) ->
+    SQL = <<"SELECT u.id,
+                    u.name,
+                    u.phone,
+                    u.avatar
+             FROM users u, contacts c
+             WHERE u.id = c.contact_id
+             AND c.user_id = $1;">>,
+    {ok, _, Result} = postgresql:exec(SQL, [UserId]),
+    {ok, Result};
+find(UserId, ContactVersion) ->
+    SQL = <<"SELECT u.id,
+                    u.name,
+                    u.phone,
+                    u.avatar
+             FROM users u, contacts c
+             WHERE u.id = c.contact_id
+             AND c.user_id = $1
+             AND c.contact_version > $2;">>,
+    {ok, _, Result} = postgresql:exec(SQL, [UserId, ContactVersion]),
+    {ok, Result}.
 
 
 
@@ -50,4 +59,4 @@ unpack(TupleList) ->
 unpack([{Value}|T], Result) ->
     unpack(T, [Value|Result]);
 unpack([], Result) ->
-    {ok, Result}.
+    {ok, lists:reverse(Result)}.

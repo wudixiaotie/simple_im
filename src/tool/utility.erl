@@ -130,5 +130,5 @@ join([H|T], Separator, Result) ->
     NewResult = H ++ Separator ++ Result,
     join(T, Separator, NewResult);
 join([], Separator, Result) ->
-    NewResult = 
-    lists:reverse(Result).
+    [_|NewResult] = lists:reverse(Result),
+    NewResult.

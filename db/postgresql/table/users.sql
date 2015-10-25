@@ -6,6 +6,7 @@ CREATE TABLE public.users
     password        CHAR(32) NOT NUlL,
     salt            CHAR(16) NOT NULL,
     contact_version INTEGER NOT NULL,
+    avatar          VARCHAR(300) NOT NULL,
     updated_at      TIMESTAMP WITHOUT TIME ZONE NOT NUlL,
     created_at      TIMESTAMP WITHOUT TIME ZONE NOT NUlL
 )

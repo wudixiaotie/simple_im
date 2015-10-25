@@ -19,16 +19,19 @@
 create(Name, Phone, Password) ->
     {ok, Salt} = utility:random_binary_16(),
     {ok, EncryptedPassword} = utility:md5_hex_32(<<Password/binary, Salt/binary>>),
-    SQL = <<"INSERT INTO users(name,
-                               phone,
-                               password,
-                               salt,
-                               contact_version,
-                               updated_at,
-                               created_at)
-             VALUES($1, $2, $3, $4, 0, now(), now());">>,
-    {ok, 1} = postgresql:exec(SQL, [Name, Phone, EncryptedPassword, Salt]),
-    ok.
+    SQL = <<"SELECT create_user($1, $2, $3, $4);">>,
+    {ok, _, [{Result}]} = postgresql:exec(SQL, [Name,
+                                                Phone,
+                                                EncryptedPassword,
+                                                Salt]),
+    case Result of
+        0 ->
+            ok;
+        1 ->
+            {error, user_exist};
+        _ ->
+            {error, unknown}
+    end.
 
 
 verify(Phone, Password) ->
@@ -51,13 +54,9 @@ verify(Phone, Password) ->
 find({phone, Phone}) ->
     SQL = <<"SELECT id, name FROM users WHERE phone = $1;">>,
     {ok, _, Result} = postgresql:exec(SQL, [Phone]),
-    {ok, Result};
-find({id_list, IdList}) ->
-    SQL = <<"SELECT id, name, phone FROM users WHERE id in ($1);">>,
-    {ok, _, Result} = postgresql:exec(SQL, [IdList]),
     {ok, Result}.
 
-% [{<<"device">>,<<"android">>},{<<"id">>,<<"1">>},{<<"phone">>, <<"18501260698">>}]
+
 parse(TupleList) ->
     parse(TupleList, #user{}).
 
