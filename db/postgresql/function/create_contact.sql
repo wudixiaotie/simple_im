@@ -9,7 +9,13 @@ DECLARE
 BEGIN
     now = now();
 
-    PERFORM delete_contact(a_id, b_id);
+    DELETE FROM contacts c
+    WHERE   (c.user_id = a_id AND c.contact_id = b_id)
+    OR      (c.user_id = b_id AND c.contact_id = a_id);
+
+    DELETE FROM pre_contacts pc
+    WHERE   (pc.a_id = create_contact.a_id AND pc.b_id = create_contact.b_id)
+    OR      (pc.a_id = create_contact.b_id AND pc.b_id = create_contact.a_id);
 
     SELECT  u.contact_version INTO old_version
     FROM    users u

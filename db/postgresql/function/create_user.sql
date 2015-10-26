@@ -15,6 +15,7 @@ BEGIN
     WHERE   u.phone = create_user.phone;
 
     IF count <> 0 THEN
+        -- user has already existed
         RETURN 1;
     ELSE
         INSERT INTO users(name,

@@ -14,19 +14,21 @@
 %% APIs
 %% ===================================================================
 
-create(AUserId, BUserId) ->
+create(AUserId, BUserId)
+    when is_integer(AUserId), is_integer(BUserId) ->
     SQL = <<"SELECT create_contact($1, $2);">>,
     {ok, _, Result} = postgresql:exec(SQL, [AUserId, BUserId]),
     unpack(Result).
 
 
-delete(AUserId, BUserId) ->
+delete(AUserId, BUserId)
+    when is_integer(AUserId), is_integer(BUserId) ->
     SQL = <<"SELECT delete_contact($1, $2);">>,
     {ok, _, Result} = postgresql:exec(SQL, [AUserId, BUserId]),
     unpack(Result).
 
 
-find(UserId, 0) ->
+find(UserId, 0) when is_integer(UserId) ->
     SQL = <<"SELECT u.id,
                     u.name,
                     u.phone,
@@ -36,7 +38,8 @@ find(UserId, 0) ->
              AND c.user_id = $1;">>,
     {ok, _, Result} = postgresql:exec(SQL, [UserId]),
     {ok, Result};
-find(UserId, ContactVersion) ->
+find(UserId, ContactVersion)
+    when is_integer(UserId), is_integer(ContactVersion) ->
     SQL = <<"SELECT u.id,
                     u.name,
                     u.phone,

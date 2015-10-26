@@ -23,7 +23,7 @@ init(Req, Opts) ->
 %% Request handler
 %% ===================================================================
 
-handle_request([<<"get">>], <<"POST">>, true, Req) ->
+handle_request([], <<"GET">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     case handler_helper:verify_token(PostVals) of
         {error, TomlBin} ->
@@ -36,7 +36,7 @@ handle_request([<<"get">>], <<"POST">>, true, Req) ->
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([<<"clean">>], <<"POST">>, true, Req) ->
+handle_request([], <<"DELETE">>, true, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     case handler_helper:verify_token(PostVals) of
         {error, TomlBin} ->

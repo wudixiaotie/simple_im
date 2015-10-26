@@ -9,8 +9,8 @@ BEGIN
     now = now();
 
     DELETE FROM contacts c
-    WHERE   (c.user_id = a_id and c.contact_id = b_id)
-    OR      (c.user_id = b_id and c.contact_id = a_id);
+    WHERE   (c.user_id = a_id AND c.contact_id = b_id)
+    OR      (c.user_id = b_id AND c.contact_id = a_id);
 
     UPDATE  users u
     SET     contact_version = u.contact_version + 1,

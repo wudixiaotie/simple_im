@@ -6,7 +6,7 @@
 
 -module (users).
 
--export ([create/3, verify/2, find/1, parse/1]).
+-export ([create/3, verify/2, find/1, parse/1, to_toml/1]).
 
 -include("user.hrl").
 
@@ -51,8 +51,12 @@ verify(Phone, Password) ->
     end.
 
 
+find({id, Id}) ->
+    SQL = <<"SELECT id, name, phone, avatar FROM users WHERE id = $1;">>,
+    {ok, _, Result} = postgresql:exec(SQL, [Id]),
+    {ok, Result};
 find({phone, Phone}) ->
-    SQL = <<"SELECT id, name FROM users WHERE phone = $1;">>,
+    SQL = <<"SELECT id, name, phone, avatar FROM users WHERE phone = $1;">>,
     {ok, _, Result} = postgresql:exec(SQL, [Phone]),
     {ok, Result}.
 
@@ -60,6 +64,9 @@ find({phone, Phone}) ->
 parse(TupleList) ->
     parse(TupleList, #user{}).
 
+
+to_toml(TupleList) ->
+    to_toml(TupleList, []).
 
 
 %% ===================================================================
@@ -83,3 +90,13 @@ parse([_|T], User) ->
     parse(T, User);
 parse([], User) ->
     {ok, User}.
+
+
+to_toml([{Id, Name, Phone, Avatar}|T], Toml) ->
+    UserToml = {<<"user">>, [{<<"id">>, Id},
+                             {<<"name">>, Name},
+                             {<<"phone">>, Phone},
+                             {<<"avatar">>, Avatar}]},
+    to_toml(T, [UserToml|Toml]);
+to_toml([], Toml) ->
+    {ok, Toml}.
