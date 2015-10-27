@@ -6,7 +6,7 @@
 
 -module (server_handler).
 
--export([init/2, handle_request/4]).
+-export([init/2, handle_request/3]).
 
 -include("user.hrl").
 
@@ -25,7 +25,7 @@ init(Req, Opts) ->
 %% Request handler
 %% ===================================================================
 
-handle_request([<<"login">>], <<"POST">>, true, Req) ->
+handle_request([<<"login">>], <<"POST">>, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     {ok, User} = users:parse(PostVals),
     Toml = case users:verify(User#user.phone, User#user.password) of
@@ -49,11 +49,10 @@ handle_request([<<"login">>], <<"POST">>, true, Req) ->
     end,
     {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    {ok, User} = users:parse(PostVals),
-    UserIdBin = erlang:integer_to_binary(User#user.id),
-    {ok, TokenKey} = redis:key({token, User#user.token}),
+handle_request([<<"reconnect">>], <<"POST">>, Req) ->
+    [{<<"token">>, Token}] = cowboy_req:parse_cookies(Req),
+    {ok, [{<<"id">>, UserIdBin}], _} = cowboy_req:body_qs(Req),
+    {ok, TokenKey} = redis:key({token, Token}),
     Result = redis:q([<<"HMGET">>, TokenKey, <<"ip">>, <<"port">>, <<"user_id">>]),
     Toml = case Result of
         {ok, [undefined, undefined, undefined]} ->
@@ -67,8 +66,8 @@ handle_request([<<"reconnect">>], <<"POST">>, true, Req) ->
     end,
     {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([<<"failed">>], <<"POST">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
+handle_request([<<"failed">>], <<"POST">>, Req) ->
+    PostVals = cowboy_req:parse_cookies(Req),
     {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
     {ok, TokenKey} = redis:key({token, Token}),
     Result = redis:q([<<"HMGET">>, TokenKey, <<"ip">>, <<"port">>]),
@@ -100,7 +99,7 @@ handle_request([<<"failed">>], <<"POST">>, true, Req) ->
     end,
     {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request(_, _, _, Req) ->
+handle_request(_, _, Req) ->
     handler_helper:return404(Req).
 
 

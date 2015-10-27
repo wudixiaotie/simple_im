@@ -28,7 +28,7 @@
 9. [Http clean offline response](#http_clean_offline_response), delete offline messages.
 
 ## Protocol
-### Request:  
+### Request & Response:  
 #### <a name="im_login_request">login</a>:  
 ```toml
 [[r]]
@@ -39,17 +39,6 @@ id=1
 device="ipad"
 token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
 ```
-#### <a name="im_reconnect_request">reconnect</a>:  
-```toml
-[[r]]
-id="b_01"
-t="reconnect"
-[r.user]
-id=1
-device="ipad"
-token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
-```
-### Request Response:  
 #### <a name="im_login_response">login</a>:  
 failed(s means status, value 1 is failed):
 ```toml
@@ -65,6 +54,17 @@ success(s means status, value 0 is success):
 id="a_01"
 t="login"
 s=0
+```
+
+#### <a name="im_reconnect_request">reconnect</a>:  
+```toml
+[[r]]
+id="b_01"
+t="reconnect"
+[r.user]
+id=1
+device="ipad"
+token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
 ```
 #### <a name="im_reconnect_response">reconnect</a>:  
 failed(s means status, value 1 is failed):
@@ -82,16 +82,68 @@ id="b_01"
 t="reconnect"
 s=0
 ```
+
+#### <a name="im_create_contact_request">create contact request</a>:  
+```toml
+[[r]]
+id="b_01"
+t="create_contact"
+[r.to]
+id=2
+message="hello"
+```
+#### <a name="im_create_contact_response">create contact response</a>:  
+failed(s means status, value 1 is failed):
+```toml
+[[rr]]
+id="b_02"
+t="create_contact"
+r="error reason"
+s=1
+```
+success(s means status, value 0 is success):
+```toml
+[[rr]]
+id="b_02"
+t="create_contact"
+s=0
+```
+
+#### <a name="im_accept_contact_request">accept contact request</a>:  
+```toml
+[[r]]
+id="b_01"
+t="accept_contact"
+[r.from]
+id=2
+[r.to]
+id=1
+```
+#### <a name="im_accept_contact_response">accept contact response</a>:  
+failed(s means status, value 1 is failed):
+```toml
+[[rr]]
+id="b_02"
+t="accept_contact"
+r="error reason"
+s=1
+```
+success(s means status, value 0 is success):
+```toml
+[[rr]]
+id="b_02"
+t="accept_contact"
+s=0
+[rr.user]
+contact_version=9
+```
+
 ### Message:  
 ```toml
 [[m]]
 id="a_02"
 c="hello"
-[m.from]
-id=1
-device="android"
-[m.to]
-id=2
+to=2
 ```
 ### Ack:
 ```toml
@@ -103,11 +155,7 @@ id="a_02"
 [[gm]]
 id="a_02"
 c="hello"
-[gm.user]
-id=1
-device="android"
-[gm.group]
-id=123
+group=123
 ```
 
 ## Http request:
@@ -129,7 +177,7 @@ token = "rylFLDGW4NN0h4leO97O/Gibar8KQS8l"
 
 #### reconnect:
 ##### <a name="http_reconnect_request">request</a>:
-curl -X POST -d "id=1" --data-urlencode "token=rylFLDGW4NN0h4leO97O/Gibar8KQS8l" http://localhost:8080/server/reconnect
+curl -X POST -d "id=1" --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" http://localhost:8080/server/reconnect
 ##### <a name="http_reconnect_response">response</a>:
 ```toml
 [[response]]
@@ -140,7 +188,7 @@ port = "1987"
 
 ### report IM offline and get new IM service IP&Port
 ##### <a name="http_report_failed_request">request</a>:
-curl -X POST --data-urlencode "token=CVT1Y6M00u6OO25TJNYCt3VNff8Khlm3" "http://localhost:8080/server/failed"
+curl -X POST --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/server/failed"
 ##### <a name="http_report_failed_response">response</a>:
 ```toml
 [[response]]
@@ -157,7 +205,7 @@ port = "1987"
 ### Offline message
 #### Get offline message
 ##### <a name="http_get_offline_request">request</a>:
-curl -X GET --data-urlencode "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/offline"
+curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/offline"
 ##### <a name="http_get_offline_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -167,7 +215,7 @@ curl -X GET --data-urlencode "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://lo
 ```
 #### Clean offline message
 ##### <a name="http_clean_offline_request">request</a>:
-curl -X DELETE --data-urlencode "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/offline"
+curl -X DELETE --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/offline"
 ##### <a name="http_clean_offline_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -176,7 +224,7 @@ curl -X DELETE --data-urlencode "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http:/
 ### Users
 #### Find user by phone
 ##### <a name="http_find_user_by_phone_request">request</a>:
-curl -X GET --data-urlencode "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/user/phone/13812652243"
+curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/user/phone/13812652243"
 ##### <a name="http_find_user_by_phone_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -184,7 +232,7 @@ curl -X GET --data-urlencode "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://lo
 ```
 #### Find user by id
 ##### <a name="http_find_user_by_id_request">request</a>:
-curl -X GET --data-urlencode "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/user/id/2"
+curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/user/id/2"
 ##### <a name="http_find_user_by_id_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -200,28 +248,28 @@ curl -X POST -d "phone=13812652243" --data-urlencode "name=大傻" --data-urlenc
 
 ### Contacts
 ##### <a name="http_add_contacts_request">request</a>:
-curl -X POST --data-urlencode "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" --data-urlencode "message=hello" "http://localhost:8080/contact/2"  
+curl -X POST --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" --data-urlencode "message=hello" "http://localhost:8080/contact/2"  
 2 is target user id
 ##### <a name="http_add_contacts_response">response</a>:
 ```toml
 [[response]] status = 0
 ```
 ##### <a name="http_accept_contacts_request">request</a>:
-curl -X UPDATE --data-urlencode "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/contact/2"  
+curl -X UPDATE --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/contact/2"  
 1 is initiator user id
 ##### <a name="http_accept_contacts_response">response</a>:
 ```toml
 [[response]] status = 0 version=3
 ```
 ##### <a name="http_find_contacts_request">request</a>:
-curl -X GET --data-urlencode "token=iUEgJa5qUMqCJdoz13XAiCx3lJk0IumW" "http://localhost:8080/contact/version/0"
+curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/contact/version/0"
 ##### <a name="http_find_contacts_response">response</a>:
 ```toml
 [[response]] status = 0
 [[user]] id = 2 name = "xiaotie" phone = "13812652243" avatar = ""
 ```
 ##### <a name="http_delete_contacts_request">request</a>:
-curl -X DELETE --data-urlencode "token=bnUZJJDkcToThKB5DHG85xLVuS4RxBG1" "http://localhost:8080/contact/1"
+curl -X DELETE --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/contact/1"
 1 is contact user id
 ##### <a name="http_delete_contacts_response">response</a>:
 ```toml

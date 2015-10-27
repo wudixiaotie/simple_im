@@ -6,7 +6,7 @@
 
 -module (contact_handler).
 
--export([init/2, handle_request/4]).
+-export([init/2, handle_request/3]).
 
 
 
@@ -23,9 +23,8 @@ init(Req, Opts) ->
 %% Request handler
 %% ===================================================================
 
-handle_request([<<"version">>, ContactVersionBin], <<"GET">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case handler_helper:verify_token(PostVals) of
+handle_request([<<"version">>, ContactVersionBin], <<"GET">>, Req) ->
+    case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, UserId} ->
@@ -38,9 +37,8 @@ handle_request([<<"version">>, ContactVersionBin], <<"GET">>, true, Req) ->
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([ContactIdBin], <<"DELETE">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case handler_helper:verify_token(PostVals) of
+handle_request([ContactIdBin], <<"DELETE">>, Req) ->
+    case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, UserId} ->
@@ -56,9 +54,9 @@ handle_request([ContactIdBin], <<"DELETE">>, true, Req) ->
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([ContactIdBin], <<"POST">>, true, Req) ->
+handle_request([ContactIdBin], <<"POST">>, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case handler_helper:verify_token(PostVals) of
+    case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, UserId} ->
@@ -83,9 +81,8 @@ handle_request([ContactIdBin], <<"POST">>, true, Req) ->
             end
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([UserIdBin], <<"UPDATE">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case handler_helper:verify_token(PostVals) of
+handle_request([UserIdBin], <<"UPDATE">>, Req) ->
+    case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, ContactId} ->
@@ -96,7 +93,7 @@ handle_request([UserIdBin], <<"UPDATE">>, true, Req) ->
             {ok, TomlBin} = toml:term_2_binary(Response)
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request(_, _, _, Req) ->
+handle_request(_, _, Req) ->
     handler_helper:return404(Req).
 
 

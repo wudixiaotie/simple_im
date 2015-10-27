@@ -6,7 +6,7 @@
 
 -module (offline_handler).
 
--export([init/2, handle_request/4]).
+-export([init/2, handle_request/3]).
 
 
 
@@ -23,9 +23,8 @@ init(Req, Opts) ->
 %% Request handler
 %% ===================================================================
 
-handle_request([], <<"GET">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case handler_helper:verify_token(PostVals) of
+handle_request([], <<"GET">>, Req) ->
+    case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, UserId} ->
@@ -36,9 +35,8 @@ handle_request([], <<"GET">>, true, Req) ->
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([], <<"DELETE">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case handler_helper:verify_token(PostVals) of
+handle_request([], <<"DELETE">>, Req) ->
+    case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, UserId} ->
@@ -47,7 +45,7 @@ handle_request([], <<"DELETE">>, true, Req) ->
             {ok, TomlBin} = toml:term_2_binary(Toml)
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request(_, _, _, Req) ->
+handle_request(_, _, Req) ->
     handler_helper:return404(Req).
 
 

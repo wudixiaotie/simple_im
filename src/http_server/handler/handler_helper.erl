@@ -17,12 +17,12 @@
 init(Module, Req, Opts) ->
     Path = cowboy_req:path_info(Req),
     Method = cowboy_req:method(Req),
-    HasBody = cowboy_req:has_body(Req),
-    Req2 = Module:handle_request(Path, Method, HasBody, Req),
+    Req2 = Module:handle_request(Path, Method, Req),
     {ok, Req2, Opts}.
 
 
-verify_token(PostVals) ->
+verify_token(Req) ->
+    PostVals = cowboy_req:parse_cookies(Req),
     {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
     {ok, TokenKey} = redis:key({token, Token}),
     Result = redis:q([<<"HGET">>, TokenKey, <<"user_id">>]),

@@ -175,20 +175,19 @@ process_packet([{<<"r">>, Attrs}|T], State) ->
     end;
 % message
 process_packet([{<<"m">>, Attrs} = Msg|T], State) ->
-    {ok, Message, NewState} = send_ack(State, Msg),
+    {ok, Message, NewState} = process_message(State, Msg),
     case lists:keyfind(<<"to">>, 1, Attrs) of
-        {<<"to">>, ToUserInfo} ->
-            {ok, ToUser} = users:parse(ToUserInfo),
-            send_msg_2_single_user(ToUser#user.id, Message);
+        {<<"to">>, ToUserId} ->
+            send_msg_2_single_user(ToUserId, Message);
         _ ->
             ignore
     end,
     process_packet(T, NewState);
 % group message
 process_packet([{<<"gm">>, Attrs} = Msg|T], State) ->
-    {ok, Message, NewState} = send_ack(State, Msg),
+    {ok, Message, NewState} = process_message(State, Msg),
     case lists:keyfind(<<"group">>, 1, Attrs) of
-        {<<"group">>, [{<<"id">>, GroupId}]} ->
+        {<<"group">>, GroupId} ->
             {ok, UserIdList} = groups:get_user_id_list(GroupId),
             ok = send_msg_2_multiple_users(UserIdList, Message);
         _ ->
@@ -204,7 +203,7 @@ process_packet([], NewState) ->
     {ok, NewState}.
 
 
-send_ack(State, {_, Attrs} = Toml) ->
+process_message(#state{user = User} = State, {Type, Attrs}) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got msg id=~p~n", [MsgId]),
     Ack = {<<"a">>,
@@ -212,15 +211,15 @@ send_ack(State, {_, Attrs} = Toml) ->
     AckMessage = #message{id = MsgId, toml = Ack},
     NewMsgCache = [AckMessage|State#state.msg_cache],
     ok = send_tcp(State#state.socket, AckMessage),
-    TomlWithTs = add_timestamp(Toml),
-    Message = #message{id = MsgId, toml = TomlWithTs},
+
+    Ts = {<<"ts">>, utility:timestamp()},
+    AttrsWithTs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
+    From = {<<"from">>, User#user.id},
+    NewAttrs = lists:keystore(<<"from">>, 1, AttrsWithTs, From),
+
+    NewToml = {Type, NewAttrs},
+    Message = #message{id = MsgId, toml = NewToml},
     {ok, Message, State#state{msg_cache = NewMsgCache}}.
-
-
-add_timestamp({Type, Attrs}) ->
-    Timestamp = utility:timestamp(),
-    NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, {<<"ts">>, Timestamp}),
-    {Type, NewAttrs}.
 
 
 send_msg_2_single_user(UserId, Message) ->

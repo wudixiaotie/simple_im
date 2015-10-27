@@ -6,7 +6,7 @@
 
 -module (user_handler).
 
--export([init/2, handle_request/4]).
+-export([init/2, handle_request/3]).
 
 
 
@@ -23,9 +23,8 @@ init(Req, Opts) ->
 %% Request handler
 %% ===================================================================
 
-handle_request([<<"phone">>, PhoneBin], <<"GET">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case handler_helper:verify_token(PostVals) of
+handle_request([<<"phone">>, PhoneBin], <<"GET">>, Req) ->
+    case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, _} ->
@@ -42,9 +41,8 @@ handle_request([<<"phone">>, PhoneBin], <<"GET">>, true, Req) ->
             end
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([<<"id">>, IdBin], <<"GET">>, true, Req) ->
-    {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case handler_helper:verify_token(PostVals) of
+handle_request([<<"id">>, IdBin], <<"GET">>, Req) ->
+    case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, _} ->
@@ -62,7 +60,7 @@ handle_request([<<"id">>, IdBin], <<"GET">>, true, Req) ->
             end
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([], <<"POST">>, true, Req) ->
+handle_request([], <<"POST">>, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     {<<"name">>, Name} = lists:keyfind(<<"name">>, 1, PostVals),
     {<<"phone">>, Phone} = lists:keyfind(<<"phone">>, 1, PostVals),
@@ -80,7 +78,7 @@ handle_request([], <<"POST">>, true, Req) ->
             {ok, TomlBin} = toml:term_2_binary(Response)
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request(_, _, _, Req) ->
+handle_request(_, _, Req) ->
     handler_helper:return404(Req).
 
 
