@@ -210,6 +210,24 @@ process_packet([{<<"r">>, Attrs}|T], State) ->
                     NewState = State
             end,
             process_packet(T, NewState);
+        {<<"t">>, <<"delete_contact">>} ->
+            case lists:keyfind(<<"to">>, 1, Attrs) of
+                {<<"to">>, ToUserId} ->
+                    UserId = State#state.user#user.id,
+                    {ok, [UserVersion, ToUserVersion]} = contacts:delete(UserId, ToUserId),
+
+                    NewAttrs = [{<<"contact_version">>, ToUserVersion}|add_ts_from(Attrs, UserId)],
+                    Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+                    send_msg_2_single_user(ToUserId, Message),
+
+                    RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+                                     {<<"status">>, 0},
+                                     {<<"contact_version">>, UserVersion}]},
+                    {ok, NewState} = send_rr(MsgId, RR, State);
+                _ ->
+                    NewState = State
+            end,
+            process_packet(T, NewState);
         _ ->
             RR = {<<"rr">>,
                   [{<<"id">>, MsgId},

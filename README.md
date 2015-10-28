@@ -128,6 +128,28 @@ id="b_02"
 s=0
 contact_version=9
 ```
+#### <a name="im_delete_contact_request">delete contact request</a>:  
+```toml
+[[r]]
+id="b_01"
+t="delete_contact"
+to=1
+```
+#### <a name="im_delete_contact_response">delete contact response</a>:  
+failed(s means status, value 1 is failed):
+```toml
+[[rr]]
+id="b_02"
+r="error reason"
+s=1
+```
+success(s means status, value 0 is success):
+```toml
+[[rr]]
+id="b_02"
+s=0
+contact_version=9
+```
 
 ### Message:  
 ```toml
@@ -238,33 +260,12 @@ curl -X POST -d "phone=13812652243" --data-urlencode "name=大傻" --data-urlenc
 ```
 
 ### Contacts
-##### <a name="http_add_contacts_request">request</a>:
-curl -X POST --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" --data-urlencode "message=hello" "http://localhost:8080/contact/2"  
-2 is target user id
-##### <a name="http_add_contacts_response">response</a>:
-```toml
-[[response]] status = 0
-```
-##### <a name="http_accept_contacts_request">request</a>:
-curl -X UPDATE --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/contact/2"  
-1 is initiator user id
-##### <a name="http_accept_contacts_response">response</a>:
-```toml
-[[response]] status = 0 version=3
-```
 ##### <a name="http_find_contacts_request">request</a>:
 curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/contact/version/0"
 ##### <a name="http_find_contacts_response">response</a>:
 ```toml
 [[response]] status = 0
 [[user]] id = 2 name = "xiaotie" phone = "13812652243" avatar = ""
-```
-##### <a name="http_delete_contacts_request">request</a>:
-curl -X DELETE --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/contact/1"
-1 is contact user id
-##### <a name="http_delete_contacts_response">response</a>:
-```toml
-[[response]] status = 0
 ```
 
 
@@ -333,6 +334,5 @@ Key: <<"client_", Token/binary>>
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
-1. Add friend
 2. Add group
 3. test
