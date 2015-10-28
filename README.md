@@ -83,21 +83,19 @@ t="reconnect"
 s=0
 ```
 
-#### <a name="im_create_contact_request">create contact request</a>:  
+#### <a name="im_add_contact_request">add contact request</a>:  
 ```toml
 [[r]]
 id="b_01"
-t="create_contact"
-[r.to]
-id=2
+t="add_contact"
+to=2
 message="hello"
 ```
-#### <a name="im_create_contact_response">create contact response</a>:  
+#### <a name="im_add_contact_response">add contact response</a>:  
 failed(s means status, value 1 is failed):
 ```toml
 [[rr]]
 id="b_02"
-t="create_contact"
 r="error reason"
 s=1
 ```
@@ -105,7 +103,6 @@ success(s means status, value 0 is success):
 ```toml
 [[rr]]
 id="b_02"
-t="create_contact"
 s=0
 ```
 
@@ -114,17 +111,13 @@ s=0
 [[r]]
 id="b_01"
 t="accept_contact"
-[r.from]
-id=2
-[r.to]
-id=1
+to=1
 ```
 #### <a name="im_accept_contact_response">accept contact response</a>:  
 failed(s means status, value 1 is failed):
 ```toml
 [[rr]]
 id="b_02"
-t="accept_contact"
 r="error reason"
 s=1
 ```
@@ -132,9 +125,7 @@ success(s means status, value 0 is success):
 ```toml
 [[rr]]
 id="b_02"
-t="accept_contact"
 s=0
-[rr.user]
 contact_version=9
 ```
 

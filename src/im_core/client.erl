@@ -163,15 +163,60 @@ process_packet([{<<"r">>, Attrs}|T], State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got r id=~p~n", [MsgId]),
     case lists:keyfind(<<"t">>, 1, Attrs) of
+        {<<"t">>, <<"add_contact">>} ->
+            case lists:keyfind(<<"to">>, 1, Attrs) of
+                {<<"to">>, ToUserId} ->
+                    UserId = State#state.user#user.id,
+                    {<<"message">>, AddContactMessage} = lists:keyfind(<<"message">>, 1, Attrs),
+                    RR = case pre_contacts:create(UserId, ToUserId, AddContactMessage) of
+                        {ok, 0} ->
+                            NewAttrs = add_ts_from(Attrs, UserId),
+                            Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+                            send_msg_2_single_user(ToUserId, Message),
+                            {<<"rr">>, [{<<"id">>, MsgId}, {<<"status">>, 0}]};
+                        {ok, 1} ->
+                            {<<"rr">>, [{<<"id">>, MsgId},
+                                        {<<"status">>, 1},
+                                        {<<"r">>, <<"Contact exists">>}]};
+                        {ok, 2} ->
+                            {<<"rr">>, [{<<"id">>, MsgId},
+                                        {<<"status">>, 2},
+                                        {<<"r">>, <<"Waiting for accept">>}]};
+                        {ok, _} ->
+                            {<<"rr">>, [{<<"id">>, MsgId},
+                                        {<<"status">>, 3},
+                                        {<<"r">>, <<"Unkonw Error">>}]}
+                    end,
+                    {ok, NewState} = send_rr(MsgId, RR, State);
+                _ ->
+                    NewState = State
+            end,
+            process_packet(T, NewState);
+        {<<"t">>, <<"accept_contact">>} ->
+            case lists:keyfind(<<"to">>, 1, Attrs) of
+                {<<"to">>, ToUserId} ->
+                    UserId = State#state.user#user.id,
+                    {ok, [UserVersion, ToUserVersion]} = contacts:create(UserId, ToUserId),
+
+                    NewAttrs = [{<<"contact_version">>, ToUserVersion}|add_ts_from(Attrs, UserId)],
+                    Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+                    send_msg_2_single_user(ToUserId, Message),
+
+                    RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+                                     {<<"status">>, 0},
+                                     {<<"contact_version">>, UserVersion}]},
+                    {ok, NewState} = send_rr(MsgId, RR, State);
+                _ ->
+                    NewState = State
+            end,
+            process_packet(T, NewState);
         _ ->
             RR = {<<"rr">>,
                   [{<<"id">>, MsgId},
                    {<<"s">>, 1},
                    {<<"r">>, <<"Unknown request">>}]},
-            Message = #message{id = MsgId, toml = RR},
-            ok = send_tcp(State#state.socket, Message),
-            NewMsgCache = [Message|State#state.msg_cache],
-            process_packet(T, State#state{msg_cache = NewMsgCache})
+            {ok, NewState} = send_rr(MsgId, RR, State),
+            process_packet(T, NewState)
     end;
 % message
 process_packet([{<<"m">>, Attrs} = Msg|T], State) ->
@@ -203,7 +248,7 @@ process_packet([], NewState) ->
     {ok, NewState}.
 
 
-process_message(#state{user = User} = State, {Type, Attrs}) ->
+process_message(State, {Type, Attrs}) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got msg id=~p~n", [MsgId]),
     Ack = {<<"a">>,
@@ -212,14 +257,18 @@ process_message(#state{user = User} = State, {Type, Attrs}) ->
     NewMsgCache = [AckMessage|State#state.msg_cache],
     ok = send_tcp(State#state.socket, AckMessage),
 
-    Ts = {<<"ts">>, utility:timestamp()},
-    AttrsWithTs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
-    From = {<<"from">>, User#user.id},
-    NewAttrs = lists:keystore(<<"from">>, 1, AttrsWithTs, From),
+    NewAttrs = add_ts_from(Attrs, State#state.user#user.id),
 
     NewToml = {Type, NewAttrs},
     Message = #message{id = MsgId, toml = NewToml},
     {ok, Message, State#state{msg_cache = NewMsgCache}}.
+
+
+add_ts_from(Attrs, UserId) ->
+    Ts = {<<"ts">>, utility:timestamp()},
+    AttrsWithTs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
+    From = {<<"from">>, UserId},
+    lists:keystore(<<"from">>, 1, AttrsWithTs, From).
 
 
 send_msg_2_single_user(UserId, Message) ->
@@ -245,3 +294,10 @@ send_msg_to_pid([H|T], Message) ->
     send_msg_to_pid(T, Message);
 send_msg_to_pid([], _) ->
     ok.
+
+
+send_rr(MsgId, RRToml, State) ->
+    Message = #message{id = MsgId, toml = RRToml},
+    ok = send_tcp(State#state.socket, Message),
+    NewMsgCache = [Message|State#state.msg_cache],
+    {ok, State#state{msg_cache = NewMsgCache}}.
