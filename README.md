@@ -374,5 +374,6 @@ Key: <<"client_", Token/binary>>
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
+1. toml support list
 2. Add group
 3. test
