@@ -1,5 +1,5 @@
-CREATE OR REPLACE FUNCTION create_pre_contact(a_id      pre_contacts.a_id%TYPE,
-                                              b_id      pre_contacts.b_id%TYPE,
+CREATE OR REPLACE FUNCTION create_pre_contact(a_id      INTEGER,
+                                              b_id      INTEGER,
                                               message   pre_contacts.message%TYPE)
 RETURNS INTEGER AS
 $$

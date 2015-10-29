@@ -144,6 +144,7 @@ id="b_02"
 s=0
 contact_version=9
 ```
+
 #### <a name="im_delete_contact_request">delete contact request</a>:  
 ```toml
 [[r]]
@@ -165,6 +166,30 @@ success(s means status, value 0 is success):
 id="b_02"
 s=0
 contact_version=9
+```
+
+#### <a name="im_create_group_request">create group request</a>:  
+```toml
+[[r]]
+id="c_01"
+t="create_group"
+name="fuck"
+members=[2,3]
+```
+#### <a name="im_create_group_response">create group response</a>:  
+failed(s means status, value 1 is failed):
+```toml
+[[rr]]
+id="c_02"
+r="error reason"
+s=1
+```
+success(s means status, value 0 is success):
+```toml
+[[rr]]
+id="c_02"
+s=0
+group=9
 ```
 
 ### Message:  
@@ -283,7 +308,6 @@ curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:
 [[response]] status = 0
 [[user]] id = 2 name = "xiaotie" phone = "13812652243" avatar = ""
 ```
-
 
 # Guide
 ## Start Simple Im

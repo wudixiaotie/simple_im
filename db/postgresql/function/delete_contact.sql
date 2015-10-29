@@ -1,10 +1,10 @@
-CREATE OR REPLACE FUNCTION delete_contact(a_id users.id%TYPE,
-                                          b_id users.id%TYPE)
+CREATE OR REPLACE FUNCTION delete_contact(a_id INTEGER,
+                                          b_id INTEGER)
 RETURNS SETOF INTEGER AS
 $$
 DECLARE
     now         contacts.created_at%TYPE;
-    new_version contacts.contact_version%TYPE;
+    new_version INTEGER;
 BEGIN
     now = now();
 

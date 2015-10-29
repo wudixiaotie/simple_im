@@ -228,6 +228,25 @@ process_packet([{<<"r">>, Attrs}|T], State) ->
                     NewState = State
             end,
             process_packet(T, NewState);
+        % {<<"t">>, <<"create_group">>} ->
+        %     case lists:keyfind(<<"name">>, 1, Attrs) of
+        %         {<<"name">>, GroupName} ->
+        %             UserId = State#state.user#user.id,
+                    
+        %             ok = 
+
+        %             NewAttrs = [{<<"contact_version">>, ToUserVersion}|add_ts_from(Attrs, UserId)],
+        %             Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+        %             send_msg_2_single_user(ToUserId, Message),
+
+        %             RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+        %                              {<<"status">>, 0},
+        %                              {<<"contact_version">>, UserVersion}]},
+        %             {ok, NewState} = send_rr(MsgId, RR, State);
+        %         _ ->
+        %             NewState = State
+        %     end,
+        %     process_packet(T, NewState);
         _ ->
             RR = {<<"rr">>,
                   [{<<"id">>, MsgId},
@@ -251,7 +270,7 @@ process_packet([{<<"gm">>, Attrs} = Msg|T], State) ->
     {ok, Message, NewState} = process_message(State, Msg),
     case lists:keyfind(<<"group">>, 1, Attrs) of
         {<<"group">>, GroupId} ->
-            {ok, UserIdList} = groups:get_user_id_list(GroupId),
+            {ok, UserIdList} = group_members:find({group_id, GroupId}),
             ok = send_msg_2_multiple_users(UserIdList, Message);
         _ ->
             ignore

@@ -124,11 +124,15 @@ join([H|T], Separator, Result) when is_integer(H) ->
     join(T, Separator, NewResult);
 join([H|T], Separator, Result) when is_binary(H) ->
     Str = erlang:binary_to_list(H),
-    NewResult = Str ++ Separator ++ Result,
+    NewResult = "\"" ++ Str ++ "\"" ++ Separator ++ Result,
     join(T, Separator, NewResult);
-join([H|T], Separator, Result) ->
-    NewResult = H ++ Separator ++ Result,
+join([H|T], Separator, Result) when is_list(H) ->
+    NewResult = "\"" ++ H ++ "\"" ++ Separator ++ Result,
     join(T, Separator, NewResult);
-join([], Separator, Result) ->
+join([H|T], Separator, Result) when is_atom(H) ->
+    Str = erlang:atom_to_list(H),
+    NewResult = "\"" ++ Str ++ "\"" ++ Separator ++ Result,
+    join(T, Separator, NewResult);
+join([], _, Result) ->
     [_|NewResult] = lists:reverse(Result),
-    NewResult.
+    {ok, NewResult}.
