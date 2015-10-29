@@ -27,6 +27,22 @@
 8. [Http clean offline request](#http_clean_offline_request), use token to delete offline messages.
 9. [Http clean offline response](#http_clean_offline_response), delete offline messages.
 
+### Create Contact:
+![CreateContact](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/create_contact.png)  
+
+1. Search Contact:
+     1. [Http Search Contact request](#http_find_user_by_phone_request).
+     2. [Http Search Contact response](#http_find_user_by_phone_response).
+2. Add contact request: A to Server & Server response:
+     1. [IM add contact request](#im_add_contact_request).
+     2. [IM add contact response](#im_add_contact_response).
+3. Add contact request: Server to B.
+4. Accept contact request: B to Server & Server response:
+     1. [IM accept contact request](#im_accept_contact_request).
+     2. [IM accept contact response](#im_accept_contact_response), B update contact version.
+5. Accept contact request: Server to A, A update contact version.
+
+
 ## Protocol
 ### Request & Response:  
 #### <a name="im_login_request">login</a>:  
