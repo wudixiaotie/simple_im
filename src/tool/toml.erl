@@ -44,8 +44,14 @@ tuple_2_binary(Name, [{Key, Integer}|T], TomlBin, ChildList) when is_integer(Int
     Binary = erlang:integer_to_binary(Integer),
     NewTomlBin = <<TomlBin/binary, " ", Key/binary, " = ", Binary/binary>>,
     tuple_2_binary(Name, T, NewTomlBin, ChildList);
-tuple_2_binary(Name, [{Key, List}|T], TomlBin, ChildList) when is_list(List) ->
+tuple_2_binary(Name, [{Key, [H|_] = List}|T], TomlBin, ChildList) when is_tuple(H) ->
     tuple_2_binary(Name, T, TomlBin, [{Key, List}|ChildList]);
+tuple_2_binary(Name, [{Key, []}|T], TomlBin, ChildList) ->
+    tuple_2_binary(Name, T, TomlBin, [{Key, []}|ChildList]);
+tuple_2_binary(Name, [{Key, List}|T], TomlBin, ChildList) ->
+    {ok, Binary} = utility:join(List, <<",">>),
+    NewTomlBin = <<TomlBin/binary, " ", Key/binary, " = [", Binary/binary, "]">>,
+    tuple_2_binary(Name, T, NewTomlBin, ChildList);
 tuple_2_binary(Name, [], TomlBin, [{Key, List}|T]) when is_list(List) ->
     ChildName = <<Name/binary, ".", Key/binary>>,
     ChildTomlBin = <<TomlBin/binary, " [", ChildName/binary, "]">>,
@@ -192,6 +198,8 @@ parse_value([$\n|T]) ->
     parse_value(T);
 parse_value([$\"|T]) ->
     parse_string_value(T, []);
+parse_value([$[|T]) ->
+    parse_list_value(T, []);
 parse_value(RestStr) ->
     parse_integer_value(RestStr, []).
 
@@ -224,8 +232,30 @@ parse_integer_value([$8|T], Value) ->
 parse_integer_value([$9|T], Value) ->
     parse_integer_value(T, [$9|Value]);
 parse_integer_value(RestStr, Value) ->
-    ValueBin = erlang:list_to_integer(lists:reverse(Value)),
-    {ok, ValueBin, RestStr}.
+    ValueInteger = erlang:list_to_integer(lists:reverse(Value)),
+    {ok, ValueInteger, RestStr}.
+
+
+parse_list_value([$\"|T], Value) ->
+    {ok, Item, RestStr} = parse_string_value(T, []),
+    parse_list_value(RestStr, [Item|Value]);
+parse_list_value([$,|T], Value) ->
+    parse_list_value(T, Value);
+parse_list_value([$\s|T], Value) ->
+    parse_list_value(T, Value);
+parse_list_value([$\t|T], Value) ->
+    parse_list_value(T, Value);
+parse_list_value([$\r|T], Value) ->
+    parse_list_value(T, Value);
+parse_list_value([$\n|T], Value) ->
+    parse_list_value(T, Value);
+parse_list_value([$]|RestStr], Value) ->
+    {ok, Value, RestStr};
+parse_list_value([], Value) ->
+    {ok, Value, []};
+parse_list_value(RestStr, Value) ->
+    {ok, Item, NewRestStr} = parse_integer_value(RestStr, []),
+    parse_list_value(NewRestStr, [Item|Value]).
 
 
 drop_space([$\s|T]) ->

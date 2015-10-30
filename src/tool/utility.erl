@@ -76,7 +76,7 @@ delete_from_list(Element, List) ->
 
 
 join(List, Separator) ->
-    join(List, Separator, []).
+    join(List, Separator, <<>>).
 
 
 
@@ -118,21 +118,33 @@ delete_from_list(_, [], Result) ->
     {ok, lists:reverse(Result)}.
 
 
+join([H|[]], _, Result) when is_integer(H) ->
+    Bin = erlang:integer_to_binary(H),
+    NewResult = <<Result/binary, " ", Bin/binary, " ">>,
+    {ok, NewResult};
+join([H|[]], _, Result) when is_binary(H) ->
+    NewResult = <<Result/binary, " \"", H/binary, " \" ">>,
+    {ok, NewResult};
+join([H|[]], _, Result) when is_list(H) ->
+    Bin = erlang:list_to_binary(H),
+    NewResult = <<Result/binary, " \"", Bin/binary, " \" ">>,
+    {ok, NewResult};
+join([H|[]], _, Result) when is_atom(H) ->
+    Bin = erlang:atom_to_binary(H, utf8),
+    NewResult = <<Result/binary, " \"", Bin/binary, " \" ">>,
+    {ok, NewResult};
 join([H|T], Separator, Result) when is_integer(H) ->
-    Str = erlang:integer_to_list(H),
-    NewResult = Str ++ Separator ++ Result,
+    Bin = erlang:integer_to_binary(H),
+    NewResult = <<Result/binary, " ", Bin/binary, Separator/binary>>,
     join(T, Separator, NewResult);
 join([H|T], Separator, Result) when is_binary(H) ->
-    Str = erlang:binary_to_list(H),
-    NewResult = "\"" ++ Str ++ "\"" ++ Separator ++ Result,
+    NewResult = <<Result/binary, " \"", H/binary, " \"", Separator/binary>>,
     join(T, Separator, NewResult);
 join([H|T], Separator, Result) when is_list(H) ->
-    NewResult = "\"" ++ H ++ "\"" ++ Separator ++ Result,
+    Bin = erlang:list_to_binary(H),
+    NewResult = <<Result/binary, " \"", Bin/binary, " \"", Separator/binary>>,
     join(T, Separator, NewResult);
 join([H|T], Separator, Result) when is_atom(H) ->
-    Str = erlang:atom_to_list(H),
-    NewResult = "\"" ++ Str ++ "\"" ++ Separator ++ Result,
-    join(T, Separator, NewResult);
-join([], _, Result) ->
-    [_|NewResult] = lists:reverse(Result),
-    {ok, NewResult}.
+    Bin = erlang:atom_to_binary(H, utf8),
+    NewResult = <<Result/binary, " \"", Bin/binary, " \"", Separator/binary>>,
+    join(T, Separator, NewResult).

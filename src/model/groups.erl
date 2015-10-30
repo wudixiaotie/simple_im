@@ -15,8 +15,7 @@
 %% ===================================================================
 
 create(Name, CreatorId, Members) ->
-    {ok, MembersStr} = utility:join(Members, ","),
-    MembersBin = erlang:list_to_binary(MembersStr),
+    {ok, MembersBin} = utility:join(Members, <<",">>),
     SQL = <<"SELECT create_group($1, $2, '{", MembersBin/binary, "}');">>,
     {ok, _, _} = postgresql:exec(SQL, [Name, CreatorId]),
     ok.

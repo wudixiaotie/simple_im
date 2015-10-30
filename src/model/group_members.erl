@@ -15,8 +15,7 @@
 %% ===================================================================
 
 create(GroupId, UserIdList) when is_list(UserIdList) ->
-    {ok, MembersStr} = utility:join(UserIdList, ","),
-    MembersBin = erlang:list_to_binary(MembersStr),
+    {ok, MembersBin} = utility:join(UserIdList, <<",">>),
     SQL = <<"SELECT create_group_members($1, '{", MembersBin/binary, "}');">>,
     {ok, _, _} = postgresql:exec(SQL, [GroupId]),
     ok;
