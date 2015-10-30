@@ -189,7 +189,30 @@ success(s means status, value 0 is success):
 [[rr]]
 id="c_02"
 s=0
-group=9
+group_id=9
+```
+
+#### <a name="im_create_group_member_request">create group member request</a>:  
+```toml
+[[r]]
+id="c_02"
+t="create_group_member"
+group_id=9
+member_id=2
+```
+#### <a name="im_create_group_member_response">create group member response</a>:  
+failed(s means status, value 1 is failed):
+```toml
+[[rr]]
+id="c_02"
+r="error reason"
+s=1
+```
+success(s means status, value 0 is success):
+```toml
+[[rr]]
+id="c_02"
+s=0
 ```
 
 ### Message:  
@@ -374,6 +397,5 @@ Key: <<"client_", Token/binary>>
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 
 # TODO List:
-1. toml support list
 2. Add group
 3. test

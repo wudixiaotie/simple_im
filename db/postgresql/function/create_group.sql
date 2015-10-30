@@ -15,7 +15,7 @@ BEGIN
 
     PERFORM create_group_members(group_id, members);
 
-    RETURN;
+    RETURN group_id;
 END;
 $$
 LANGUAGE plpgsql;

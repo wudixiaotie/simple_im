@@ -17,8 +17,8 @@
 create(Name, CreatorId, Members) ->
     {ok, MembersBin} = utility:join(Members, <<",">>),
     SQL = <<"SELECT create_group($1, $2, '{", MembersBin/binary, "}');">>,
-    {ok, _, _} = postgresql:exec(SQL, [Name, CreatorId]),
-    ok.
+    {ok, _, [{GroupId}]} = postgresql:exec(SQL, [Name, CreatorId]),
+    {ok, GroupId}.
 
 
 delete(GroupId) ->
