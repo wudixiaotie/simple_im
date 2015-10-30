@@ -192,6 +192,28 @@ s=0
 group_id=9
 ```
 
+#### <a name="im_delete_group_request">delete group request</a>:  
+```toml
+[[r]]
+id="c_01"
+t="delete_group"
+group_id=9
+```
+#### <a name="im_create_group_response">delete group response</a>:  
+failed(s means status, value 1 is failed):
+```toml
+[[rr]]
+id="c_02"
+r="error reason"
+s=1
+```
+success(s means status, value 0 is success):
+```toml
+[[rr]]
+id="c_02"
+s=0
+```
+
 #### <a name="im_create_group_member_request">create group member request</a>:  
 ```toml
 [[r]]

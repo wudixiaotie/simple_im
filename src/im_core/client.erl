@@ -253,6 +253,24 @@ process_packet([{<<"r">>, Attrs}|T], State) ->
                     NewState = State
             end,
             process_packet(T, NewState);
+        {<<"t">>, <<"delete_group">>} ->
+            case lists:keyfind(<<"group_id">>, 1, Attrs) of
+                {<<"group_id">>, GroupId} ->
+                    {ok, Members} = group_members:find({group_id, GroupId}),
+                    ok = groups:delete(GroupId),
+
+                    Ts = {<<"ts">>, utility:timestamp()},
+                    NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
+                    Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+                    ok = send_msg_2_multiple_user(Members, Message),
+
+                    RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+                                     {<<"status">>, 0}]},
+                    {ok, NewState} = send_rr(MsgId, RR, State);
+                _ ->
+                    NewState = State
+            end,
+            process_packet(T, NewState);
         _ ->
             RR = {<<"rr">>,
                   [{<<"id">>, MsgId},
