@@ -9,4 +9,4 @@ fi
 rm -rf erl_crash.dump
 git add -A
 git commit -m "$note"
-git push -u origin master
+git push -u origin
