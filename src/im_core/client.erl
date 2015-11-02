@@ -9,18 +9,16 @@
 -behaviour(gen_server).
 
 % APIs
--export([start_link/3]).
+-export([start_link/5]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {socket,
-                heartbeat_timeout,
-                user,
+-record(state, {heartbeat_timeout,
+                user_id,
                 msg_cache}). %% [#message{},...]
 
--include("user.hrl").
 -include("message.hrl").
 
 
@@ -29,8 +27,8 @@
 %% APIs
 %% ===================================================================
 
-start_link(Socket, Message, User) ->
-    gen_server:start_link(?MODULE, [Socket, Message, User], []).
+start_link(Socket, Message, UserId, Device, Token) ->
+    gen_server:start_link(?MODULE, [Socket, Message, UserId, Device, Token], []).
 
 
 
@@ -38,12 +36,11 @@ start_link(Socket, Message, User) ->
 %% gen_server callbacks
 %% ===================================================================
 
-init([Socket, Message, User]) ->
-    session:register(User, self()),
+init([Socket, Message, UserId, Device, Token]) ->
+    session:register(UserId, Token, self()),
     ok = send_tcp(Socket, Message),
-    State = #state{socket = Socket,
-                   heartbeat_timeout = env:get(heartbeat_timeout),
-                   user = User,
+    State = #state{heartbeat_timeout = env:get(heartbeat_timeout),
+                   user_id = UserId,
                    msg_cache = []},
     setopts(State#state.socket),
     {ok, State, State#state.heartbeat_timeout}.
@@ -60,7 +57,7 @@ handle_cast(_Msg, State) ->
 %% socket
 %% ===================================================================
 
-handle_info({replace_socket, NewSocket, Message, User}, #state{socket = Socket} = State) ->
+handle_info({replace_socket, NewSocket, Message, UserId, Device, Token}, #state{socket = Socket} = State) ->
     gen_tcp:close(Socket),
     ok = clean_mailbox(Socket),
     ok = send_tcp(NewSocket, Message),

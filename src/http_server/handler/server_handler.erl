@@ -27,25 +27,32 @@ init(Req, Opts) ->
 
 handle_request([<<"login">>], <<"POST">>, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    {ok, User} = users:parse(PostVals),
-    Toml = case users:verify(User#user.phone, User#user.password) of
-        {ok, true, UserId} ->
-            {ok, Token} = utility:guid(),
-            [IP, Port] = get_node(),
-            {ok, TokenKey} = redis:key({token, Token}),
-            {ok, <<"OK">>} = redis:q([<<"HMSET">>, TokenKey,
-                                      <<"ip">>, IP, <<"port">>, Port,
-                                      <<"user_id">>, UserId]),
-            {ok, <<"1">>} = redis:q([<<"EXPIRE">>, TokenKey, 100]),
-            {<<"response">>, [{<<"status">>, 0},
-                              {<<"server">>, IP},
-                              {<<"port">>, Port},
-                              {<<"user">>, [{<<"token">>, Token},
-                                            {<<"id">>, UserId}]}]};
-        {ok, false} ->
-            {<<"response">>, [{<<"status">>, 1}]};
-        {error, _Reason} ->
-            {<<"response">>, [{<<"status">>, 2}]}
+    Toml = case utility:check_parameters([<<"phone">>, <<"password">>], PostVals) of
+        {ok, [Phone, Password]} ->
+            case users:verify(Phone, Password) of
+                {ok, true, UserId} ->
+                    {ok, Token} = utility:guid(),
+                    [IP, Port] = get_node(),
+                    {ok, TokenKey} = redis:key({token, Token}),
+                    {ok, <<"OK">>} = redis:q([<<"HMSET">>, TokenKey,
+                                              <<"ip">>, IP, <<"port">>, Port,
+                                              <<"user_id">>, UserId]),
+                    {ok, <<"1">>} = redis:q([<<"EXPIRE">>, TokenKey, 100]),
+                    {<<"response">>, [{<<"status">>, 0},
+                                      {<<"server">>, IP},
+                                      {<<"port">>, Port},
+                                      {<<"user">>, [{<<"token">>, Token},
+                                                    {<<"id">>, UserId}]}]};
+                {ok, false} ->
+                    {<<"response">>, [{<<"status">>, 1},
+                                      {<<"reason">>, <<"Mismatch">>}]};
+                {error, _Reason} ->
+                    {<<"response">>, [{<<"status">>, 2},
+                                      {<<"reason">>, <<"Unkown Error">>}]}
+            end;
+        {error, Reason} ->
+            {<<"response">>, [{<<"status">>, 3},
+                              {<<"reason">>, Reason}]}
     end,
     {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);

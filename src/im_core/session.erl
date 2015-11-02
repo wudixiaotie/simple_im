@@ -6,23 +6,15 @@
 
 -module (session).
 
--behaviour (gen_server).
+-behaviour(gen_server).
 
 % APIs
--export([start_link/0, get_pid_list/1, register/2, unregister/1, verify/1,
-         replace_token/1]).
+-export([start_link/0, register/3, unregister/1, verify/2,
+         replace_token/2, find/1]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
           terminate/2, code_change/3]).
-
--include("user.hrl").
-
-%% ===================================================================
-%% Type spec
-%% ===================================================================
-
--type userid() :: binary().
 
 
 
@@ -34,106 +26,74 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
-get_pid_list(UserId) ->
+register(UserId, Token, Pid) ->
     case ets:lookup(session, UserId) of
         [] ->
-            offline;
-        [{UserId, DeviceList}] ->
-            [Pid || {_, _, Pid} <- DeviceList]
-    end.
-
-
-register(User, Pid) ->
-    Device = User#user.device,
-    case utility:index_of(env:get(device_list), Device) of
-        {ok, -1} ->
-            ok = delete_token_from_redis(User#user.token),
-            {error, <<"Wrong device">>};
-        _ ->
-            register(User#user.id, Device, User#user.token, Pid)
-    end.
-register(UserId, Device, Token, Pid) ->
-    DeviceList = case ets:lookup(session, UserId) of
-        [] ->
-            [{Device, Token, Pid}];
-        [{UserId, OriginalDeviceList}] ->
-            case lists:keytake(Device, 1, OriginalDeviceList) of
-                {value, {Device, OriginalToken, OriginalPid}, NewDeviceList} ->
-                    ok = delete_token_from_redis(OriginalToken),
-                    OriginalPid ! {replaced_by, Pid},
-                    [{Device, Token, Pid}|NewDeviceList];
-                false ->
-                    [{Device, Token, Pid}|OriginalDeviceList]
-            end
+            ok;
+        [{UserId, Token, Pid}] ->
+            delete_token_from_redis(Token)
     end,
+
+    Session = {UserId, Token, Pid},
 
     % This place I use catch to ensure update_session will always 
     % be execuate wether session process is down or not.
-    catch ets:insert(session, {UserId, DeviceList}),
-    update_session(insert, {UserId, DeviceList}).
+    case catch ets:insert(session, Session) of
+        true ->
+            ok;
+        Error ->
+            log:e("session register error: ~p~n", [Error])
+    end,
+    update_session(insert, Session).
 
 
 unregister(undefined) ->
     ok;
-unregister(User) ->
-    UserId = User#user.id,
-    Device = User#user.device,
-    DeviceList = case ets:lookup(session, UserId) of
-        [] ->
-            [];
-        [{UserId, OriginalDeviceList}] ->
-            ok = delete_token_from_redis(User#user.token),
-            lists:keydelete(Device, 1, OriginalDeviceList)
+unregister(UserId) ->
+    case catch ets:delete(session, UserId) of
+        true ->
+            ok;
+        Error ->
+            log:e("session unregister error: ~p~n", [Error])
     end,
-
-    case DeviceList of
-        [] ->
-            catch ets:delete(session, UserId),
-            update_session(delete, UserId);
-        _ ->
-            catch ets:insert(session, {UserId, DeviceList}),
-            update_session(insert, {UserId, DeviceList})
-    end.
+    update_session(delete, UserId).
 
 
-verify(User) ->
-    Device = User#user.device,
-    case utility:index_of(env:get(device_list), Device) of
-        {ok, -1} ->
-            {error, <<"Wrong device">>};
-        _ ->
-            verify(User#user.id, Device, User#user.token)
-    end.
-verify(UserId, Device, Token) ->
+verify(UserId, Token) ->
     case ets:lookup(session, UserId) of
         [] ->
             offline;
-        [{UserId, DeviceList}] ->
-            case lists:keyfind(Device, 1, DeviceList) of
-                {Device, Token, Pid} ->
-                    {ok, Pid};
-                _ ->
-                    {error, <<"Token not match">>}
-            end
+        [{UserId, Token, Pid}] ->
+            {ok, Pid};
+        _ ->
+            {error, <<"Token not match">>}
     end.
 
 
-replace_token(User) ->
-    UserId = User#user.id,
+replace_token(UserId, NewToken) ->
     case ets:lookup(session, UserId) of
         [] ->
             offline;
-        [{UserId, DeviceList}] ->
-            case lists:keyfind(User#user.device, 1, DeviceList) of
-                {Device, _, Pid} ->
-                    NewDeviceList = lists:keyreplace(Device, 1, DeviceList,
-                                                     {Device, User#user.token, Pid}),
-                    catch ets:insert(session, {UserId, NewDeviceList}),
-                    update_session(insert, {UserId, NewDeviceList}),
-                    {ok, Pid};
-                _ ->
-                    {error, <<"Token not match">>}
-            end
+        [{UserId, Token, Pid}] ->
+            Session = {UserId, NewToken, Pid},
+            case catch ets:insert(session, Session) of
+                true ->
+                    ok = delete_token_from_redis(Token);
+                Error ->
+                    log:e("session replace_token error: ~p~n", [Error])
+            end,
+            update_session(insert, Session);
+        _ ->
+            {error, <<"Token not match">>}
+    end.
+
+
+find(UserId) ->
+    case ets:lookup(session, UserId) of
+        [] ->
+            offline;
+        [{UserId, _, Pid}] ->
+            {ok, Pid}
     end.
 
 
@@ -143,7 +103,10 @@ replace_token(User) ->
 %% ===================================================================
 
 init([]) ->
-    ets:new(session, [named_table, public, {read_concurrency, true}, {write_concurrency, true}]),
+    ets:new(session, [named_table,
+                      public,
+                      {read_concurrency, true},
+                      {write_concurrency, true}]),
     Node = node(),
     case get_available_node() of
         {ok, Node} ->
@@ -179,8 +142,13 @@ handle_info({copy_from, FatherNode}, State) ->
     init_session(SessionList),
     {noreply, State};
 % {update, insert, {UserId, Pid}} | {update, delete, UserId}
-handle_info({update, Type, Session}, State) ->
-    ets:Type(session, Session),
+handle_info({update, Type, Arg}, State) ->
+    case catch ets:Type(session, Arg) of
+        true ->
+            ok;
+        Error ->
+            log:e("session update error: ~p~n", [Error])
+    end,
     {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -215,15 +183,12 @@ init_session([]) ->
     ok.
 
 
--spec update_session(Type :: insert | delete,
-                     Session :: userid() |
-                                {userid(), pid()}) -> ok.
-update_session(Type, Session) ->
-    update_session(Type, Session, nodes()).
-update_session(Type, Session, [H|T]) ->
-    {?MODULE, H} ! {update, Type, Session},
-    update_session(Type, Session, T);
-update_session(_Type, _Session, []) ->
+update_session(Type, Arg) ->
+    update_session(Type, Arg, nodes()).
+update_session(Type, Arg, [H|T]) ->
+    {?MODULE, H} ! {update, Type, Arg},
+    update_session(Type, Arg, T);
+update_session(_, _, []) ->
     ok.
 
 
