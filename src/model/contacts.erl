@@ -18,14 +18,14 @@ create(AUserId, BUserId)
     when is_integer(AUserId), is_integer(BUserId) ->
     SQL = <<"SELECT create_contact($1, $2);">>,
     {ok, _, Result} = postgresql:exec(SQL, [AUserId, BUserId]),
-    unpack(Result).
+    utility:unpack(Result).
 
 
 delete(AUserId, BUserId)
     when is_integer(AUserId), is_integer(BUserId) ->
     SQL = <<"SELECT delete_contact($1, $2);">>,
     {ok, _, Result} = postgresql:exec(SQL, [AUserId, BUserId]),
-    unpack(Result).
+    utility:unpack(Result).
 
 
 find(UserId, 0) when is_integer(UserId) ->
@@ -56,10 +56,3 @@ find(UserId, ContactVersion)
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-unpack(TupleList) ->
-    unpack(TupleList, []).
-unpack([{Value}|T], Result) ->
-    unpack(T, [Value|Result]);
-unpack([], Result) ->
-    {ok, lists:reverse(Result)}.

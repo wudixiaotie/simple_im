@@ -6,7 +6,7 @@
 
 -module (group_members).
 
--export ([create/2, find/1, delete/2]).
+-export ([create/3, find/1, delete/2]).
 
 
 
@@ -14,25 +14,27 @@
 %% API functions
 %% ===================================================================
 
-create(GroupId, UserIdList) when is_list(UserIdList) ->
-    {ok, MembersBin} = utility:join(UserIdList, <<",">>),
-    SQL = <<"SELECT create_group_members($1, '{", MembersBin/binary, "}');">>,
-    {ok, _, _} = postgresql:exec(SQL, [GroupId]),
-    ok;
-create(GroupId, UserId) when is_integer(UserId) ->
-    InsertStr = <<"INSERT INTO group_members VALUES($1, $2, now(), now());">>,
-    {ok, 1} = postgresql:exec(InsertStr, [GroupId, UserId]),
-    ok.
+create(GroupId, Key, UserId) ->
+    SQL = <<"SELECT create_group_member($1, $2, $3);">>,
+    {ok, _, [{Result}]} = postgresql:exec(SQL, [GroupId, Key, UserId]),
+    case Result of
+        0 ->
+            ok;
+        1 ->
+            {error, unauthorized};
+        _ ->
+            {error, unknown}
+    end.
 
 
 find({group_id, GroupId}) ->
-    QueryStr = <<"SELECT user_id FROM group_members WHERE group_id = $1;">>,
-    {ok, _, UserIdList} = postgresql:exec(QueryStr, [GroupId]),
-    {ok, UserIdList};
+    SQL = <<"SELECT user_id FROM group_members WHERE group_id = $1;">>,
+    {ok, _, UserIdList} = postgresql:exec(SQL, [GroupId]),
+    utility:unpack(UserIdList);
 find({user_id, UserId}) ->
-    QueryStr = <<"SELECT group_id FROM group_members WHERE user_id = $1;">>,
-    {ok, _, GroupIdList} = postgresql:exec(QueryStr, [UserId]),
-    {ok, GroupIdList}.
+    SQL = <<"SELECT group_id FROM group_members WHERE user_id = $1;">>,
+    {ok, _, GroupIdList} = postgresql:exec(SQL, [UserId]),
+    utility:unpack(GroupIdList).
 
 
 delete(GroupId, UserId) ->

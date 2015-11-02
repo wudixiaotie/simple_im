@@ -8,7 +8,8 @@
 
 -export ([md5_hex_32/1, random_binary_16/0, random_number/1,
           guid/0, free_port/1, index_of/2, ip_port/2,
-          timestamp/0, delete_from_list/2, join/2]).
+          timestamp/0, delete_from_list/2, join/2,
+          unpack/1]).
 
 
 
@@ -77,6 +78,10 @@ delete_from_list(Element, List) ->
 
 join(List, Separator) ->
     join(List, Separator, <<>>).
+
+
+unpack(TupleList) ->
+    unpack(TupleList, []).
 
 
 
@@ -148,3 +153,9 @@ join([H|T], Separator, Result) when is_atom(H) ->
     Bin = erlang:atom_to_binary(H, utf8),
     NewResult = <<Result/binary, " \"", Bin/binary, " \"", Separator/binary>>,
     join(T, Separator, NewResult).
+
+
+unpack([{Value}|T], Result) ->
+    unpack(T, [Value|Result]);
+unpack([], Result) ->
+    {ok, lists:reverse(Result)}.

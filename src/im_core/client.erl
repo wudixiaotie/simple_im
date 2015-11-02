@@ -163,114 +163,124 @@ process_packet([{<<"r">>, Attrs}|T], State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got r id=~p~n", [MsgId]),
     case lists:keyfind(<<"t">>, 1, Attrs) of
-        {<<"t">>, <<"add_contact">>} ->
-            case lists:keyfind(<<"to">>, 1, Attrs) of
-                {<<"to">>, ToUserId} ->
-                    UserId = State#state.user#user.id,
-                    {<<"message">>, AddContactMessage} = lists:keyfind(<<"message">>, 1, Attrs),
-                    RR = case pre_contacts:create(UserId, ToUserId, AddContactMessage) of
-                        {ok, 0} ->
-                            NewAttrs = add_ts_from(Attrs, UserId),
-                            Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
-                            send_msg_2_single_user(ToUserId, Message),
-                            {<<"rr">>, [{<<"id">>, MsgId}, {<<"status">>, 0}]};
-                        {ok, 1} ->
-                            {<<"rr">>, [{<<"id">>, MsgId},
-                                        {<<"status">>, 1},
-                                        {<<"r">>, <<"Contact exists">>}]};
-                        {ok, 2} ->
-                            {<<"rr">>, [{<<"id">>, MsgId},
-                                        {<<"status">>, 2},
-                                        {<<"r">>, <<"Waiting for accept">>}]};
-                        {ok, _} ->
-                            {<<"rr">>, [{<<"id">>, MsgId},
-                                        {<<"status">>, 3},
-                                        {<<"r">>, <<"Unkonw Error">>}]}
-                    end,
-                    {ok, NewState} = send_rr(MsgId, RR, State);
-                _ ->
-                    NewState = State
-            end,
-            process_packet(T, NewState);
-        {<<"t">>, <<"accept_contact">>} ->
-            case lists:keyfind(<<"to">>, 1, Attrs) of
-                {<<"to">>, ToUserId} ->
-                    UserId = State#state.user#user.id,
-                    {ok, [UserVersion, ToUserVersion]} = contacts:create(UserId, ToUserId),
+        % {<<"t">>, <<"add_contact">>} ->
+        %     case lists:keyfind(<<"to">>, 1, Attrs) of
+        %         {<<"to">>, ToUserId} ->
+        %             UserId = State#state.user#user.id,
+        %             {<<"message">>, AddContactMessage} = lists:keyfind(<<"message">>, 1, Attrs),
+        %             RR = case pre_contacts:create(UserId, ToUserId, AddContactMessage) of
+        %                 {ok, 0} ->
+        %                     NewAttrs = add_ts_from(Attrs, UserId),
+        %                     Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+        %                     send_msg_2_single_user(ToUserId, Message),
+        %                     {<<"rr">>, [{<<"id">>, MsgId}, {<<"status">>, 0}]};
+        %                 {ok, 1} ->
+        %                     {<<"rr">>, [{<<"id">>, MsgId},
+        %                                 {<<"status">>, 1},
+        %                                 {<<"r">>, <<"Contact exists">>}]};
+        %                 {ok, 2} ->
+        %                     {<<"rr">>, [{<<"id">>, MsgId},
+        %                                 {<<"status">>, 2},
+        %                                 {<<"r">>, <<"Waiting for accept">>}]};
+        %                 {ok, _} ->
+        %                     {<<"rr">>, [{<<"id">>, MsgId},
+        %                                 {<<"status">>, 3},
+        %                                 {<<"r">>, <<"Unkonw Error">>}]}
+        %             end,
+        %             {ok, NewState} = send_rr(MsgId, RR, State);
+        %         _ ->
+        %             NewState = State
+        %     end,
+        %     process_packet(T, NewState);
+        % {<<"t">>, <<"accept_contact">>} ->
+        %     case lists:keyfind(<<"to">>, 1, Attrs) of
+        %         {<<"to">>, ToUserId} ->
+        %             UserId = State#state.user#user.id,
+        %             {ok, [UserVersion, ToUserVersion]} = contacts:create(UserId, ToUserId),
 
-                    NewAttrs = [{<<"contact_version">>, ToUserVersion}|add_ts_from(Attrs, UserId)],
-                    Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
-                    send_msg_2_single_user(ToUserId, Message),
+        %             NewAttrs = [{<<"contact_version">>, ToUserVersion}|add_ts_from(Attrs, UserId)],
+        %             Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+        %             send_msg_2_single_user(ToUserId, Message),
 
-                    RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-                                     {<<"status">>, 0},
-                                     {<<"contact_version">>, UserVersion}]},
-                    {ok, NewState} = send_rr(MsgId, RR, State);
-                _ ->
-                    NewState = State
-            end,
-            process_packet(T, NewState);
-        {<<"t">>, <<"delete_contact">>} ->
-            case lists:keyfind(<<"to">>, 1, Attrs) of
-                {<<"to">>, ToUserId} ->
-                    UserId = State#state.user#user.id,
-                    {ok, [UserVersion, ToUserVersion]} = contacts:delete(UserId, ToUserId),
+        %             RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+        %                              {<<"status">>, 0},
+        %                              {<<"contact_version">>, UserVersion}]},
+        %             {ok, NewState} = send_rr(MsgId, RR, State);
+        %         _ ->
+        %             NewState = State
+        %     end,
+        %     process_packet(T, NewState);
+        % {<<"t">>, <<"delete_contact">>} ->
+        %     case lists:keyfind(<<"to">>, 1, Attrs) of
+        %         {<<"to">>, ToUserId} ->
+        %             UserId = State#state.user#user.id,
+        %             {ok, [UserVersion, ToUserVersion]} = contacts:delete(UserId, ToUserId),
 
-                    NewAttrs = [{<<"contact_version">>, ToUserVersion}|add_ts_from(Attrs, UserId)],
-                    Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
-                    send_msg_2_single_user(ToUserId, Message),
+        %             NewAttrs = [{<<"contact_version">>, ToUserVersion}|add_ts_from(Attrs, UserId)],
+        %             Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+        %             send_msg_2_single_user(ToUserId, Message),
 
-                    RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-                                     {<<"status">>, 0},
-                                     {<<"contact_version">>, UserVersion}]},
-                    {ok, NewState} = send_rr(MsgId, RR, State);
-                _ ->
-                    NewState = State
-            end,
-            process_packet(T, NewState);
-        {<<"t">>, <<"create_group">>} ->
-            case lists:keyfind(<<"name">>, 1, Attrs) of
-                {<<"name">>, GroupName} ->
-                    case lists:keyfind(<<"members">>, 1, Attrs) of
-                        {<<"members">>, Members} ->
-                            UserId = State#state.user#user.id,
+        %             RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+        %                              {<<"status">>, 0},
+        %                              {<<"contact_version">>, UserVersion}]},
+        %             {ok, NewState} = send_rr(MsgId, RR, State);
+        %         _ ->
+        %             NewState = State
+        %     end,
+        %     process_packet(T, NewState);
+        % {<<"t">>, <<"create_group">>} ->
+        %     case lists:keyfind(<<"name">>, 1, Attrs) of
+        %         {<<"name">>, GroupName} ->
+        %             case lists:keyfind(<<"members">>, 1, Attrs) of
+        %                 {<<"members">>, Members} ->
+        %                     UserId = State#state.user#user.id,
 
-                            {ok, GroupId} = groups:create(GroupName, UserId, Members),
+        %                     {ok, GroupId, Key} = groups:create(GroupName, UserId, Members),
 
-                            Ts = {<<"ts">>, utility:timestamp()},
-                            NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
-                            Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
-                            ok = send_msg_2_multiple_user(Members, Message),
+        %                     Ts = {<<"ts">>, utility:timestamp()},
+        %                     NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
+        %                     Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+        %                     ok = send_msg_2_multiple_user(Members, Message),
 
-                            RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-                                             {<<"status">>, 0},
-                                             {<<"group_id">>, GroupId}]},
-                            {ok, NewState} = send_rr(MsgId, RR, State);
-                        _ ->
-                            NewState = State
-                    end;
-                _ ->
-                    NewState = State
-            end,
-            process_packet(T, NewState);
-        {<<"t">>, <<"delete_group">>} ->
-            case lists:keyfind(<<"group_id">>, 1, Attrs) of
-                {<<"group_id">>, GroupId} ->
-                    {ok, Members} = group_members:find({group_id, GroupId}),
-                    ok = groups:delete(GroupId),
+        %                     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+        %                                      {<<"status">>, 0},
+        %                                      {<<"group">>, [{<<"id">>, GroupId},
+        %                                                     {<<"key">>, Key}]}]},
+        %                     {ok, NewState} = send_rr(MsgId, RR, State);
+        %                 _ ->
+        %                     NewState = State
+        %             end;
+        %         _ ->
+        %             NewState = State
+        %     end,
+        %     process_packet(T, NewState);
+        % {<<"t">>, <<"delete_group">>} ->
+        %     case lists:keyfind(<<"group_id">>, 1, Attrs) of
+        %         {<<"group_id">>, GroupId} ->
+        %             UserId = State#state.user#user.id,
+        %             {ok, Members} = group_members:find({group_id, GroupId}),
+        %             ok = groups:delete(GroupId, UserId),
 
-                    Ts = {<<"ts">>, utility:timestamp()},
-                    NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
-                    Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
-                    ok = send_msg_2_multiple_user(Members, Message),
+        %             Ts = {<<"ts">>, utility:timestamp()},
+        %             NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
+        %             Message = #message{id = MsgId, toml = {<<"r">>, NewAttrs}},
+        %             ok = send_msg_2_multiple_user(Members, Message),
 
-                    RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-                                     {<<"status">>, 0}]},
-                    {ok, NewState} = send_rr(MsgId, RR, State);
-                _ ->
-                    NewState = State
-            end,
-            process_packet(T, NewState);
+        %             RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+        %                              {<<"status">>, 0}]},
+        %             {ok, NewState} = send_rr(MsgId, RR, State);
+        %         _ ->
+        %             NewState = State
+        %     end,
+        %     process_packet(T, NewState);
+        % {<<"t">>, <<"create_group_member">>} ->
+        %     case lists:keyfind(<<"group_id">>, 1, Attrs) of
+        %         {<<"group_id">>, GroupId} ->
+        %             case lists:keyfind(<<"")
+        %         _ ->
+        %             NewState = State
+        %     end,
+        %     process_packet(T, NewState);
         _ ->
             RR = {<<"rr">>,
                   [{<<"id">>, MsgId},
@@ -284,7 +294,8 @@ process_packet([{<<"m">>, Attrs} = Msg|T], State) ->
     {ok, Message, NewState} = process_message(State, Msg),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserId} ->
-            send_msg_2_single_user(ToUserId, Message);
+            UserIdList = [ToUserId, State#state.user#user.id],
+            ok = send_msg_2_user(UserIdList, Message);
         _ ->
             ignore
     end,
@@ -295,7 +306,8 @@ process_packet([{<<"gm">>, Attrs} = Msg|T], State) ->
     case lists:keyfind(<<"group">>, 1, Attrs) of
         {<<"group">>, GroupId} ->
             {ok, UserIdList} = group_members:find({group_id, GroupId}),
-            ok = send_msg_2_multiple_user(UserIdList, Message);
+            NewUserIdList = [State#state.user#user.id|UserIdList],
+            ok = send_msg_2_user(NewUserIdList, Message);
         _ ->
             ignore
     end,
@@ -332,28 +344,29 @@ add_ts_from(Attrs, UserId) ->
     lists:keystore(<<"from">>, 1, AttrsWithTs, From).
 
 
-send_msg_2_single_user(UserId, Message) ->
-    case session:get_pid_list(UserId) of
+send_msg_2_user(UserIdList, Message) ->
+    send_msg_2_user(UserIdList, Message, []).
+send_msg_2_user([UserId|T], Message, PidList) ->
+    NewPidList = case session:get_pid_list(UserId) of
         offline ->
             offline:store(UserId, [Message]),
             log:i("offline msg: ~p~n", [Message]),
-            ok;
+            PidList;
         ToPidList ->
-            send_msg_to_pid(ToPidList, Message)
-    end.
-
-
-send_msg_2_multiple_user([H|T], Message) ->
-    send_msg_2_single_user(H, Message),
-    send_msg_2_multiple_user(T, Message);
-send_msg_2_multiple_user([], _) ->
+            ToPidList ++ PidList
+    end,
+    send_msg_2_user(T, Message, NewPidList);
+send_msg_2_user([], Message, PidList) ->
+    send_msg_2_pid(PidList, self(), Message),
     ok.
 
 
-send_msg_to_pid([H|T], Message) ->
-    H ! Message,
-    send_msg_to_pid(T, Message);
-send_msg_to_pid([], _) ->
+send_msg_2_pid([SelfPid|T], SelfPid, Message) ->
+    send_msg_2_pid(T, SelfPid, Message);
+send_msg_2_pid([Pid|T], SelfPid, Message) ->
+    Pid ! Message,
+    send_msg_2_pid(T, SelfPid, Message);
+send_msg_2_pid([], _, _) ->
     ok.
 
 

@@ -6,7 +6,7 @@
 
 -module (groups).
 
--export ([create/3, delete/1]).
+-export ([create/3, delete/2]).
 
 
 
@@ -16,15 +16,23 @@
 
 create(Name, CreatorId, Members) ->
     {ok, MembersBin} = utility:join(Members, <<",">>),
-    SQL = <<"SELECT create_group($1, $2, '{", MembersBin/binary, "}');">>,
-    {ok, _, [{GroupId}]} = postgresql:exec(SQL, [Name, CreatorId]),
-    {ok, GroupId}.
+    {ok, Key} = utility:random_binary_16(),
+    SQL = <<"SELECT create_group($1, $2, $3, '{", MembersBin/binary, "}');">>,
+    {ok, _, [{GroupId}]} = postgresql:exec(SQL, [Name, CreatorId, Key]),
+    {ok, GroupId, Key}.
 
 
-delete(GroupId) ->
-    SQL = <<"DELETE FROM groups WHERE id = $1;">>,
-    {ok, _} = postgresql:exec(SQL, [GroupId]),
-    ok.
+delete(GroupId, CreatorId) ->
+    SQL = <<"SELECT delete_group($1, $2);">>,
+    {ok, _, [{Result}]} = postgresql:exec(SQL, [GroupId, CreatorId]),
+    case Result of
+        0 ->
+            ok;
+        1 ->
+            {error, unauthorized};
+        _ ->
+            {error, unknown}
+    end.
 
 
 

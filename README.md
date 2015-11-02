@@ -189,7 +189,9 @@ success(s means status, value 0 is success):
 [[rr]]
 id="c_02"
 s=0
-group_id=9
+[group]
+id = 9
+key = "PLwXRfpe7zFl3FWN"
 ```
 
 #### <a name="im_delete_group_request">delete group request</a>:  
@@ -199,7 +201,7 @@ id="c_01"
 t="delete_group"
 group_id=9
 ```
-#### <a name="im_create_group_response">delete group response</a>:  
+#### <a name="im_delete_group_response">delete group response</a>:  
 failed(s means status, value 1 is failed):
 ```toml
 [[rr]]
@@ -221,6 +223,7 @@ id="c_02"
 t="create_group_member"
 group_id=9
 member_id=2
+group_key="PLwXRfpe7zFl3FWN"
 ```
 #### <a name="im_create_group_member_response">create group member response</a>:  
 failed(s means status, value 1 is failed):
