@@ -375,3 +375,29 @@ send_rr(MsgId, RRToml, State) ->
     ok = send_tcp(State#state.socket, Message),
     NewMsgCache = [Message|State#state.msg_cache],
     {ok, State#state{msg_cache = NewMsgCache}}.
+
+
+send_2_single_device(Device, Message) ->
+    {ok, MessageBin} = message_2_binary(Message),
+    ok = gen_tcp:send(Device#device.socket, MessageBin),
+    ok.
+
+
+send_2_multiple_device([Device|T], MessageBin) when is_binary(MessageBin) ->
+    ok = gen_tcp:send(Device#device.socket, MessageBin),
+    send_2_multiple_device(T, MessageBin);
+send_2_multiple_device([], _) ->
+    ok;
+send_2_multiple_device(DeviceList, Message) ->
+    {ok, MessageBin} = message_2_binary(Message),
+    send_2_multiple_device(DeviceList, MessageBin).
+
+
+message_2_binary(Message) when is_record(Message, message) ->
+    toml:term_2_binary(Message#message.toml);
+message_2_binary([Message|T]) ->
+    message_2_binary(T, [Message#message.toml]).
+message_2_binary([Message|T], TomlList) ->
+    message_2_binary(T, [Message#message.toml|TomlList]);
+message_2_binary([], TomlList) ->
+    toml:term_2_binary(TomlList).
