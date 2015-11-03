@@ -9,8 +9,7 @@
 -behaviour(gen_server).
 
 % APIs
--export([start_link/0, register/3, unregister/1, verify/2,
-         replace_token/2, find/1]).
+-export([start_link/0, register/2, unregister/1, find/1]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -26,15 +25,15 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
-register(UserId, Token, Pid) ->
+register(UserId, Pid) ->
     case ets:lookup(session, UserId) of
         [] ->
             ok;
-        [{UserId, Token, Pid}] ->
-            delete_token_from_redis(Token)
+        [{UserId, OldPid}] ->
+            OldPid ! {replaced_by, Pid}
     end,
 
-    Session = {UserId, Token, Pid},
+    Session = {UserId, Pid},
 
     % This place I use catch to ensure update_session will always 
     % be execuate wether session process is down or not.
@@ -59,40 +58,11 @@ unregister(UserId) ->
     update_session(delete, UserId).
 
 
-verify(UserId, Token) ->
-    case ets:lookup(session, UserId) of
-        [] ->
-            offline;
-        [{UserId, Token, Pid}] ->
-            {ok, Pid};
-        _ ->
-            {error, <<"Token not match">>}
-    end.
-
-
-replace_token(UserId, NewToken) ->
-    case ets:lookup(session, UserId) of
-        [] ->
-            offline;
-        [{UserId, Token, Pid}] ->
-            Session = {UserId, NewToken, Pid},
-            case catch ets:insert(session, Session) of
-                true ->
-                    ok = delete_token_from_redis(Token);
-                Error ->
-                    log:e("session replace_token error: ~p~n", [Error])
-            end,
-            update_session(insert, Session);
-        _ ->
-            {error, <<"Token not match">>}
-    end.
-
-
 find(UserId) ->
     case ets:lookup(session, UserId) of
         [] ->
             offline;
-        [{UserId, _, Pid}] ->
+        [{UserId, Pid}] ->
             {ok, Pid}
     end.
 
@@ -189,10 +159,4 @@ update_session(Type, Arg, [H|T]) ->
     {?MODULE, H} ! {update, Type, Arg},
     update_session(Type, Arg, T);
 update_session(_, _, []) ->
-    ok.
-
-
-delete_token_from_redis(Token) ->
-    {ok, TokenKey} = redis:key({token, Token}),
-    {ok, _} = redis:q([<<"DEL">>, TokenKey]),
     ok.

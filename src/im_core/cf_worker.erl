@@ -17,6 +17,7 @@
 
 -record (state, {name :: atom(), timer_ref}).
 
+-include("device.hrl").
 -include("message.hrl").
 
 
@@ -59,7 +60,7 @@ handle_info({tcp, Socket, Data}, State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
     case utility:check_parameters([<<"id">>, <<"device">>, <<"token">>], UserInfo) of
-        {ok, [UserId, Device, Token]} ->
+        {ok, [UserId, DeviceName, Token]} ->
             case lists:keyfind(<<"t">>, 1, Attrs) of
                 {<<"t">>, <<"login">>} ->
                     UserIdBin = erlang:integer_to_binary(UserId),
@@ -83,14 +84,20 @@ handle_info({tcp, Socket, Data}, State) ->
                                            {<<"t">>, <<"login">>},
                                            {<<"s">>, 0}]},
                                     Message = #message{id = MsgId, toml = RR},
-                                    new_client(Socket, Message, UserId, Device, Token);
+                                    Device = #device{name = DeviceName,
+                                                     socket = Socket,
+                                                     token = Token},
+                                    new_client(Message, UserId, Device);
                                 {ok, Pid} ->
                                     RR = {<<"rr">>,
                                           [{<<"id">>, MsgId},
                                            {<<"t">>, <<"login">>},
                                            {<<"s">>, 0}]},
                                     Message = #message{id = MsgId, toml = RR},
-                                    client_replace_socket(Pid, Socket, Message, UserId, Device, Token);
+                                    Device = #device{name = DeviceName,
+                                                     socket = Socket,
+                                                     token = Token},
+                                    client_replace_socket(Pid, Message, UserId, Device);
                                 {error, <<"Wrong device">>} ->
                                     RR = {<<"rr">>,
                                           [{<<"id">>, MsgId},
@@ -106,7 +113,10 @@ handle_info({tcp, Socket, Data}, State) ->
                                            {<<"t">>, <<"login">>},
                                            {<<"s">>, 0}]},
                                     Message = #message{id = MsgId, toml = RR},
-                                    new_client(Socket, Message, UserId, Device, Token)
+                                    Device = #device{name = DeviceName,
+                                                     socket = Socket,
+                                                     token = Token},
+                                    new_client(Message, UserId, Device)
                             end;
                         _ ->
                             RR = {<<"rr">>,
@@ -135,7 +145,10 @@ handle_info({tcp, Socket, Data}, State) ->
                                    {<<"t">>, <<"reconnect">>},
                                    {<<"s">>, 0}]},
                             Message = #message{id = MsgId, toml = RR},
-                            client_replace_socket(Pid, Socket, Message, UserId, Device, Token);
+                            Device = #device{name = DeviceName,
+                                             socket = Socket,
+                                             token = Token},
+                            client_replace_socket(Pid, Message, UserId, Device);
                         {error, Reason} ->
                             RR = {<<"rr">>,
                                   [{<<"id">>, MsgId},
@@ -181,19 +194,18 @@ free_worker(Name) ->
     cf ! {free_worker, Name}.
 
 
-new_client(Socket, Message, UserId, Device, Token) ->
-    {ok, Pid} = supervisor:start_child(client_sup,
-                                       [Socket, Message, UserId, Device, Token]),
-    log:i("Start a new client ~p ~p~n", [{UserId, Device, Token}, Pid]),
-    gen_tcp:controlling_process(Socket, Pid).
+new_client(Message, UserId, Device) ->
+    {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
+    log:i("Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
+    gen_tcp:controlling_process(Device#device.socket, Pid).
 
 
-client_replace_socket(Pid, Socket, Message, UserId, Device, Token) ->
+client_replace_socket(Pid, Message, UserId, Device) ->
     Node = node(),
     case node(Pid) of
         Node ->
-            Pid ! {replace_socket, Socket, Message, UserId, Device, Token},
-            gen_tcp:controlling_process(Socket, Pid);
+            Pid ! {replace_socket, Message, UserId, Device},
+            gen_tcp:controlling_process(Device#device.socket, Pid);
         _ ->
-            new_client(Socket, Message, UserId, Device, Token)
+            new_client(Message, UserId, Device)
     end.
