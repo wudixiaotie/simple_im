@@ -9,7 +9,7 @@
 -export ([md5_hex_32/1, random_binary_16/0, random_number/1,
           guid/0, free_port/1, index_of/2, ip_port/2,
           timestamp/0, delete_from_list/2, join/2,
-          unpack/1]).
+          unpack/1, check_parameters/2]).
 
 
 
@@ -82,6 +82,10 @@ join(List, Separator) ->
 
 unpack(TupleList) ->
     unpack(TupleList, []).
+
+
+check_parameters(Parameters, Attrs) ->
+    check_parameters(Parameters, Attrs, []).
 
 
 
@@ -159,3 +163,16 @@ unpack([{Value}|T], Result) ->
     unpack(T, [Value|Result]);
 unpack([], Result) ->
     {ok, lists:reverse(Result)}.
+
+
+check_parameters([H|T], Attrs, Result) ->
+    case lists:keyfind(H, 1, Attrs) of
+        {H, Value} ->
+            check_parameters(T, Attrs, [Value|Result]);
+        _ ->
+            Reason = <<H/binary, " Required">>,
+            {error, Reason}
+    end;
+check_parameters([], _, Result) ->
+    NewResult = lists:reverse(Result),
+    {ok, NewResult}.

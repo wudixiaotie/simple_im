@@ -15,12 +15,12 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {socket,
-                heartbeat_timeout,
-                user,
+-record(state, {heartbeat_timeout,
+                user_id,
+                device_list,
                 msg_cache}). %% [#message{},...]
 
--include("user.hrl").
+-include("device.hrl").
 -include("message.hrl").
 
 
@@ -29,8 +29,8 @@
 %% APIs
 %% ===================================================================
 
-start_link(Socket, Message, User) ->
-    gen_server:start_link(?MODULE, [Socket, Message, User], []).
+start_link(Message, UserId, Device) ->
+    gen_server:start_link(?MODULE, [Message, UserId, Device], []).
 
 
 
@@ -38,14 +38,14 @@ start_link(Socket, Message, User) ->
 %% gen_server callbacks
 %% ===================================================================
 
-init([Socket, Message, User]) ->
-    session:register(User, self()),
-    ok = send_tcp(Socket, Message),
-    State = #state{socket = Socket,
-                   heartbeat_timeout = env:get(heartbeat_timeout),
-                   user = User,
+init([Message, UserId, #device{socket = Socket} = Device]) ->
+    session:register(UserId, self()),
+    ok = gen_tcp:send(Device#device.socket, Message#message.bin),
+    State = #state{heartbeat_timeout = env:get(heartbeat_timeout),
+                   user_id = UserId,
+                   device_list = [Device],
                    msg_cache = []},
-    setopts(State#state.socket),
+    setopts(Socket),
     {ok, State, State#state.heartbeat_timeout}.
 
 
@@ -60,20 +60,33 @@ handle_cast(_Msg, State) ->
 %% socket
 %% ===================================================================
 
-handle_info({replace_socket, NewSocket, Message, User}, #state{socket = Socket} = State) ->
-    gen_tcp:close(Socket),
-    ok = clean_mailbox(Socket),
-    ok = send_tcp(NewSocket, Message),
-    setopts(NewSocket),
-    NewState = State#state{socket = NewSocket, user = User},
-    ok = send_msg_cache(NewSocket, State#state.msg_cache),
+handle_info({replace_socket, Message, #device{socket = Socket} = Device},
+            #state{device_list = DeviceList} = State) ->
+    ok = gen_tcp:send(Socket, Message#message.bin),
+
+    NewState = case lists:keytake(Device#device.name,
+                                  #device.name, DeviceList) of
+        {value, #device{socket = OldSocket} = OldDevice, OtherDeivces} ->
+            gen_tcp:close(OldSocket),
+            ok = clean_mailbox(OldSocket),
+            ok = delete_useless_token([OldDevice]),
+
+            OldDeviceMsgCache = OldDevice#device.msg_cache,
+            NewDevice = Device#device{msg_cache = OldDeviceMsgCache},
+            ok = send_msg_cache([NewDevice]),
+
+            State#state{device_list = [NewDevice|OtherDeivces]};
+        false ->
+            State#state{device_list = [Device|DeviceList]}
+    end,
+    setopts(Socket),
     {noreply, NewState, NewState#state.heartbeat_timeout};
-handle_info({tcp, Socket, Data}, #state{socket = Socket} = State) ->
+handle_info({tcp, Socket, Data}, State) ->
     {ok, Toml} = toml:binary_2_term(Data),
-    {ok, NewState} = process_packet(Toml, State),
+    {ok, NewState} = process_packet(Toml, Socket, State),
     {noreply, NewState, NewState#state.heartbeat_timeout};
 % tcp connection change to passive
-handle_info({tcp_passive, Socket}, #state{socket = Socket} = State) ->
+handle_info({tcp_passive, Socket}, State) ->
     setopts(Socket),
     {noreply, State, State#state.heartbeat_timeout};
 % connection closed
@@ -86,10 +99,11 @@ handle_info({tcp_closed, _Socket}, State) ->
 %% business receiver
 %% ===================================================================
 
-handle_info(#message{} = Message, State) ->
-    ok = send_tcp(State#state.socket, Message),
-    NewMsgCache = [Message|State#state.msg_cache],
-    NewState = State#state{msg_cache = NewMsgCache},
+handle_info(Message, State) when is_record(Message, message) ->
+    {ok, NewState} = send_msg_2_multiple_device(State#state.device_list,
+                                                Message,
+                                                State,
+                                                save),
     {noreply, NewState, NewState#state.heartbeat_timeout};
 
 
@@ -99,15 +113,20 @@ handle_info(#message{} = Message, State) ->
 %% ===================================================================
 
 handle_info({replaced_by, NewPid}, State) ->
+    ok = delete_useless_token(State#state.device_list),
     NewPid ! {msg_cache, State#state.msg_cache},
     {stop, {replaced_by, NewPid}, State};
-handle_info({msg_cache, OriginalMsgCache}, #state{msg_cache = MsgCache} = State) ->
-    NewState = State#state{msg_cache = MsgCache ++ OriginalMsgCache},
-    ok = send_msg_cache(State#state.socket, MsgCache),
+handle_info({msg_cache, OriginalMsgCache}, State) ->
+    case OriginalMsgCache of
+        [] ->
+            NewState = State;
+        _ ->
+
+            {ok, NewState} = merge_msg_cache(State, OriginalMsgCache)
+    end,
     {noreply, NewState, NewState#state.heartbeat_timeout};
 handle_info(timeout, State) ->
-    UserId = (State#state.user)#user.id,
-    offline:store(UserId, State#state.msg_cache),
+    ok = offline:store(State#state.user_id, State#state.msg_cache),
     proc_lib:hibernate(gen_server, enter_loop, [?MODULE, [], State]),
     {noreply, State, State#state.heartbeat_timeout};
 handle_info(Info, State) ->
@@ -115,10 +134,10 @@ handle_info(Info, State) ->
     {noreply, State, State#state.heartbeat_timeout}.
 
 
-terminate(Reason, #state{msg_cache = MsgCache, user = User}) ->
+terminate(Reason, #state{msg_cache = MsgCache, user_id = UserId}) ->
     log:i("Client ~p terminate with reason: ~p~n", [self(), Reason]),
-    offline:store(User#user.id, MsgCache),
-    session:unregister(User).
+    ok = offline:store(UserId, MsgCache),
+    session:unregister(UserId).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 
@@ -127,10 +146,56 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Internal functions
 %% ===================================================================
 
-send_tcp(Socket, Message) ->
-    {ok, MsgBin} = toml:term_2_binary(Message#message.toml),
-    gen_tcp:send(Socket, MsgBin),
+send_msg_cache([Device|T]) ->
+    ok = loop_send_msg(Device#device.socket, Device#device.msg_cache),
+    send_msg_cache(T);
+send_msg_cache([]) ->
     ok.
+
+
+loop_send_msg(Socket, [Message|T]) ->
+    ok = gen_tcp:send(Socket, Message#message.bin),
+    loop_send_msg(Socket, T);
+loop_send_msg(_, []) ->
+    ok.
+
+
+merge_msg_cache(State, OldMsgCache) ->
+    {ok, NewDeviceList} = merge_msg_cache(State#state.device_list,
+                                          OldMsgCache,
+                                          []),
+    NewMsgCache = State#state.msg_cache ++ OldMsgCache,
+    NewState = State#state{device_list = NewDeviceList,
+                           msg_cache = NewMsgCache},
+    {ok, NewState}.
+merge_msg_cache([Device|T], OldMsgCache, NewDeviceList) ->
+    NewDeviceMsgCache = Device#device.msg_cache ++ OldMsgCache,
+    NewDevice = Device#device{msg_cache = NewDeviceMsgCache},
+    ok = loop_send_msg(NewDevice#device.socket, NewDevice#device.msg_cache),
+    merge_msg_cache(T, OldMsgCache, [NewDevice|NewDeviceList]);
+merge_msg_cache([], _, NewDeviceList) ->
+    {ok, NewDeviceList}.
+
+
+send_msg_2_multiple_device([#device{socket = Socket} = Device|T],
+                            Message,
+                            State,
+                            Mode) ->
+    ok = gen_tcp:send(Socket, Message#message.bin),
+    NewDeviceMsgCache = [Message|Device#device.msg_cache],
+    NewDevice = Device#device{msg_cache = NewDeviceMsgCache},
+    NewDeviceList = lists:keystore(Socket,
+                                   #device.socket,
+                                   State#state.device_list,
+                                   NewDevice),
+    NewState = State#state{device_list = NewDeviceList},
+    send_msg_2_multiple_device(T, Message, NewState, Mode);
+send_msg_2_multiple_device([], Message, State, save) ->
+    NewMsgCache = [Message|State#state.msg_cache],
+    NewState = State#state{msg_cache = NewMsgCache},
+    {ok, NewState};
+send_msg_2_multiple_device([], _, State, ignore) ->
+    {ok, State}.
 
 
 setopts(Socket) ->
@@ -151,15 +216,16 @@ clean_mailbox(Socket) ->
     end.
 
 
-send_msg_cache(Socket, [H|T]) ->
-    send_tcp(Socket, H),
-    send_msg_cache(Socket, T);
-send_msg_cache(_, []) ->
+delete_useless_token([Device|T]) ->
+    {ok, TokenKey} = redis:key({token, Device#device.token}),
+    {ok, _} = redis:q([<<"DEL">>, TokenKey]),
+    delete_useless_token(T);
+delete_useless_token([]) ->
     ok.
 
 
 % request
-process_packet([{<<"r">>, Attrs}|T], State) ->
+process_packet([{<<"r">>, Attrs}|T], Socket, State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got r id=~p~n", [MsgId]),
     case lists:keyfind(<<"t">>, 1, Attrs) of
@@ -282,59 +348,88 @@ process_packet([{<<"r">>, Attrs}|T], State) ->
         %     end,
         %     process_packet(T, NewState);
         _ ->
-            RR = {<<"rr">>,
-                  [{<<"id">>, MsgId},
-                   {<<"s">>, 1},
-                   {<<"r">>, <<"Unknown request">>}]},
-            {ok, NewState} = send_rr(MsgId, RR, State),
-            process_packet(T, NewState)
+            % RR = {<<"rr">>,
+            %       [{<<"id">>, MsgId},
+            %        {<<"s">>, 1},
+            %        {<<"r">>, <<"Unknown request">>}]},
+            % {ok, NewState} = send_rr(MsgId, RR, State),
+            process_packet(T, Socket, State)
     end;
 % message
-process_packet([{<<"m">>, Attrs} = Msg|T], State) ->
-    {ok, Message, NewState} = process_message(State, Msg),
+process_packet([{<<"m">>, Attrs} = Toml|T], Socket, State) ->
+    {ok, Message, NewState} = process_message(Socket, State, Toml),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserId} ->
-            UserIdList = [ToUserId, State#state.user#user.id],
-            ok = send_msg_2_user(UserIdList, Message);
+            ok = send_msg_2_single_user(ToUserId, Message);
         _ ->
             ignore
     end,
-    process_packet(T, NewState);
+    process_packet(T, Socket, NewState);
 % group message
-process_packet([{<<"gm">>, Attrs} = Msg|T], State) ->
-    {ok, Message, NewState} = process_message(State, Msg),
+process_packet([{<<"gm">>, Attrs} = Toml|T], Socket, State) ->
+    {ok, Message, NewState} = process_message(Socket, State, Toml),
     case lists:keyfind(<<"group">>, 1, Attrs) of
         {<<"group">>, GroupId} ->
             {ok, UserIdList} = group_members:find({group_id, GroupId}),
-            NewUserIdList = [State#state.user#user.id|UserIdList],
-            ok = send_msg_2_user(NewUserIdList, Message);
+            ok = send_msg_2_multiple_user(UserIdList, Message);
         _ ->
             ignore
     end,
-    process_packet(T, NewState);
+    process_packet(T, Socket, NewState);
 % ack
-process_packet([{<<"a">>, Attrs}|T], State) ->
+process_packet([{<<"a">>, Attrs}|T], Socket, State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-    NewMsgCache = lists:keydelete(MsgId, 2, State#state.msg_cache),
-    process_packet(T, State#state{msg_cache = NewMsgCache});
-process_packet([], NewState) ->
+    NewMsgCache = lists:keydelete(MsgId,
+                                  #message.id,
+                                  State#state.msg_cache),
+
+    Device = lists:keyfind(Socket,
+                           #device.socket,
+                           State#state.device_list),
+    NewDeviceMsgCache = lists:keydelete(MsgId,
+                                        #message.id,
+                                        Device#device.msg_cache),
+    NewDevice = Device#device{msg_cache = NewDeviceMsgCache},
+    NewDeviceList = lists:keystore(Socket,
+                                   #device.socket,
+                                   State#state.device_list,
+                                   NewDevice),
+    NewState = State#state{device_list = NewDeviceList,
+                           msg_cache = NewMsgCache},
+    process_packet(T, Socket, NewState);
+process_packet([], _, NewState) ->
     {ok, NewState}.
 
 
-process_message(State, {Type, Attrs}) ->
+process_message(Socket, State, {Type, Attrs}) ->
+    {value, Device, OtherDeivces} = lists:keytake(Socket,
+                                                  #device.socket,
+                                                  State#state.device_list),
+
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     log:i("Got msg id=~p~n", [MsgId]),
     Ack = {<<"a">>,
            [{<<"id">>, MsgId}]},
-    AckMessage = #message{id = MsgId, toml = Ack},
-    NewMsgCache = [AckMessage|State#state.msg_cache],
-    ok = send_tcp(State#state.socket, AckMessage),
+    {ok, AckBin} = toml:term_2_binary(Ack),
+    AckMessage = #message{id = MsgId, bin = AckBin},
+    ok = gen_tcp:send(Socket, AckBin),
+    NewDeviceMsgCache = [AckMessage|Device#device.msg_cache],
+    NewDevice = Device#device{msg_cache = NewDeviceMsgCache},
+    NewDeviceList = lists:keystore(Socket,
+                                   #device.socket,
+                                   State#state.device_list,
+                                   NewDevice),
+    NewStateTemp = State#state{device_list = NewDeviceList},
 
-    NewAttrs = add_ts_from(Attrs, State#state.user#user.id),
-
+    NewAttrs = add_ts_from(Attrs, State#state.user_id),
     NewToml = {Type, NewAttrs},
-    Message = #message{id = MsgId, toml = NewToml},
-    {ok, Message, State#state{msg_cache = NewMsgCache}}.
+    {ok, NewTomlBin} = toml:term_2_binary(NewToml),
+    Message = #message{id = MsgId, bin = NewTomlBin},
+    {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
+                                                Message,
+                                                NewStateTemp,
+                                                ignore),
+    {ok, Message, NewState}.
 
 
 add_ts_from(Attrs, UserId) ->
@@ -344,34 +439,27 @@ add_ts_from(Attrs, UserId) ->
     lists:keystore(<<"from">>, 1, AttrsWithTs, From).
 
 
-send_msg_2_user(UserIdList, Message) ->
-    send_msg_2_user(UserIdList, Message, []).
-send_msg_2_user([UserId|T], Message, PidList) ->
-    NewPidList = case session:get_pid_list(UserId) of
+send_msg_2_single_user(UserId, Message) ->
+    case session:find(UserId) of
         offline ->
-            offline:store(UserId, [Message]),
-            log:i("offline msg: ~p~n", [Message]),
-            PidList;
-        ToPidList ->
-            ToPidList ++ PidList
+            ok = offline:store(UserId, [Message]),
+            log:i("offline msg: ~p~n", [Message]);
+        {ok, ToPid} ->
+            ToPid ! Message
     end,
-    send_msg_2_user(T, Message, NewPidList);
-send_msg_2_user([], Message, PidList) ->
-    send_msg_2_pid(PidList, self(), Message),
     ok.
 
 
-send_msg_2_pid([SelfPid|T], SelfPid, Message) ->
-    send_msg_2_pid(T, SelfPid, Message);
-send_msg_2_pid([Pid|T], SelfPid, Message) ->
-    Pid ! Message,
-    send_msg_2_pid(T, SelfPid, Message);
-send_msg_2_pid([], _, _) ->
+send_msg_2_multiple_user([UserId|T], Message) ->
+    send_msg_2_single_user(UserId, Message),
+    send_msg_2_multiple_user(T, Message);
+send_msg_2_multiple_user([], _) ->
     ok.
 
 
-send_rr(MsgId, RRToml, State) ->
-    Message = #message{id = MsgId, toml = RRToml},
-    ok = send_tcp(State#state.socket, Message),
-    NewMsgCache = [Message|State#state.msg_cache],
-    {ok, State#state{msg_cache = NewMsgCache}}.
+% send_rr(MsgId, RRToml, State) ->
+%     Message = #message{id = MsgId, toml = RRToml},
+%     {ok, MessageBin} = toml:term_2_binary(RRToml),
+%     ok = gen_tcp:send(Device#device.socket, MessageBin),
+%     NewMsgCache = [Message|State#state.msg_cache],
+%     {ok, State#state{msg_cache = NewMsgCache}}.

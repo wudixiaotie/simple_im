@@ -6,9 +6,7 @@
 
 -module (users).
 
--export ([create/3, verify/2, find/1, parse/1, to_toml/1]).
-
--include("user.hrl").
+-export ([create/3, verify/2, find/1, to_toml/1]).
 
 
 
@@ -61,10 +59,6 @@ find({phone, Phone}) ->
     {ok, Result}.
 
 
-parse(TupleList) ->
-    parse(TupleList, #user{}).
-
-
 to_toml(TupleList) ->
     to_toml(TupleList, []).
 
@@ -72,24 +66,6 @@ to_toml(TupleList) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-parse([{<<"id">>, IdBin}|T], User) when is_binary(IdBin) ->
-    Id = erlang:binary_to_integer(IdBin),
-    parse(T, User#user{id = Id});
-parse([{<<"id">>, Id}|T], User) ->
-    parse(T, User#user{id = Id});
-parse([{<<"device">>, Device}|T], User) ->
-    parse(T, User#user{device = Device});
-parse([{<<"token">>, Token}|T], User) ->
-    parse(T, User#user{token = Token});
-parse([{<<"phone">>, Phone}|T], User) ->
-    parse(T, User#user{phone = Phone});
-parse([{<<"password">>, Password}|T], User) ->
-    parse(T, User#user{password = Password});
-parse([_|T], User) ->
-    parse(T, User);
-parse([], User) ->
-    {ok, User}.
 
 
 to_toml([{Id, Name, Phone, Avatar}|T], Toml) ->
