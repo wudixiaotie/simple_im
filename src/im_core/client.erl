@@ -120,7 +120,7 @@ handle_info({msg_cache, OriginalMsgCache},
         [] ->
             State;
         _ ->
-            ok = send_msg_2_multiple_device(State#state.device_list,
+            ok = send_msg_2_multiple1_device(State#state.device_list,
                                             OriginalMsgCache),
             State#state{msg_cache = MsgCache ++ OriginalMsgCache}
     end,
