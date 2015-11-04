@@ -10,15 +10,11 @@
 3. client token & service relationship.
 
 ## Workflow
-### Login&Reconnect:
-![Login&Reconnect](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/login_reconnect.png)  
+### Login:
+![Login](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/login.png)  
 
-1.  Login or Reconnect request:
-     1. [Http login request](#http_login_request), client authenticate with phone&password and ask for IM server.
-     2. [Http reconnect request](#http_reconnect_request), client authenticate with id&token and ask for IM server.
-2.  Login or Reconnect response:
-     1. [Http login response](#http_login_response), got id, token, IM server ip&port.
-     2. [Http reconnect response](#http_reconnect_response), got IM server ip&port.
+1. [Http login request](#http_login_request), client authenticate with phone&password and ask for IM server.
+2. [Http login response](#http_login_response), got id, token, IM server ip&port.
 3. [Http get offline request](#http_get_offline_request), use token to get offline messages.
 4. [Http get offline response](#http_get_offline_response), got offline messages.
 5. [IM login request](#im_login_request), connect IM server with id and device and token.
@@ -61,41 +57,12 @@ failed(s means status, value 1 is failed):
 [[rr]]
 id="a_01"
 s=1
-t="login"
 r="token error"
 ```
 success(s means status, value 0 is success):
 ```toml
 [[rr]]
 id="a_01"
-t="login"
-s=0
-```
-
-#### <a name="im_reconnect_request">reconnect</a>:  
-```toml
-[[r]]
-id="b_01"
-t="reconnect"
-[r.user]
-id=1
-device="ipad"
-token="AAklxuC39JJtttUMwKHq3teKwOzWtmJc"
-```
-#### <a name="im_reconnect_response">reconnect</a>:  
-failed(s means status, value 1 is failed):
-```toml
-[[rr]]
-id="b_01"
-t="reconnect"
-r="token error"
-s=1
-```
-success(s means status, value 0 is success):
-```toml
-[[rr]]
-id="b_01"
-t="reconnect"
 s=0
 ```
 

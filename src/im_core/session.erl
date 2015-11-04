@@ -63,7 +63,9 @@ find(UserId) ->
         [] ->
             offline;
         [{UserId, Pid}] ->
-            {ok, Pid}
+            {ok, Pid};
+        Error ->
+            {error, Error}
     end.
 
 

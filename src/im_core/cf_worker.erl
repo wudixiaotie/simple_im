@@ -67,115 +67,59 @@ handle_info({tcp, Socket, Data}, State) ->
                     {ok, TokenKey} = redis:key({token, Token}),
                     case redis:q([<<"HGET">>, TokenKey, <<"user_id">>]) of
                         {ok, undefined} ->
-                            RR = {<<"rr">>,
-                                  [{<<"id">>, MsgId},
-                                   {<<"t">>, <<"login">>},
-                                   {<<"s">>, 1},
-                                   {<<"r">>, <<"Token error">>}]},
-                            {ok, RRBin} = toml:term_2_binary(RR),
-                            gen_tcp:send(Socket, RRBin),
-                            gen_tcp:close(Socket);
+                            send_error(Socket, MsgId, <<"Token Error">>);
                         {ok, UserIdBin} ->
                             {ok, <<"1">>} = redis:q([<<"PERSIST">>, TokenKey]),
-                            case session:replace_token(UserId, Token) of
+                            case session:find(UserId) of
                                 offline ->
                                     RR = {<<"rr">>,
                                           [{<<"id">>, MsgId},
-                                           {<<"t">>, <<"login">>},
                                            {<<"s">>, 0}]},
-                                    Message = #message{id = MsgId, toml = RR},
+                                    {ok, RRBin} = toml:term_2_binary(RR),
+                                    Message = #message{id = MsgId, bin = RRBin},
                                     Device = #device{name = DeviceName,
                                                      socket = Socket,
                                                      token = Token},
-                                    new_client(Message, UserId, Device);
+                                    {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
+                                    log:i("Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
+                                    gen_tcp:controlling_process(Device#device.socket, Pid);
                                 {ok, Pid} ->
                                     RR = {<<"rr">>,
                                           [{<<"id">>, MsgId},
-                                           {<<"t">>, <<"login">>},
                                            {<<"s">>, 0}]},
-                                    Message = #message{id = MsgId, toml = RR},
-                                    Device = #device{name = DeviceName,
-                                                     socket = Socket,
-                                                     token = Token},
-                                    client_replace_socket(Pid, Message, UserId, Device);
-                                {error, <<"Wrong device">>} ->
-                                    RR = {<<"rr">>,
-                                          [{<<"id">>, MsgId},
-                                           {<<"t">>, <<"login">>},
-                                           {<<"s">>, 1},
-                                           {<<"r">>, <<"Wrong device">>}]},
                                     {ok, RRBin} = toml:term_2_binary(RR),
-                                    gen_tcp:send(Socket, RRBin),
-                                    gen_tcp:close(Socket);
-                                {error, _} ->
-                                    RR = {<<"rr">>,
-                                          [{<<"id">>, MsgId},
-                                           {<<"t">>, <<"login">>},
-                                           {<<"s">>, 0}]},
-                                    Message = #message{id = MsgId, toml = RR},
+                                    Message = #message{id = MsgId, bin = RRBin},
                                     Device = #device{name = DeviceName,
                                                      socket = Socket,
                                                      token = Token},
-                                    new_client(Message, UserId, Device)
+                                    Node = node(),
+                                    case node(Pid) of
+                                        Node ->
+                                            Pid ! {replace_socket, Message, Device},
+                                            gen_tcp:controlling_process(Device#device.socket, Pid);
+                                        _ ->
+                                            {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
+                                            log:i("Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
+                                            gen_tcp:controlling_process(Device#device.socket, Pid)
+                                    end;
+                                {error, _} ->
+                                    send_error(Socket, MsgId, <<"Unknown error">>)
                             end;
                         _ ->
                             RR = {<<"rr">>,
                                   [{<<"id">>, MsgId},
                                    {<<"t">>, <<"login">>},
                                    {<<"s">>, 1},
-                                   {<<"r">>, <<"Unknown error">>}]},
-                            {ok, RRBin} = toml:term_2_binary(RR),
-                            gen_tcp:send(Socket, RRBin),
-                            gen_tcp:close(Socket)
-                    end;
-                {<<"t">>, <<"reconnect">>} ->
-                    case session:verify(UserId, Token) of
-                        offline ->
-                            RR = {<<"rr">>,
-                                  [{<<"id">>, MsgId},
-                                   {<<"t">>, <<"reconnect">>},
-                                   {<<"s">>, 1},
-                                   {<<"r">>, <<"offline">>}]},
-                            {ok, RRBin} = toml:term_2_binary(RR),
-                            gen_tcp:send(Socket, RRBin),
-                            gen_tcp:close(Socket);
-                        {ok, Pid} ->
-                            RR = {<<"rr">>,
-                                  [{<<"id">>, MsgId},
-                                   {<<"t">>, <<"reconnect">>},
-                                   {<<"s">>, 0}]},
-                            Message = #message{id = MsgId, toml = RR},
-                            Device = #device{name = DeviceName,
-                                             socket = Socket,
-                                             token = Token},
-                            client_replace_socket(Pid, Message, UserId, Device);
-                        {error, Reason} ->
-                            RR = {<<"rr">>,
-                                  [{<<"id">>, MsgId},
-                                   {<<"t">>, <<"reconnect">>},
-                                   {<<"s">>, 1},
-                                   {<<"r">>, Reason}]},
+                                   {<<"r">>, <<"Token not match">>}]},
                             {ok, RRBin} = toml:term_2_binary(RR),
                             gen_tcp:send(Socket, RRBin),
                             gen_tcp:close(Socket)
                     end;
                 _ ->
-                    RR = {<<"rr">>,
-                          [{<<"id">>, MsgId},
-                           {<<"s">>, 1},
-                           {<<"r">>, <<"Unknown request">>}]},
-                    {ok, RRBin} = toml:term_2_binary(RR),
-                    gen_tcp:send(Socket, RRBin),
-                    gen_tcp:close(Socket)
+                    send_error(Socket, MsgId, <<"Unknown request">>)
             end;
         {error, Reason} ->
-            RR = {<<"rr">>,
-                  [{<<"id">>, MsgId},
-                   {<<"s">>, 1},
-                   {<<"r">>, Reason}]},
-            {ok, RRBin} = toml:term_2_binary(RR),
-            gen_tcp:send(Socket, RRBin),
-            gen_tcp:close(Socket)
+            send_error(Socket, MsgId, Reason)
     end,
     free_worker(State#state.name),
     {noreply, State};
@@ -194,18 +138,11 @@ free_worker(Name) ->
     cf ! {free_worker, Name}.
 
 
-new_client(Message, UserId, Device) ->
-    {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
-    log:i("Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
-    gen_tcp:controlling_process(Device#device.socket, Pid).
-
-
-client_replace_socket(Pid, Message, UserId, Device) ->
-    Node = node(),
-    case node(Pid) of
-        Node ->
-            Pid ! {replace_socket, Message, UserId, Device},
-            gen_tcp:controlling_process(Device#device.socket, Pid);
-        _ ->
-            new_client(Message, UserId, Device)
-    end.
+send_error(Socket, MsgId, Reason) ->
+    RR = {<<"rr">>,
+          [{<<"id">>, MsgId},
+           {<<"s">>, 1},
+           {<<"r">>, Reason}]},
+    {ok, RRBin} = toml:term_2_binary(RR),
+    gen_tcp:send(Socket, RRBin),
+    gen_tcp:close(Socket).

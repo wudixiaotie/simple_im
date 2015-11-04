@@ -51,9 +51,8 @@ clean(UserId) ->
 %% ===================================================================
 
 store(UserId, [Message|T], OfflineMsgKeyList) ->
-    {ok, MsgBin} = toml:term_2_binary(Message#message.toml),
     {ok, OfflineMsgKey} = redis:key({offline_msg, UserId, Message#message.id}),
-    {ok, <<"OK">>} = redis:q([<<"SETEX">>, OfflineMsgKey, ?OFFLINE_EXPIRATION_TIME, MsgBin]),
+    {ok, <<"OK">>} = redis:q([<<"SETEX">>, OfflineMsgKey, ?OFFLINE_EXPIRATION_TIME, Message#message.bin]),
     store(UserId, T, [OfflineMsgKey|OfflineMsgKeyList]);
 store(_, [], []) ->
     ok;
