@@ -16,4 +16,4 @@ rm -rf erl_crash.dump
 git checkout $branch
 git add -A
 git commit -m "$note"
-git push -u origin $branch
+git push origin $branch
