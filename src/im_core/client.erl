@@ -356,8 +356,8 @@ process_packet([{<<"r">>, Attrs}|T], Socket, State) ->
             process_packet(T, Socket, State)
     end;
 % message
-process_packet([{<<"m">>, Attrs} = Toml|T], Socket, State) ->
-    {ok, Message, NewState} = process_message(Socket, State, Toml),
+process_packet([{<<"m">>, Attrs}|T], Socket, State) ->
+    {ok, Message, NewState} = process_message(Socket, State, {<<"m">>, Attrs}),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserId} ->
             ok = send_msg_2_single_user(ToUserId, Message);
@@ -366,8 +366,8 @@ process_packet([{<<"m">>, Attrs} = Toml|T], Socket, State) ->
     end,
     process_packet(T, Socket, NewState);
 % group message
-process_packet([{<<"gm">>, Attrs} = Toml|T], Socket, State) ->
-    {ok, Message, NewState} = process_message(Socket, State, Toml),
+process_packet([{<<"gm">>, Attrs}|T], Socket, State) ->
+    {ok, Message, NewState} = process_message(Socket, State, {<<"gm">>, Attrs}),
     case lists:keyfind(<<"group">>, 1, Attrs) of
         {<<"group">>, GroupId} ->
             {ok, UserIdList} = group_members:find({group_id, GroupId}),
@@ -394,6 +394,7 @@ process_packet([{<<"a">>, Attrs}|T], Socket, State) ->
                                    #device.socket,
                                    State#state.device_list,
                                    NewDevice),
+
     NewState = State#state{device_list = NewDeviceList,
                            msg_cache = NewMsgCache},
     process_packet(T, Socket, NewState);
