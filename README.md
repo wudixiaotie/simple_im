@@ -1,4 +1,5 @@
 # simple_im
+### Message transform form one client to other client cost less than 300 microsecond.
 ### Erlang/OTP Version: 18
 #### I use toml as transmission protocol instead of xml or json. I use my own toml helper for toml to erlang terms instead of kalta/etoml,because etoml is not so convenient, because it do not support Array of Tables, like <<"[[products]] sku = 738594937">>
 #### Use ets table as session store.
