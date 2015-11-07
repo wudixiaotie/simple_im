@@ -190,10 +190,31 @@ s=0
 id="c_02"
 t="create_group_member"
 group_id=9
-member_id=2
-group_key="PLwXRfpe7zFl3FWN"
+key="PLwXRfpe7zFl3FWN"
 ```
 #### <a name="im_create_group_member_response">create group member response</a>:  
+failed(s means status, value 1 is failed):
+```toml
+[[rr]]
+id="c_02"
+r="error reason"
+s=1
+```
+success(s means status, value 0 is success):
+```toml
+[[rr]]
+id="c_02"
+s=0
+```
+
+#### <a name="im_delete_group_member_request">create group member request</a>:  
+```toml
+[[r]]
+id="c_02"
+t="delete_group_member"
+group_id=9
+```
+#### <a name="im_delete_group_member_response">create group member response</a>:  
 failed(s means status, value 1 is failed):
 ```toml
 [[rr]]

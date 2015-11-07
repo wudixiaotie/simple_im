@@ -14,9 +14,9 @@
 %% API functions
 %% ===================================================================
 
-create(GroupId, Key, UserId) ->
+create(GroupId, Key, MemberId) ->
     SQL = <<"SELECT create_group_member($1, $2, $3);">>,
-    {ok, _, [{Result}]} = postgresql:exec(SQL, [GroupId, Key, UserId]),
+    {ok, _, [{Result}]} = postgresql:exec(SQL, [GroupId, Key, MemberId]),
     case Result of
         0 ->
             ok;
