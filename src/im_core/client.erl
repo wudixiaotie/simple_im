@@ -320,32 +320,28 @@ process_request({<<"t">>, <<"add_contact">>}, Attrs, MsgId, OtherDeivces, State)
             {RR, State}
     end;
 process_request({<<"t">>, <<"accept_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
-    {<<"to">>, ToUserId} = lists:keyfind(<<"to">>, 1, Attrs),
-    UserId = State#state.user_id,
-    % hack: You can make friend to everyone if you send accept_contact request!!! 
-    % hack: other device should receive UserVersion instead of ToUserVersion
-    {ok, [UserVersion, ToUserVersion]} = contacts:create(UserId, ToUserId),
+    {<<"to">>, AUserId} = lists:keyfind(<<"to">>, 1, Attrs),
+    BUserId = State#state.user_id,
+    ok = contacts:create(AUserId, BUserId),
 
-    NewAttrs = [{<<"contact_version">>, ToUserVersion}|add_ts_from(Attrs, UserId)],
+    NewAttrs = add_ts_from(Attrs, BUserId),
     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
     Message = #message{id = MsgId, bin = RequestBin},
     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
                                                 Message,
                                                 State,
                                                 ignore),
-    ok = send_msg_2_single_user(ToUserId, Message),
+    ok = send_msg_2_single_user(AUserId, Message),
 
     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-                     {<<"status">>, 0},
-                     {<<"contact_version">>, UserVersion}]},
+                     {<<"status">>, 0}]},
     {RR, NewState};
 process_request({<<"t">>, <<"delete_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
     {<<"to">>, ToUserId} = lists:keyfind(<<"to">>, 1, Attrs),
     UserId = State#state.user_id,
-    % hack: other device should receive UserVersion instead of ToUserVersion
-    {ok, [UserVersion, ToUserVersion]} = contacts:delete(UserId, ToUserId),
+    ok = contacts:delete(UserId, ToUserId),
 
-    NewAttrs = [{<<"contact_version">>, ToUserVersion}|add_ts_from(Attrs, UserId)],
+    NewAttrs = add_ts_from(Attrs, UserId),
     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
     Message = #message{id = MsgId, bin = RequestBin},
     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
@@ -355,8 +351,7 @@ process_request({<<"t">>, <<"delete_contact">>}, Attrs, MsgId, OtherDeivces, Sta
     ok = send_msg_2_single_user(ToUserId, Message),
 
     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-                     {<<"status">>, 0},
-                     {<<"contact_version">>, UserVersion}]},
+                     {<<"status">>, 0}]},
     {RR, NewState};
 process_request({<<"t">>, <<"create_group">>}, Attrs, MsgId, OtherDeivces, State) ->
     {<<"name">>, GroupName} = lists:keyfind(<<"name">>, 1, Attrs),

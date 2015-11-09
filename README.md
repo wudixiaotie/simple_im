@@ -110,7 +110,6 @@ success(s means status, value 0 is success):
 [[rr]]
 id="b_02"
 s=0
-contact_version=9
 ```
 
 #### <a name="im_delete_contact_request">delete contact request</a>:  

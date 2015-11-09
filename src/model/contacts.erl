@@ -17,15 +17,22 @@
 create(AUserId, BUserId)
     when is_integer(AUserId), is_integer(BUserId) ->
     SQL = <<"SELECT create_contact($1, $2);">>,
-    {ok, _, Result} = postgresql:exec(SQL, [AUserId, BUserId]),
-    utility:unpack(Result).
+    {ok, _, [{Result}]} = postgresql:exec(SQL, [AUserId, BUserId]),
+    case Result of
+        0 ->
+            ok;
+        1 ->
+            {error, unauthorized};
+        _ ->
+            {error, unknown}
+    end.
 
 
 delete(AUserId, BUserId)
     when is_integer(AUserId), is_integer(BUserId) ->
     SQL = <<"SELECT delete_contact($1, $2);">>,
-    {ok, _, Result} = postgresql:exec(SQL, [AUserId, BUserId]),
-    utility:unpack(Result).
+    {ok, _, _} = postgresql:exec(SQL, [AUserId, BUserId]),
+    ok.
 
 
 find(UserId, 0) when is_integer(UserId) ->

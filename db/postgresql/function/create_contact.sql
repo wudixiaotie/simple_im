@@ -1,59 +1,63 @@
 CREATE OR REPLACE FUNCTION create_contact(a_id INTEGER,
                                           b_id INTEGER)
-RETURNS SETOF INTEGER AS
+RETURNS INTEGER AS
 $$
 DECLARE
-    now         users.created_at%TYPE;
-    old_version INTEGER;
-    new_version INTEGER;
+    count   INTEGER;
+    now     users.created_at%TYPE;
+    version INTEGER;
 BEGIN
-    now = now();
+    SELECT count(pc.a_id)
+    INTO count
+    FROM pre_contacts pc
+    WHERE pc.a_id = create_contact.a_id
+    AND pc.b_id = create_contact.b_id;
 
-    DELETE FROM contacts c
-    WHERE   (c.user_id = a_id AND c.contact_id = b_id)
-    OR      (c.user_id = b_id AND c.contact_id = a_id);
+    IF count <> 0 THEN
+        now = now();
 
-    DELETE FROM pre_contacts pc
-    WHERE   (pc.a_id = create_contact.a_id AND pc.b_id = create_contact.b_id)
-    OR      (pc.a_id = create_contact.b_id AND pc.b_id = create_contact.a_id);
+        DELETE FROM contacts c
+        WHERE   (c.user_id = a_id AND c.contact_id = b_id)
+        OR      (c.user_id = b_id AND c.contact_id = a_id);
 
-    SELECT  u.contact_version INTO old_version
-    FROM    users u
-    WHERE   u.id = a_id;
+        DELETE FROM pre_contacts pc
+        WHERE pc.a_id = create_contact.a_id
+        AND pc.b_id = create_contact.b_id;
 
-    new_version = old_version + 1;
+        SELECT u.contact_version + 1
+        INTO version
+        FROM users u
+        WHERE u.id = a_id;
 
-    INSERT INTO contacts(user_id,
-                         contact_id,
-                         contact_version,
-                         updated_at,
-                         created_at)
-    VALUES (a_id, b_id, new_version, now, now);
+        INSERT INTO contacts(user_id,
+                             contact_id,
+                             contact_version,
+                             updated_at,
+                             created_at)
+        VALUES (a_id, b_id, version, now, now);
 
-    UPDATE users SET contact_version = new_version WHERE id = a_id;
-
-    RETURN NEXT new_version;
+        UPDATE users SET contact_version = version WHERE id = a_id;
 
 
 
-    SELECT  u.contact_version INTO old_version
-    FROM    users u
-    WHERE   u.id = b_id;
+        SELECT u.contact_version + 1
+        INTO version
+        FROM users u
+        WHERE u.id = b_id;
 
-    new_version = old_version + 1;
+        INSERT INTO contacts(user_id,
+                             contact_id,
+                             contact_version,
+                             updated_at,
+                             created_at)
+        VALUES (b_id, a_id, version, now, now);
 
-    INSERT INTO contacts(user_id,
-                         contact_id,
-                         contact_version,
-                         updated_at,
-                         created_at)
-    VALUES (b_id, a_id, new_version, now, now);
+        UPDATE users SET contact_version = version WHERE id = b_id;
 
-    UPDATE users SET contact_version = new_version WHERE id = b_id;
-
-    RETURN NEXT new_version;
-
-    RETURN;
+        RETURN 0;
+    ELSE
+        RETURN 1;
+    END IF;
 END;
 $$
 LANGUAGE plpgsql;
