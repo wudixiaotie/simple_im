@@ -38,10 +38,11 @@
      1. [IM add contact request](#im_add_contact_request).
      2. [IM add contact response](#im_add_contact_response).
 3. Add contact request: Server to B.
-4. Accept contact request: B to Server & Server response:
-     1. [IM accept contact request](#im_accept_contact_request).
-     2. [IM accept contact response](#im_accept_contact_response), B update contact version.
-5. Accept contact request: Server to A, A update contact version.
+4. Accept contact request: B to Server: [IM accept contact request](#im_accept_contact_request).
+5. Accept contact request: Server to A: [IM accept contact request](#im_accept_contact_request).
+6. A update contact by version: [Update contact by version](#http_find_contacts_request).
+7. Server response to B: [IM accept contact response](#im_accept_contact_response).
+8. B update contact by version: [Update contact by version](#http_find_contacts_request).
 
 
 ## Protocol
