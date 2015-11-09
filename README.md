@@ -17,7 +17,7 @@
 1.  Login or Reconnect request:
      1. [Http login request](#http_login_request), client authenticate with phone&password and ask for IM server.
      2. [Http reconnect request](#http_reconnect_request), client authenticate with id&token and ask for IM server.
--2.  Login or Reconnect response:
+2.  Login or Reconnect response:
      1. [Http login response](#http_login_response), got id, token, IM server ip&port.
      2. [Http reconnect response](#http_reconnect_response), got IM server ip&port.
 3. [Http get offline request](#http_get_offline_request), use token to get offline messages.
