@@ -113,7 +113,6 @@ handle_info(Message, State) when is_record(Message, message) ->
 %% ===================================================================
 
 handle_info({replaced_by, NewPid}, State) ->
-    ok = delete_useless_token(State#state.device_list),
     NewPid ! {msg_cache, State#state.msg_cache},
     {stop, {replaced_by, NewPid}, State};
 handle_info({msg_cache, OriginalMsgCache}, State) ->
@@ -134,9 +133,10 @@ handle_info(Info, State) ->
     {noreply, State, State#state.heartbeat_timeout}.
 
 
-terminate(Reason, #state{msg_cache = MsgCache, user_id = UserId}) ->
+terminate(Reason, #state{user_id = UserId} = State) ->
+    ok = delete_useless_token(State#state.device_list),
     log:i("Client ~p terminate with reason: ~p~n", [self(), Reason]),
-    ok = offline:store(UserId, MsgCache),
+    ok = offline:store(UserId, State#state.msg_cache),
     session:unregister(UserId).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
