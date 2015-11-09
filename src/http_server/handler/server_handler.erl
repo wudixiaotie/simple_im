@@ -54,6 +54,23 @@ handle_request([<<"login">>], <<"POST">>, Req) ->
     end,
     {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
+handle_request([<<"reconnect">>], <<"POST">>, Req) ->
+    [{<<"token">>, Token}] = cowboy_req:parse_cookies(Req),
+    {ok, [{<<"id">>, UserIdBin}], _} = cowboy_req:body_qs(Req),
+    {ok, TokenKey} = redis:key({token, Token}),
+    Result = redis:q([<<"HMGET">>, TokenKey, <<"ip">>, <<"port">>, <<"user_id">>]),
+    Toml = case Result of
+        {ok, [undefined, undefined, undefined]} ->
+             {<<"response">>, [{<<"status">>, 1}]};
+        {ok, [IP, Port, UserIdBin]} ->
+             {<<"response">>, [{<<"status">>, 0},
+                               {<<"server">>, IP},
+                               {<<"port">>, Port}]};
+        _ ->
+            {<<"response">>, [{<<"status">>, 2}]}
+    end,
+    {ok, TomlBin} = toml:term_2_binary(Toml),
+    cowboy_req:reply(200, [], TomlBin, Req);
 handle_request([<<"failed">>], <<"POST">>, Req) ->
     PostVals = cowboy_req:parse_cookies(Req),
     {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
