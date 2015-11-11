@@ -15,19 +15,19 @@
 %% ===================================================================
 
 i(Format) ->
-    io:format(Format).
+    io:format("[info] " ++ Format).
 
 i(Format, Args) ->
-    io:format(Format, Args).
+    io:format("[info] " ++ Format, Args).
 
 d(Format) ->
-    io:format(Format).
+    io:format("[debug] " ++ Format).
 
 d(Format, Args) ->
-    io:format(Format, Args).
+    io:format("[debug] " ++ Format, Args).
 
 e(Format) ->
-    io:format(Format).
+    io:format("[error] " ++ Format).
 
 e(Format, Args) ->
-    io:format(Format, Args).
+    io:format("[error] " ++ Format, Args).

@@ -35,7 +35,8 @@ make(Socket) ->
     {ok, WorkerName} = gen_server:call(?MODULE, get_worker),
     case whereis(WorkerName) of
         undefined ->
-            error;
+            timer:sleep(1000),
+            make(Socket);
         WorkerPid ->
             WorkerPid ! {make, Socket},
             gen_tcp:controlling_process(Socket, WorkerPid),

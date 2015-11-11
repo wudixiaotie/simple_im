@@ -15,7 +15,10 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD, {cf_worker, {cf_worker, start_link, []}, permanent, brutal_kill, worker, [cf_worker]}).
+-define(CHILD, #{id         => cf_worker,
+                 start      => {cf_worker, start_link, []},
+                 restart    => permanent,
+                 type       => worker}).
 
 
 

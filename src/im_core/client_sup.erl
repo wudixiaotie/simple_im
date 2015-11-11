@@ -15,7 +15,10 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD, {client, {client, start_link, []}, temporary, infinity, worker, [client]}).
+-define(CHILD, #{id         => client,
+                 start      => {client, start_link, []},
+                 restart    => temporary,
+                 type       => worker}).
 
 
 

@@ -15,7 +15,10 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(Args), {postgresql_worker, {postgresql_worker, start_link, Args}, permanent, brutal_kill, worker, [postgresql_worker]}).
+-define(CHILD(Args), #{id       => postgresql_worker,
+                       start    => {postgresql_worker, start_link, Args},
+                       restart  => permanent,
+                       type     => worker}).
 
 
 

@@ -9,8 +9,10 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(Name, Mod, Args, Type),
-        {Name, {Mod, start_link, Args}, permanent, 5000, Type, [Mod]}).
+-define(CHILD(Name, Mod, Args, Type), #{id  => Name,
+                                        start     => {Mod, start_link, Args},
+                                        restart   => permanent,
+                                        type      => Type}).
 
 
 
