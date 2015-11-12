@@ -67,7 +67,7 @@ handle_info({replace_socket, Message, #device{socket = Socket} = Device},
     NewState = case lists:keytake(Device#device.name,
                                   #device.name, DeviceList) of
         {value, #device{socket = OldSocket} = OldDevice, OtherDeivces} ->
-            gen_tcp:close(OldSocket),
+            ok = gen_tcp:close(OldSocket),
             ok = clean_mailbox(OldSocket),
             ok = delete_useless_token([OldDevice]),
 

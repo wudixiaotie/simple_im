@@ -83,7 +83,7 @@ handle_request([<<"failed">>], <<"POST">>, Req) ->
             case gen_tcp:connect(erlang:binary_to_list(IP),
                                  erlang:binary_to_integer(Port), []) of
                 {ok, Socket} ->
-                    gen_tcp:close(Socket),
+                    ok = gen_tcp:close(Socket),
                     {<<"response">>, [{<<"status">>, 3},
                                       {<<"r">>, <<"IM is online">>}]};
                 {error, _Reason} ->

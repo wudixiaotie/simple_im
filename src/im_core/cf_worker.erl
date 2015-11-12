@@ -45,7 +45,7 @@ handle_cast(_Msg, State) -> {noreply, State}.
 
 handle_info({make, Socket}, State) ->
     inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
-    gen_tcp:send(Socket, <<"ready">>),
+    ok = gen_tcp:send(Socket, <<"ready">>),
     {ok, TimerRef} = timer:exit_after(10000, stuck),
     {noreply, State#state{timer_ref = TimerRef}};
 handle_info({tcp, Socket, Data}, State) ->
@@ -91,11 +91,11 @@ handle_info({tcp, Socket, Data}, State) ->
                                     case node(Pid) of
                                         Node ->
                                             Pid ! {replace_socket, Message, Device},
-                                            gen_tcp:controlling_process(Device#device.socket, Pid);
+                                            ok = gen_tcp:controlling_process(Device#device.socket, Pid);
                                         _ ->
                                             {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
                                             log:i("Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
-                                            gen_tcp:controlling_process(Device#device.socket, Pid)
+                                            ok = gen_tcp:controlling_process(Device#device.socket, Pid)
                                     end;
                                 {error, _} ->
                                     send_error(Socket, MsgId, <<"Unknown error">>)
@@ -107,8 +107,8 @@ handle_info({tcp, Socket, Data}, State) ->
                                    {<<"s">>, 1},
                                    {<<"r">>, <<"Token not match">>}]},
                             {ok, RRBin} = toml:term_2_binary(RR),
-                            gen_tcp:send(Socket, RRBin),
-                            gen_tcp:close(Socket)
+                            ok = gen_tcp:send(Socket, RRBin),
+                            ok = gen_tcp:close(Socket)
                     end;
                 _ ->
                     send_error(Socket, MsgId, <<"Unknown request">>)
@@ -140,5 +140,5 @@ send_error(Socket, MsgId, Reason) ->
            {<<"s">>, 1},
            {<<"r">>, Reason}]},
     {ok, RRBin} = toml:term_2_binary(RR),
-    gen_tcp:send(Socket, RRBin),
-    gen_tcp:close(Socket).
+    ok = gen_tcp:send(Socket, RRBin),
+    ok = gen_tcp:close(Socket).

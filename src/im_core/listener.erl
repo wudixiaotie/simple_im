@@ -85,7 +85,7 @@ handle_info(Info, State) ->
 
 
 terminate(_Reason, State) ->
-    gen_tcp:close(State#state.listen_socket),
+    ok = gen_tcp:close(State#state.listen_socket),
     ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
@@ -102,9 +102,12 @@ set_sockopt(ListenSocket, ClientSocket) ->
     case prim_inet:getopts(ListenSocket, [active, nodelay, keepalive, delay_send, priority, tos]) of
         {ok, Opts} ->
             case prim_inet:setopts(ClientSocket, Opts) of
-                ok    -> ok;
-                Error -> gen_tcp:close(ClientSocket), Error
+                ok ->
+                    ok;
+                Error ->
+                    ok = gen_tcp:close(ClientSocket),
+                    Error
             end;
         Error ->
-            gen_tcp:close(ClientSocket), Error
+            ok = gen_tcp:close(ClientSocket), Error
     end.
