@@ -35,8 +35,7 @@ make(Socket) ->
     {ok, WorkerName} = gen_server:call(?MODULE, get_worker),
     case whereis(WorkerName) of
         undefined ->
-            timer:sleep(1000),
-            make(Socket);
+            error;
         WorkerPid ->
             WorkerPid ! {make, Socket},
             gen_tcp:controlling_process(Socket, WorkerPid),
@@ -57,14 +56,15 @@ init([]) ->
 
 
 handle_call(get_worker, _From, State) ->
-    case queue:out(State#state.queue) of
+    NewState = case queue:out(State#state.queue) of
         {empty, _} ->
             NewMax = State#state.max + 1,
             {ok, WorkerName} = create_single_worker(NewMax),
-            {reply, {ok, WorkerName}, State#state{max = NewMax}};
+            State#state{max = NewMax};
         {{value, WorkerName}, NewQueue} ->
-            {reply, {ok, WorkerName}, State#state{queue = NewQueue}}
-    end;
+            State#state{queue = NewQueue}
+    end,
+    {reply, {ok, WorkerName}, NewState};
 handle_call(_Request, _From, State) -> {reply, nomatch, State}.
 
 
@@ -75,7 +75,9 @@ handle_cast(_Msg, State) -> {noreply, State}.
 handle_info({free_worker, Name}, State) ->
     NewQueue = queue:in(Name, State#state.queue),
     {noreply, State#state{queue = NewQueue}};
-handle_info(_Info, State) -> {noreply, State}.
+handle_info(Info, State) ->
+    log:e("cf got unknown request:~p~n", [Info]),
+    {noreply, State}.
 
 
 terminate(_Reason, _State) -> ok.

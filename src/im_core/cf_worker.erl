@@ -45,14 +45,8 @@ handle_cast(_Msg, State) -> {noreply, State}.
 
 handle_info({make, Socket}, State) ->
     inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
-    {ok, TimerRef} = timer:send_after(2000, free),
+    {ok, TimerRef} = timer:exit_after(10000, stuck),
     {noreply, State#state{timer_ref = TimerRef}};
-handle_info(free, #state{timer_ref = undefined} = State) ->
-    {noreply, State};
-handle_info(free, State) ->
-    free_worker(State#state.name),
-    timer:cancel(State#state.timer_ref),
-    {noreply, State#state{timer_ref = undefined}};
 handle_info({tcp, Socket, Data}, State) ->
     timer:cancel(State#state.timer_ref),
     {ok, Toml} = toml:binary_2_term(Data),
@@ -122,6 +116,7 @@ handle_info({tcp, Socket, Data}, State) ->
             send_error(Socket, MsgId, Reason)
     end,
     free_worker(State#state.name),
+    timer:cancel(State#state.timer_ref),
     {noreply, State};
 handle_info(_Info, State) -> {noreply, State}.
 

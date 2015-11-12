@@ -65,7 +65,7 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
                     log:i("listener accept socket: (~w),server:~s(~p),client:~s(~p)~n",
                           [ClientSocket, inet_parse:ntoa(ServerAddr), ServerPort,
                            inet_parse:ntoa(ClientAddr), ClientPort]),
-                    ok = cf:make(ClientSocket);
+                    cf:make(ClientSocket);
                 _ ->
                     ok
             end,
@@ -80,7 +80,7 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
             {stop, Error, State}
     end;
 handle_info(Info, State) ->
-    log:e("Listener unknown request:~p~n", [Info]),
+    log:e("Listener got unknown request:~p~n", [Info]),
     {noreply, State}.
 
 
