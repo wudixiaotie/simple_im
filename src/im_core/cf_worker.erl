@@ -45,6 +45,7 @@ handle_cast(_Msg, State) -> {noreply, State}.
 
 handle_info({make, Socket}, State) ->
     inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
+    gen_tcp:send(Socket, <<"ready">>),
     {ok, TimerRef} = timer:exit_after(10000, stuck),
     {noreply, State#state{timer_ref = TimerRef}};
 handle_info({tcp, Socket, Data}, State) ->
