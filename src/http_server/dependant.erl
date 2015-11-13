@@ -28,6 +28,11 @@ start_link(cowboy_http) ->
     Dispatch = cowboy_router:compile(RoutePath),
     DefaultHttpPort = env:get(http_port),
     {ok, Port} = utility:free_port(DefaultHttpPort),
+
+    % {ok, Pid} = cowboy:start_http(http, 100, [{port, Port}], [
+    %     {env, [{dispatch, Dispatch}]}
+    % ]),
+
     {ok, ApplicationName} = application:get_application(),
     case code:priv_dir(ApplicationName) of
         {error, bad_name} ->
@@ -41,7 +46,8 @@ start_link(cowboy_http) ->
         {certfile, PrivDir ++ "/ssl/server.crt"},
         {keyfile, PrivDir ++ "/ssl/server.key"}
     ], [{env, [{dispatch, Dispatch}]}]),
-    log:i("Http server start listen port: ~p~n", [Port]),
+
+    log:i("Http server with SSL/TLS encryption start listen port: ~p~n", [Port]),
     true = erlang:link(Pid),
     {ok, Pid}.
 
