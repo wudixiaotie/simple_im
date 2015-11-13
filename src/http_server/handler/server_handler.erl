@@ -44,11 +44,16 @@ handle_request([<<"login">>], <<"POST">>, Req) ->
                 {ok, false} ->
                     {<<"response">>, [{<<"status">>, 1},
                                       {<<"reason">>, <<"Mismatch">>}]};
-                {error, _Reason} ->
+                {error, user_does_not_exist} ->
                     {<<"response">>, [{<<"status">>, 2},
+                                      {<<"reason">>, <<"User doesn't exist!">>}]};
+                {error, Reason} ->
+                    log:e("HTTP: Login Error: ~p~n", [Reason]),
+                    {<<"response">>, [{<<"status">>, 3},
                                       {<<"reason">>, <<"Unkown Error">>}]}
             end;
         {error, Reason} ->
+            log:e("HTTP: Login Error: ~p~n", [Reason]),
             {<<"response">>, [{<<"status">>, 3},
                               {<<"reason">>, Reason}]}
     end,

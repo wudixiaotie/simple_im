@@ -254,11 +254,14 @@ group=123
 ```
 
 ## Http request:
+### Http server health
+curl --cacert priv/ssl/cowboy-ca.crt -i https://localhost:8080/health
+
 ### Ask for which node to login/reconnect
 
 #### login:
 ##### <a name="http_login_request">request</a>:
-curl -X POST -d "phone=13812652243" --data-urlencode "password=888888" http://localhost:8080/server/login
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "phone=18501260698" --data-urlencode "password=888888" -i https://localhost:8080/server/login
 ##### <a name="http_login_response">response</a>:
 ```toml
 [[response]]
@@ -272,7 +275,7 @@ token = "rylFLDGW4NN0h4leO97O/Gibar8KQS8l"
 
 #### reconnect:
 ##### <a name="http_reconnect_request">request</a>:
-curl -X POST -d "id=1" --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" http://localhost:8080/server/reconnect
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "id=1" --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/server/reconnect
 ##### <a name="http_reconnect_response">response</a>:
 ```toml
 [[response]]
@@ -283,7 +286,7 @@ port = "1987"
 
 ### report IM offline and get new IM service IP&Port
 ##### <a name="http_report_failed_request">request</a>:
-curl -X POST --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/server/failed"
+curl --cacert priv/ssl/cowboy-ca.crt -X POST --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/server/failed
 ##### <a name="http_report_failed_response">response</a>:
 ```toml
 [[response]]
@@ -300,7 +303,7 @@ port = "1987"
 ### Offline message
 #### Get offline message
 ##### <a name="http_get_offline_request">request</a>:
-curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/offline"
+curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/offline
 ##### <a name="http_get_offline_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -310,7 +313,7 @@ curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:
 ```
 #### Clean offline message
 ##### <a name="http_clean_offline_request">request</a>:
-curl -X DELETE --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/offline"
+curl --cacert priv/ssl/cowboy-ca.crt -X DELETE --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/offline
 ##### <a name="http_clean_offline_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -319,7 +322,7 @@ curl -X DELETE --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localho
 ### Users
 #### Find user by phone
 ##### <a name="http_find_user_by_phone_request">request</a>:
-curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/user/phone/13812652243"
+curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/user/phone/13812652243
 ##### <a name="http_find_user_by_phone_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -327,7 +330,7 @@ curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:
 ```
 #### Find user by id
 ##### <a name="http_find_user_by_id_request">request</a>:
-curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/user/id/2"
+curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/user/id/2
 ##### <a name="http_find_user_by_id_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -335,7 +338,7 @@ curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:
 ```
 #### Create user
 ##### <a name="http_create_user_request">request</a>:
-curl -X POST -d "phone=13812652243" --data-urlencode "name=大傻" --data-urlencode "password=888888" "http://localhost:8080/user"
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "phone=13812652243" --data-urlencode "name=大傻" --data-urlencode "password=888888" -i https://localhost:8080/user
 ##### <a name="http_create_user_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -343,7 +346,7 @@ curl -X POST -d "phone=13812652243" --data-urlencode "name=大傻" --data-urlenc
 
 ### Contacts
 ##### <a name="http_find_contacts_request">request</a>:
-curl -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" "http://localhost:8080/contact/version/0"
+curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/contact/version/0
 ##### <a name="http_find_contacts_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -413,7 +416,3 @@ Value: MsgBin
 Type: HASH  
 Key: <<"client_", Token/binary>>  
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
-
-# TODO List:
-2. Add group
-3. test
