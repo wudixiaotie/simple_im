@@ -303,7 +303,7 @@ port = "1987"
 ### Offline message
 #### Get offline message
 ##### <a name="http_get_offline_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/offline
+curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=7m2jbsYaGNoWT2JztF/Nrh3kQD/YNmDJ" -i https://localhost:8080/offline
 ##### <a name="http_get_offline_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -352,6 +352,10 @@ curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP
 [[response]] status = 0
 [[user]] id = 2 name = "xiaotie" phone = "13812652243" avatar = ""
 ```
+
+### Upload
+##### <a name="http_upload_audio_request">request</a>:
+curl --cacert priv/ssl/cowboy-ca.crt -X POST --cookie "token=MYNvES7FEIbciYGgcmu0YfyZkodY+kzd" -H "Content-Type=audio/AMR" -F "filename=@assets/10010.amr" -i https://localhost:8080/upload/audio
 
 # Guide
 ## Start Simple Im

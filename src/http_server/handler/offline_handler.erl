@@ -59,4 +59,5 @@ list_2_binary(MsgList) ->
 list_2_binary([H|T], Result) ->
     list_2_binary(T, <<H/binary, "\r\n", Result/binary>>);
 list_2_binary([], Result) ->
-    {ok, Result}.
+    NewResult = zlib:zip(Result),
+    {ok, NewResult}.

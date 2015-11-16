@@ -20,5 +20,6 @@ path() ->
         {"/server/[...]", server_handler, []},
         {"/offline/[...]", offline_handler, []},
         {"/contact/[...]", contact_handler, []},
-        {"/user/[...]", user_handler, []}
+        {"/user/[...]", user_handler, []},
+        {"/upload/[...]", upload_handler, []}
     ]}].
