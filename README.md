@@ -1,4 +1,57 @@
 # simple_im
+
+# Guide
+## Start Simple Im
+#### 1.Download the porject, and go to the root path of this porject.
+#### 2.Create database tables,functions,data:  
+Run
+```shell
+./start.sh task
+```
+to open the console, run db:init/0 to initialize tables,functions,data
+```erlang
+db:init()
+```
+Then quite by type q().
+#### 3.Add dns of simple_im.com:    
+Edit /etc/hosts file, add line of 'your IP address   simple_im.com', make sure your ip address is the real ip, not localhost or 127.0.0.1  
+#### 4.Start IM server:  
+For single node run
+```shell
+./start.sh n1 im
+```
+to start simple im. If you want to start observer, use
+```shell
+./start.sh n1 im o
+```
+For multiple nodes run
+```shell
+./start.sh n1 im
+```
+```shell
+./start.sh n2 im
+```
+```shell
+./start.sh n3 im
+```
+#### 5.Start HTTP server:  
+```shell
+./start.sh http
+```
+#### 6.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
+change the test user info of the client at client_manager.erl then in a new shell type 
+```shell
+./start.sh a
+```
+to start the client.  
+#### 7.See the server and client log.
+```log
+Got r id=<<"a_01">>
+Got r id=<<"a_01">>
+Got msg id=<<"a_02">>
+```
+
+
 ### Message transform form one client to other client cost less than 300 microsecond.
 ### Erlang/OTP Version: 18
 #### I use toml as transmission protocol instead of xml or json. I use my own toml helper for toml to erlang terms instead of kalta/etoml,because etoml is not so convenient, because it do not support Array of Tables, like <<"[[products]] sku = 738594937">>
@@ -261,7 +314,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -i https://localhost:8080/health
 
 #### login:
 ##### <a name="http_login_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "phone=18501260698" --data-urlencode "password=888888" -i https://localhost:8080/server/login
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "phone=8618266175357" --data-urlencode "password=888888" -i https://localhost:8080/server/login
 ##### <a name="http_login_response">response</a>:
 ```toml
 [[response]]
@@ -322,11 +375,11 @@ curl --cacert priv/ssl/cowboy-ca.crt -X DELETE --cookie "token=3vPjUabByvMwBFR9t
 ### Users
 #### Find user by phone
 ##### <a name="http_find_user_by_phone_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/user/phone/13812652243
+curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/user/phone/8618266175357
 ##### <a name="http_find_user_by_phone_response">response</a>:
 ```toml
 [[response]] status = 0
-[[user]] id = 2 name = "xiaotie" phone = "13812652243" avatar = ""
+[[user]] id = 2 name = "xiaotie" phone = "8618266175357" avatar = ""
 ```
 #### Find user by id
 ##### <a name="http_find_user_by_id_request">request</a>:
@@ -334,11 +387,11 @@ curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP
 ##### <a name="http_find_user_by_id_response">response</a>:
 ```toml
 [[response]] status = 0
-[[user]] id = 2 name = "xiaotie" phone = "13812652243" avatar = ""
+[[user]] id = 2 name = "xiaotie" phone = "8618266175357" avatar = ""
 ```
 #### Create user
 ##### <a name="http_create_user_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "phone=13812652243" --data-urlencode "name=大傻" --data-urlencode "password=888888" -i https://localhost:8080/user
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "phone=8618266175357" --data-urlencode "name=大傻" --data-urlencode "password=888888" -i https://localhost:8080/user
 ##### <a name="http_create_user_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -350,61 +403,12 @@ curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP
 ##### <a name="http_find_contacts_response">response</a>:
 ```toml
 [[response]] status = 0
-[[user]] id = 2 name = "xiaotie" phone = "13812652243" avatar = ""
+[[user]] id = 2 name = "xiaotie" phone = "8618266175357" avatar = ""
 ```
 
 ### Upload
 ##### <a name="http_upload_audio_request">request</a>:
 curl --cacert priv/ssl/cowboy-ca.crt -X POST --cookie "token=MYNvES7FEIbciYGgcmu0YfyZkodY+kzd" -H "Content-Type=audio/AMR" -F "filename=@assets/10010.amr" -i https://localhost:8080/upload/audio
-
-# Guide
-## Start Simple Im
-#### 1.Download the porject, and go to the root path of this porject.
-#### 2.Create database tables, execute .sql files in db/postgresql.  
-#### 3.Create test data.  
-Run
-```shell
-./start.sh n1
-```
-to open the console, run users:create/3, groups:create/3 to create some users and groups for test.
-Then quite by type q().
-#### 3.Add dns of simple_im.com:    
-Edit /etc/hosts file, add line of 'your IP address   simple_im.com', make sure your ip address is the real ip, not localhost or 127.0.0.1  
-#### 4.Start IM server:  
-For single node run
-```shell
-./start.sh n1 im
-```
-to start simple im. If you want to start observer, use
-```shell
-./start.sh n1 im o
-```
-For multiple nodes run
-```shell
-./start.sh n1 im
-```
-```shell
-./start.sh n2 im
-```
-```shell
-./start.sh n3 im
-```
-#### 5.Start HTTP server:  
-```shell
-./start.sh http
-```
-#### 6.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
-change the test user info of the client at client_manager.erl then in a new shell type 
-```shell
-./start.sh a
-```
-to start the client.  
-#### 7.See the server and client log.
-```log
-Got r id=<<"a_01">>
-Got r id=<<"a_01">>
-Got msg id=<<"a_02">>
-```
 
 
 # Redis Data Structure

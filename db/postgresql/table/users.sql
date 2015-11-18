@@ -2,7 +2,7 @@ CREATE TABLE public.users
 (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(20) NOT NUlL,
-    phone           CHAR(11) NOT NUlL,
+    phone           VARCHAR(15) NOT NUlL,
     password        CHAR(32) NOT NUlL,
     salt            CHAR(16) NOT NULL,
     contact_version INTEGER NOT NULL,

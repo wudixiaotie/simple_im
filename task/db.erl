@@ -17,17 +17,12 @@
 
 init() ->
     log:i("=============Database initializing..~n"),
-    FunctionPath = "db/postgresql/function/",
-    ok = create_tables(),
-
-    case file:list_dir(FunctionPath) of
-        {ok, FunctionFileList} ->
-            create_functions(FunctionFileList, FunctionPath);
-        _ ->
-            log:e("Can not open function directory!")
-    end,
+    ok = init_table(),
+    ok = init_function(),
+    ok = init_data(),
     log:i("=============Database all set up.~n"),
     ok.
+
 
 
 
@@ -35,30 +30,56 @@ init() ->
 %% gen_server callbacks
 %% ===================================================================
 
-create_tables() ->
-    ok.
+init_table() ->
+    log:i("=============Tables initializing..~n"),
+    Tables = ["users.sql", "groups.sql", "contacts.sql", "group_members.sql",
+              "pre_contacts.sql"],
+    Path = "db/postgresql/table/",
+    TablePathList = lists:map(fun(I) -> Path ++ I end, Tables),
+    execute_sql(TablePathList).
 
 
-create_functions([H|T], FunctionPath) ->
-    ok = execute_sql(FunctionPath ++ H),
-    create_functions(T, FunctionPath);
-create_functions([], _) ->
-    ok.
+init_function() ->
+    log:i("=============Functions initializing..~n"),
+    SqlFileList = filelib:fold_files("db/postgresql/function",
+                                     ".*.sql",
+                                     true,
+                                     fun(F, AccIn) -> [F | AccIn] end,
+                                     []),
+    execute_sql(SqlFileList).
 
 
-execute_sql(SqlFilePath) ->
+execute_sql([SqlFilePath|T]) ->
     log:i("execute sql file: ~p~n", [SqlFilePath]),
-    {ok, SqlFileHandler} = file:open(SqlFilePath, [read, binary]),
-    {ok, SQL} = scan_file(SqlFileHandler, <<>>),
-    {ok, [], []} = postgresql:exec(SQL),
+    {ok, SqlFileHandler} = file:open(SqlFilePath, [read]),
+    ok = parse_sql(SqlFileHandler, []),
+    execute_sql(T);
+execute_sql([]) ->
     ok.
 
 
-scan_file(FileHandler, Result) ->
-    case file:read(FileHandler, 1024) of
-        eof  ->
-            {ok, Result};
-        {ok, Binary} ->
-            NewResult = <<Result/binary, Binary/binary>>,
-            scan_file(FileHandler, NewResult)
+parse_sql(SqlFileHandler, SQL) ->
+    case file:read_line(SqlFileHandler) of
+        eof ->
+            {ok, [], []} = postgresql:exec(SQL),
+            ok;
+        {ok, Data} ->
+            case utility:strip_head(Data) of
+                {ok, [$C, $R, $E, $A, $T, $E|_] = Statement} ->
+                    case SQL =/= [] of
+                        true ->
+                            {ok, [], []} = postgresql:exec(SQL);
+                        _ ->
+                            ok
+                    end,
+                    parse_sql(SqlFileHandler, Statement);
+                {ok, Statement} ->
+                    parse_sql(SqlFileHandler, SQL ++ Statement)
+            end
     end.
+
+
+init_data() ->
+    users:create(<<"test1">>, <<"8618266175357">>, <<"888888">>),
+    users:create(<<"test2">>, <<"8618501260693">>, <<"888888">>),
+    users:create(<<"test3">>, <<"8618266175356">>, <<"888888">>).

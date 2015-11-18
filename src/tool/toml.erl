@@ -107,7 +107,7 @@ parse_attrs(NameBin, RestStr, Attrs) ->
             {ok, {NameBin, Attrs}, []};
         {ok, Key, RestStr1} ->
             {ok, Value, RestStr2} = parse_value(RestStr1),
-            {ok, NewRestStr} = drop_space(RestStr2),
+            {ok, NewRestStr} = utility:strip_head(RestStr2),
             parse_attrs(NameBin, NewRestStr, [{Key, Value}|Attrs])
     end.
 
@@ -151,7 +151,7 @@ parse_child(RestStr, [], []) ->
 parse_child(RestStr, ChildNameList, Attr) ->
     {ok, Key, RestStr1} = parse_key(RestStr),
     {ok, Value, RestStr2} = parse_value(RestStr1),
-    {ok, NewRestStr} = drop_space(RestStr2),
+    {ok, NewRestStr} = utility:strip_head(RestStr2),
     parse_child(NewRestStr, ChildNameList, [{Key, Value}|Attr]).
 
 
@@ -256,15 +256,3 @@ parse_list_value([], Value) ->
 parse_list_value(RestStr, Value) ->
     {ok, Item, NewRestStr} = parse_integer_value(RestStr, []),
     parse_list_value(NewRestStr, [Item|Value]).
-
-
-drop_space([$\s|T]) ->
-    drop_space(T);
-drop_space([$\t|T]) ->
-    drop_space(T);
-drop_space([$\r|T]) ->
-    drop_space(T);
-drop_space([$\n|T]) ->
-    drop_space(T);
-drop_space(Rest) ->
-    {ok, Rest}.
