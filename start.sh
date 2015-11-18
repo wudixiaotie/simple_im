@@ -16,6 +16,9 @@ case $1 in
     "http" )
         erl_command="$erl_start -eval simple_im:start(http)."
         ;;
+    "mq" )
+        erl_command="$erl_start -eval simple_im:start(mq)."
+        ;;
     "task" )
         erl_command="$erl_start -eval postgresql:start_link()."
         ;;
