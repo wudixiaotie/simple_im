@@ -34,9 +34,6 @@ case $2 in
     "im" )
         erl_command="$erl_command -eval simple_im:start()."
         ;;
-    "http" )
-        erl_command="$erl_command -eval simple_im:start(http)."
-        ;;
     "" )
         erl_command=$erl_command
         ;;
