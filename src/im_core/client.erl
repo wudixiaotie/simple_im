@@ -4,7 +4,7 @@
 %% server for client side
 %% ===================================================================
 
--module (client).
+-module(client).
 
 -behaviour(gen_server).
 

@@ -4,45 +4,47 @@
 %% environment variables get
 %% ===================================================================
 
--module (env).
+-module(env).
 
--export ([get/1]).
+-export([get/1]).
 
--define (DEFAULT_PORT, 1987).
+-define(DEFAULT_PORT, 1987).
 
--define (DEFAULT_HTTP_PORT, 8080).
+-define(DEFAULT_HTTP_PORT, 8080).
 
--define (DEFAULT_CONNECT_SIZE, 10).
+-define(DEFAULT_MQ_PORT, 10000).
+
+-define(DEFAULT_CONNECT_SIZE, 10).
 
 % 10 minutes
--define (DEFAULT_HEARTBEAT_TIMEOUT, 600000).
+-define(DEFAULT_HEARTBEAT_TIMEOUT, 600000).
 
--define (DEFAULT_NODE_LIST, ['s1@simple_im.com',
+-define(DEFAULT_NODE_LIST, ['s1@simple_im.com',
                              's2@simple_im.com',
                              's3@simple_im.com']).
 
--define (DEFAULT_DB_HOST, "localhost").
+-define(DEFAULT_DB_HOST, "localhost").
 
--define (DEFAULT_DB_USERNAME, "postgres").
+-define(DEFAULT_DB_USERNAME, "postgres").
 
--define (DEFAULT_DB_PASSWORD, "postgres").
+-define(DEFAULT_DB_PASSWORD, "postgres").
 
--define (DEFAULT_DB_DATABASE, "test").
+-define(DEFAULT_DB_DATABASE, "test").
 
--define (DEFAULT_DB_PORT, 5432).
+-define(DEFAULT_DB_PORT, 5432).
 
--define (DEFAULT_DB_POOLSIZE, 5).
+-define(DEFAULT_DB_POOLSIZE, 5).
 
--define (DEFAULT_HTTP_DB_POOLSIZE, 10).
+-define(DEFAULT_HTTP_DB_POOLSIZE, 10).
 
--define (DEFAULT_REDIS_POOLS, [{pool0, [{size, 10},
+-define(DEFAULT_REDIS_POOLS, [{pool0, [{size, 10},
                                         {max_overflow, 20},
                                         {host, "127.0.0.1"},
                                         {port, 6379}]}]).
 
--define (DEFAULT_REDIS_GLOBAL_OR_LOCAL, local).
+-define(DEFAULT_REDIS_GLOBAL_OR_LOCAL, local).
 
--define (DEFAULT_DEVICE_LIST, [<<"android">>, <<"iphone">>, <<"ipad">>]).
+-define(DEFAULT_DEVICE_LIST, [<<"android">>, <<"iphone">>, <<"ipad">>]).
 
 
 
@@ -65,6 +67,7 @@ get(Key) ->
 
 get_default(port) -> ?DEFAULT_PORT;
 get_default(http_port) -> ?DEFAULT_HTTP_PORT;
+get_default(mq_port) -> ?DEFAULT_MQ_PORT;
 get_default(connect_size) -> ?DEFAULT_CONNECT_SIZE;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
 get_default(node_list) -> ?DEFAULT_NODE_LIST;

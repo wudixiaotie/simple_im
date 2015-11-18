@@ -4,7 +4,7 @@
 %% dependent application
 %% ===================================================================
 
--module (dependant).
+-module(dependant).
 
 % APIs
 -export([start_link/1]).

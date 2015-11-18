@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
 %% 2015-9-26
-%% cclient factory supervisor
+%% client factory supervisor
 %% ===================================================================
 
--module (cf_sup).
+-module(cf_sup).
 
 -behaviour(supervisor).
 

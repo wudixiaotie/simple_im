@@ -4,7 +4,7 @@
 %% server handler
 %% ===================================================================
 
--module (upload_handler).
+-module(upload_handler).
 
 -export([init/2, handle_request/3]).
 

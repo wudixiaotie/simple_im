@@ -4,7 +4,7 @@
 %% postgresql client supervisor
 %% ===================================================================
 
--module (postgresql_sup).
+-module(postgresql_sup).
 
 -behaviour(supervisor).
 

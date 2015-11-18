@@ -4,9 +4,9 @@
 %% groups data logic module
 %% ===================================================================
 
--module (groups).
+-module(groups).
 
--export ([create/3, delete/2]).
+-export([create/3, delete/2]).
 
 
 

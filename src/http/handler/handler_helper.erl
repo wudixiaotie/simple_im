@@ -4,9 +4,9 @@
 %% handler helper
 %% ===================================================================
 
--module (handler_helper).
+-module(handler_helper).
 
--export ([init/3, verify_token/1, return404/1]).
+-export([init/3, verify_token/1, return404/1]).
 
 
 

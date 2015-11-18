@@ -4,9 +4,9 @@
 %% utility for simple im
 %% ===================================================================
 
--module (utility).
+-module(utility).
 
--export ([md5_hex_32/1, random_binary_16/0, random_number/1,
+-export([md5_hex_32/1, random_binary_16/0, random_number/1,
           guid/0, free_port/1, index_of/2, ip_port/2,
           timestamp/0, delete_from_list/2, join/2,
           unpack/1, check_parameters/2, strip_head/1]).

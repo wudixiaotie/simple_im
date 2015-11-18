@@ -4,7 +4,7 @@
 %% health handler
 %% ===================================================================
 
--module (health_handler).
+-module(health_handler).
 
 -export([init/2]).
 

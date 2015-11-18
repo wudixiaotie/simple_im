@@ -1,6 +1,6 @@
--module (simple_im).
+-module(simple_im).
 
--export ([start/0, start/1, stop/0]).
+-export([start/0, start/1, stop/0]).
 
 
 

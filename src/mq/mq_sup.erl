@@ -1,4 +1,10 @@
--module (mq_sup).
+%% ===================================================================
+%% Author xiaotie
+%% 2015-11-18
+%% message queue supervisor
+%% ===================================================================
+
+-module(mq_sup).
 
 -behaviour(supervisor).
 
@@ -9,10 +15,10 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD(Name, Mod, Args, Type), #{id      => Name,
-                                        start   => {Mod, start_link, Args},
-                                        restart => permanent,
-                                        type    => Type}).
+-define(CHILD(I, Type), #{id        => I,
+                          start     => {I, start_link, []},
+                          restart   => permanent,
+                          type      => Type}).
 
 
 
@@ -31,4 +37,4 @@ start_link() ->
 
 init([]) ->
     {ok, { {one_for_one, 5, 10},
-           []} }.
+           [?CHILD(mq_listener, worker)]} }.

@@ -4,9 +4,9 @@
 %% users data logic module
 %% ===================================================================
 
--module (users).
+-module(users).
 
--export ([create/3, verify/2, find/1, to_toml/1]).
+-export([create/3, verify/2, find/1, to_toml/1]).
 
 
 

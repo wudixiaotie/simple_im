@@ -4,9 +4,9 @@
 %% toml helper for simple_im
 %% ===================================================================
 
--module (toml).
+-module(toml).
 
--export ([term_2_binary/1, binary_2_term/1]).
+-export([term_2_binary/1, binary_2_term/1]).
 
 
 

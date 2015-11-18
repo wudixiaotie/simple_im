@@ -4,7 +4,7 @@
 %% contact handler
 %% ===================================================================
 
--module (user_handler).
+-module(user_handler).
 
 -export([init/2, handle_request/3]).
 

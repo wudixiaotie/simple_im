@@ -4,7 +4,7 @@
 %% server handler
 %% ===================================================================
 
--module (server_handler).
+-module(server_handler).
 
 -export([init/2, handle_request/3]).
 

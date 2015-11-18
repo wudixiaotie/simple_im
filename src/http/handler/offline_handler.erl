@@ -4,7 +4,7 @@
 %% offline handler
 %% ===================================================================
 
--module (offline_handler).
+-module(offline_handler).
 
 -export([init/2, handle_request/3]).
 

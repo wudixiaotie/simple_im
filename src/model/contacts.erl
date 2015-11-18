@@ -4,9 +4,9 @@
 %% users data logic module
 %% ===================================================================
 
--module (contacts).
+-module(contacts).
 
--export ([create/2, find/2, delete/2]).
+-export([create/2, find/2, delete/2]).
 
 
 

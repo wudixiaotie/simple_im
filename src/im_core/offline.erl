@@ -4,12 +4,12 @@
 %% offline
 %% ===================================================================
 
--module (offline).
+-module(offline).
 
--export ([store/2, get/1, clean/1]).
+-export([store/2, get/1, clean/1]).
 
 % offline message expired after 7 days
--define (OFFLINE_EXPIRATION_TIME, 604800).
+-define(OFFLINE_EXPIRATION_TIME, 604800).
 
 -include("message.hrl").
 
