@@ -45,9 +45,15 @@ handle_cast(_Msg, State) -> {noreply, State}.
 
 handle_info({make, Socket}, State) ->
     inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
-    ok = gen_tcp:send(Socket, <<"ready">>),
-    {ok, TimerRef} = timer:exit_after(10000, stuck),
-    {noreply, State#state{timer_ref = TimerRef}};
+    NewState = case erlang:port_info(Socket) of
+        undefined ->
+            State;
+        _ ->
+            ok = gen_tcp:send(Socket, <<"ready">>),
+            {ok, TimerRef} = timer:exit_after(10000, stuck),
+            State#state{timer_ref = TimerRef}
+    end,
+    {noreply, NewState};
 handle_info({tcp, Socket, Data}, State) ->
     timer:cancel(State#state.timer_ref),
     {ok, Toml} = toml:binary_2_term(Data),
