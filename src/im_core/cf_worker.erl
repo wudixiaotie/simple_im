@@ -124,7 +124,7 @@ handle_info({tcp, Socket, Data}, State) ->
     end,
     free_worker(State#state.name),
     timer:cancel(State#state.timer_ref),
-    {noreply, State};
+    {noreply, State#state{timer_ref = undefined}};
 handle_info(_Info, State) -> {noreply, State}.
 
 
