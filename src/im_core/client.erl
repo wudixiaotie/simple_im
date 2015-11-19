@@ -39,13 +39,13 @@ start_link(Message, UserId, Device) ->
 %% ===================================================================
 
 init([Message, UserId, #device{socket = Socket} = Device]) ->
-    session:register(UserId, self()),
+    ok = session:register(UserId, self()),
     ok = gen_tcp:send(Device#device.socket, Message#message.bin),
     State = #state{heartbeat_timeout = env:get(heartbeat_timeout),
                    user_id = UserId,
                    device_list = [Device],
                    msg_cache = []},
-    setopts(Socket),
+    ok = setopts(Socket),
     {ok, State, State#state.heartbeat_timeout}.
 
 
@@ -201,7 +201,8 @@ send_msg_2_multiple_device([], _, State, ignore) ->
 
 
 setopts(Socket) ->
-    inet:setopts(Socket, [{active, 300}, {packet, 0}, binary]).
+    ok = inet:setopts(Socket, [{active, 300}, {packet, 0}, binary]),
+    ok.
 
 
 clean_mailbox(Socket) ->

@@ -15,8 +15,8 @@ start() ->
 start(http) ->
     application:set_env(simple_im, app_mode, http),
     application:start(simple_im);
-start(mq) ->
-    application:set_env(simple_im, app_mode, mq),
+start(middleman) ->
+    application:set_env(simple_im, app_mode, middleman),
     application:start(simple_im);
 start(_) ->
     application:start(simple_im).

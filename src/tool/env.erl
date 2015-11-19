@@ -12,7 +12,7 @@
 
 -define(DEFAULT_HTTP_PORT, 8080).
 
--define(DEFAULT_MQ_PORT, 10000).
+-define(DEFAULT_MIDDLEMAN_PORT, 10000).
 
 -define(DEFAULT_CONNECT_SIZE, 10).
 
@@ -67,7 +67,7 @@ get(Key) ->
 
 get_default(port) -> ?DEFAULT_PORT;
 get_default(http_port) -> ?DEFAULT_HTTP_PORT;
-get_default(mq_port) -> ?DEFAULT_MQ_PORT;
+get_default(middleman_port) -> ?DEFAULT_MIDDLEMAN_PORT;
 get_default(connect_size) -> ?DEFAULT_CONNECT_SIZE;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
 get_default(node_list) -> ?DEFAULT_NODE_LIST;

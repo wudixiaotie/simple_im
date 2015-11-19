@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-11-18
-%% listener for message queue
+%% 2015-11-19
+%% middleman listener
 %% ===================================================================
 
--module(mq_listener).
+-module(middleman_listener).
 
 % APIs
 -export([start_link/0]).
@@ -27,8 +27,8 @@ start_link() ->
 
 init() ->
     true = erlang:register(?MODULE, self()),
-    DefaultMQPort = env:get(mq_port),
-    log:i("MQ server start listen port: ~p~n", [DefaultMQPort]),
+    DefaultMQPort = env:get(middleman_port),
+    log:i("Middleman server start listen port: ~p~n", [DefaultMQPort]),
     Opts = [binary,
             {packet, 0},
             {active, false}],
@@ -38,10 +38,6 @@ init() ->
 
 accept(MQListenSocket) ->
     {ok, Socket} = gen_tcp:accept(MQListenSocket),
-    ChildSpec = #{id        => erlang:port_to_list(Socket),
-                  start     => {mq_worker, start_link, [Socket]},
-                  restart   => temporary,
-                  shutdown  => brutal_kill,
-                  type      => worker},
-    supervisor:start_child(mq_sup, ChildSpec),
+    {ok, Pid} = supervisor:start_child(middleman_worker_sup, [Socket]),
+    ok = gen_tcp:controlling_process(Socket, Pid),
     accept(MQListenSocket).

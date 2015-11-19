@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-9-26
-%% client factory supervisor
+%% 2015-11-19
+%% middleman worker supervisor
 %% ===================================================================
 
--module(cf_sup).
+-module(middleman_worker_sup).
 
 -behaviour(supervisor).
 
@@ -13,12 +13,6 @@
 
 %% Supervisor callbacks
 -export([init/1]).
-
-%% Helper macro for declaring children of supervisor
--define(CHILD, #{id         => cf_worker,
-                 start      => {cf_worker, start_link, []},
-                 restart    => permanent,
-                 type       => worker}).
 
 
 
@@ -36,4 +30,9 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {simple_one_for_one, 0, 1}, [?CHILD] } }.
+    {ok, { {simple_one_for_one, 5, 10},
+           [#{id        => middleman_worker,
+              start     => {middleman_worker, start_link, []},
+              restart   => temporary,
+              shutdown  => brutal_kill,
+              type      => worker}]} }.

@@ -38,7 +38,7 @@ make(Socket) ->
             error;
         WorkerPid ->
             WorkerPid ! {make, Socket},
-            gen_tcp:controlling_process(Socket, WorkerPid),
+            ok = gen_tcp:controlling_process(Socket, WorkerPid),
             ok
     end.
 
@@ -48,7 +48,7 @@ make(Socket) ->
 %% ===================================================================
 
 init([]) ->
-    cf_sup:start_link(),
+    cf_worker_sup:start_link(),
     ConnectSize = env:get(connect_size),
     ok = create_multiple_worker(ConnectSize),
     State = #state{queue = queue:new(), max = ConnectSize},
@@ -97,7 +97,7 @@ create_multiple_worker(N) ->
 
 create_single_worker(Index) ->
     Name = worker_name(Index),
-    supervisor:start_child(cf_sup, [Name]),
+    supervisor:start_child(cf_worker_sup, [Name]),
     {ok, Name}.
 
 

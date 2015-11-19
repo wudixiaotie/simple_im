@@ -27,7 +27,7 @@ d(Format, Args) ->
     io:format("[debug] " ++ Format, Args).
 
 e(Format) ->
-    io:format("[error] " ++ Format).
+    io:format("\e[1;31m[error] " ++ Format ++ "\e[0;38m").
 
 e(Format, Args) ->
-    io:format("[error] " ++ Format, Args).
+    io:format("\e[1;31m[error] " ++ Format ++ "\e[0;38m", Args).

@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-11-18
-%% message queue supervisor
+%% 2015-11-19
+%% middleman supervisor
 %% ===================================================================
 
--module(mq_sup).
+-module(middleman_sup).
 
 -behaviour(supervisor).
 
@@ -37,4 +37,6 @@ start_link() ->
 
 init([]) ->
     {ok, { {one_for_one, 5, 10},
-           [?CHILD(mq_listener, worker)]} }.
+           [?CHILD(middleman_worker_sup, supervisor),
+            ?CHILD(middleman_manager, worker),
+            ?CHILD(middleman_listener, worker)]} }.

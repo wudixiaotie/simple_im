@@ -44,7 +44,7 @@ handle_cast(_Msg, State) -> {noreply, State}.
 
 
 handle_info({make, Socket}, State) ->
-    inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
+    ok = inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
     NewState = case erlang:port_info(Socket) of
         undefined ->
             State;
@@ -83,7 +83,7 @@ handle_info({tcp, Socket, Data}, State) ->
                                                      token = Token},
                                     {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
                                     log:i("Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
-                                    gen_tcp:controlling_process(Device#device.socket, Pid);
+                                    ok = gen_tcp:controlling_process(Device#device.socket, Pid);
                                 {ok, Pid} ->
                                     RR = {<<"rr">>,
                                           [{<<"id">>, MsgId},
