@@ -12,14 +12,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    case application:get_env(simple_im, app_mode) of
-        {ok, http} ->
-            http_sup:start_link();
-        {ok, middleman} ->
-            middleman_sup:start_link();
-        _ ->
-            simple_im_sup:start_link()
-    end.
+    simple_im_sup:start_link().
 
 stop(_State) ->
     ok.

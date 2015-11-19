@@ -15,13 +15,20 @@
                           type      => Type}).
 
 
+-define(HTTP_CHILD(Name, Mod, Args, Type), #{id      => Name,
+                                             start   => {Mod, start_link, Args},
+                                             restart => permanent,
+                                             type    => Type}).
+
+
 
 %% ===================================================================
 %% API functions
 %% ===================================================================
 
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    {ok, AppMode} = application:get_env(simple_im, app_mode),
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [AppMode]).
 
 
 
@@ -29,11 +36,23 @@ start_link() ->
 %% Supervisor callbacks
 %% ===================================================================
 
-init([]) ->
+init([im]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(postgresql, worker),
             ?CHILD(redis, worker),
             ?CHILD(session, worker),
             ?CHILD(cf, worker),
             ?CHILD(client_sup, supervisor),
-            ?CHILD(listener, worker)]} }.
+            ?CHILD(listener, worker)]} };
+init([http]) ->
+    {ok, { {one_for_one, 5, 10},
+           [?HTTP_CHILD(postgresql, postgresql, [http], worker),
+            ?HTTP_CHILD(redis, redis, [], worker),
+            ?HTTP_CHILD(ranch, dependant, [ranch], supervisor),
+            ?HTTP_CHILD(cowboy_app, dependant, [cowboy_app], supervisor),
+            ?HTTP_CHILD(cowboy_http, dependant, [cowboy_http], worker)]} };
+init([middleman]) ->
+    {ok, { {one_for_one, 5, 10},
+           [?CHILD(middleman_worker_sup, supervisor),
+            ?CHILD(middleman_manager, worker),
+            ?CHILD(middleman_listener, worker)]} }.
