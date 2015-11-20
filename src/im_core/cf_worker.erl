@@ -49,7 +49,6 @@ handle_info({make, Socket}, State) ->
         undefined ->
             State;
         _ ->
-            ok = gen_tcp:send(Socket, <<"ready">>),
             {ok, TimerRef} = timer:exit_after(10000, stuck),
             State#state{timer_ref = TimerRef}
     end,

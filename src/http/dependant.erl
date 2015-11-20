@@ -47,7 +47,7 @@ start_link(cowboy_http) ->
         {keyfile, PrivDir ++ "/ssl/server.key"}
     ], [{env, [{dispatch, Dispatch}]}]),
 
-    log:i("Http server with SSL/TLS encryption start listen port: ~p~n", [Port]),
+    log:i("Http server with SSL/TLS encryption start to listen port: ~p~n", [Port]),
     true = erlang:link(Pid),
     {ok, Pid}.
 

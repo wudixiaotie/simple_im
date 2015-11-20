@@ -9,6 +9,8 @@
 % APIs
 -export([start_link/0]).
 
+-include("connection.hrl").
+
 
 
 %% ===================================================================
@@ -27,17 +29,39 @@ start_link() ->
 
 init() ->
     true = erlang:register(?MODULE, self()),
-    DefaultMQPort = env:get(middleman_port),
-    log:i("Middleman server start listen port: ~p~n", [DefaultMQPort]),
+    MiddlemanPort = env:get(middleman_port),
+    ets:new(hunter_list, [named_table, public, {read_concurrency, true}]),
+    log:i("[Middleman] Start to listen port: ~p~n", [MiddlemanPort]),
     Opts = [binary,
             {packet, 0},
             {active, false}],
-    {ok, MQListenSocket} = gen_tcp:listen(DefaultMQPort, Opts),
-    accept(MQListenSocket).
+    {ok, MiddlemanListenSocket} = gen_tcp:listen(MiddlemanPort, Opts),
+    accept(MiddlemanListenSocket).
 
 
-accept(MQListenSocket) ->
-    {ok, Socket} = gen_tcp:accept(MQListenSocket),
-    {ok, Pid} = supervisor:start_child(middleman_worker_sup, [Socket]),
-    ok = gen_tcp:controlling_process(Socket, Pid),
-    accept(MQListenSocket).
+accept(MiddlemanListenSocket) ->
+    {ok, Socket} = gen_tcp:accept(MiddlemanListenSocket),
+    case inet:peername(Socket) of
+        {ok, {ClientAddr, ClientPort}} ->
+            log:i("[Middleman] Got a connect from: ~p(~p)~n", [ClientAddr, ClientPort]),
+
+            ok = inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
+            receive
+                {tcp, Socket, Role} ->
+                    ok = gen_tcp:send(Socket, ?READY),
+                    WorkFor = erlang:binary_to_atom(Role),
+                    case supervisor:start_child(middleman_worker_sup, [Socket, WorkFor]) of
+                        {ok, Pid} ->
+                            ok = gen_tcp:controlling_process(Socket, Pid);
+                        _ ->
+                            log:e("[Middleman] worker start failed~n"),
+                            ok = gen_tcp:close(Socket)
+                    end
+            after
+                1000 ->
+                    log:e("[Middleman] worker start timeout~n")
+            end;
+        _ ->
+            ok
+    end,
+    accept(MiddlemanListenSocket).

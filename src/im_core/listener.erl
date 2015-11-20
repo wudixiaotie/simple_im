@@ -33,9 +33,9 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    DefaultPort = env:get(port),
-    {ok, Port} = utility:free_port(DefaultPort),
-    log:i("IM server start listen port: ~p~n", [Port]),
+    DefaultIMPort = env:get(im_port),
+    {ok, Port} = utility:free_port(DefaultIMPort),
+    log:i("IM server start to listen port: ~p~n", [Port]),
     Opts = [binary,
             {packet, 0},
             {reuseaddr, true},
@@ -62,9 +62,8 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
         ok ->
             case {inet:sockname(ClientSocket), inet:peername(ClientSocket)} of
                 {{ok, {ServerAddr, ServerPort}}, {ok, {ClientAddr, ClientPort}}} ->
-                    log:i("listener accept socket: (~w),server:~s(~p),client:~s(~p)~n",
-                          [ClientSocket, inet_parse:ntoa(ServerAddr), ServerPort,
-                           inet_parse:ntoa(ClientAddr), ClientPort]),
+                    log:i("listener accept socket:(~w), server:~p(~p), client:~p(~p)~n",
+                          [ClientSocket, ServerAddr, ServerPort, ClientAddr, ClientPort]),
                     cf:make(ClientSocket);
                 _ ->
                     ok

@@ -54,5 +54,4 @@ init([http]) ->
 init([middleman]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(middleman_worker_sup, supervisor),
-            ?CHILD(middleman_manager, worker),
             ?CHILD(middleman_listener, worker)]} }.

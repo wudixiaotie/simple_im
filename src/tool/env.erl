@@ -8,9 +8,11 @@
 
 -export([get/1]).
 
--define(DEFAULT_PORT, 1987).
+-define(DEFAULT_IM_PORT, 1987).
 
 -define(DEFAULT_HTTP_PORT, 8080).
+
+-define(DEFAULT_MIDDLEMAN_HOST, "localhost").
 
 -define(DEFAULT_MIDDLEMAN_PORT, 10000).
 
@@ -38,9 +40,9 @@
 -define(DEFAULT_HTTP_DB_POOLSIZE, 10).
 
 -define(DEFAULT_REDIS_POOLS, [{pool0, [{size, 10},
-                                        {max_overflow, 20},
-                                        {host, "127.0.0.1"},
-                                        {port, 6379}]}]).
+                                       {max_overflow, 20},
+                                       {host, "127.0.0.1"},
+                                       {port, 6379}]}]).
 
 -define(DEFAULT_REDIS_GLOBAL_OR_LOCAL, local).
 
@@ -65,8 +67,9 @@ get(Key) ->
 %% Internal functions
 %% ===================================================================
 
-get_default(port) -> ?DEFAULT_PORT;
+get_default(im_port) -> ?DEFAULT_IM_PORT;
 get_default(http_port) -> ?DEFAULT_HTTP_PORT;
+get_default(middleman_host) -> ?DEFAULT_MIDDLEMAN_HOST;
 get_default(middleman_port) -> ?DEFAULT_MIDDLEMAN_PORT;
 get_default(connect_size) -> ?DEFAULT_CONNECT_SIZE;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
