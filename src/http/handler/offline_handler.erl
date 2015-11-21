@@ -29,8 +29,7 @@ handle_request([], <<"GET">>, Req) ->
             ok;
         {ok, UserId} ->
             {ok, MsgList} = offline:get(UserId),
-            Toml = {<<"response">>, [{<<"status">>, 0}]},
-            {ok, TomlBin1} = toml:term_2_binary(Toml),
+            {ok, TomlBin1} = handler_helper:success(),
             {ok, TomlBin2} = list_2_binary(MsgList),
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
     end,
@@ -41,8 +40,7 @@ handle_request([], <<"DELETE">>, Req) ->
             ok;
         {ok, UserId} ->
             ok = offline:clean(UserId),
-            Toml = {<<"response">>, [{<<"status">>, 0}]},
-            {ok, TomlBin} = toml:term_2_binary(Toml)
+            {ok, TomlBin} = handler_helper:success()
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request(_, _, Req) ->

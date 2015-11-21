@@ -28,8 +28,7 @@ verify_token(Req) ->
     Result = redis:q([<<"HGET">>, TokenKey, <<"user_id">>]),
     case Result of
         {ok, undefined} ->
-            Toml = {<<"response">>, [{<<"status">>, 1}, {<<"r">>, <<"Token error">>}]},
-            {ok, TomlBin} = toml:term_2_binary(Toml),
+            {ok, TomlBin} = ?MODULE:error(1, <<"Token error">>),
             {error, TomlBin};
         {ok, UserIdBin} ->
             UserId = erlang:binary_to_integer(UserIdBin),
@@ -38,8 +37,7 @@ verify_token(Req) ->
 
 
 return404(Req) ->
-    Toml = {<<"response">>, [{<<"status">>, 404}]},
-    {ok, TomlBin} = toml:term_2_binary(Toml),
+    TomlBin = <<"[[response]] status = 404">>,
     cowboy_req:reply(404, [], TomlBin, Req).
 
 

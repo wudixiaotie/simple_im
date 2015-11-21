@@ -25,7 +25,7 @@ init(Req, Opts) ->
 
 handle_request([<<"login">>], <<"POST">>, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    Toml = case utility:check_parameters([<<"phone">>, <<"password">>], PostVals) of
+    case utility:check_parameters([<<"phone">>, <<"password">>], PostVals) of
         {ok, [Phone, Password]} ->
             case users:verify(Phone, Password) of
                 {ok, true, UserId} ->
@@ -36,61 +36,56 @@ handle_request([<<"login">>], <<"POST">>, Req) ->
                                               <<"ip">>, IP, <<"port">>, Port,
                                               <<"user_id">>, UserId]),
                     {ok, <<"1">>} = redis:q([<<"EXPIRE">>, TokenKey, 100]),
-                    {<<"response">>, [{<<"status">>, 0},
-                                      {<<"server">>, IP},
-                                      {<<"port">>, Port},
-                                      {<<"user">>, [{<<"token">>, Token},
-                                                    {<<"id">>, UserId}]}]};
+                    Toml = {<<"response">>, [{<<"status">>, 0},
+                                             {<<"server">>, IP},
+                                             {<<"port">>, Port},
+                                             {<<"user">>, [{<<"token">>, Token},
+                                                           {<<"id">>, UserId}]}]},
+                    {ok, TomlBin} = toml:term_2_binary(Toml);
                 {ok, false} ->
-                    {<<"response">>, [{<<"status">>, 1},
-                                      {<<"reason">>, <<"Mismatch">>}]};
+                    {ok, TomlBin} = handler_helper:error(1, <<"Mismatch">>);
                 {error, user_does_not_exist} ->
-                    {<<"response">>, [{<<"status">>, 2},
-                                      {<<"reason">>, <<"User doesn't exist!">>}]};
+                    {ok, TomlBin} = handler_helper:error(2, <<"User doesn't exist!">>);
                 {error, Reason} ->
                     log:e("[HTTP] Login Error: ~p~n", [Reason]),
-                    {<<"response">>, [{<<"status">>, 3},
-                                      {<<"reason">>, <<"Unkown Error">>}]}
+                    {ok, TomlBin} = handler_helper:error(3, <<"Unkown Error">>)
             end;
         {error, Reason} ->
             log:e("[HTTP] Login Error: ~p~n", [Reason]),
-            {<<"response">>, [{<<"status">>, 3},
-                              {<<"reason">>, Reason}]}
+                    {ok, TomlBin} = handler_helper:error(3, Reason)
     end,
-    {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request([<<"reconnect">>], <<"POST">>, Req) ->
     [{<<"token">>, Token}] = cowboy_req:parse_cookies(Req),
     {ok, [{<<"id">>, UserIdBin}], _} = cowboy_req:body_qs(Req),
     {ok, TokenKey} = redis:key({token, Token}),
     Result = redis:q([<<"HMGET">>, TokenKey, <<"ip">>, <<"port">>, <<"user_id">>]),
-    Toml = case Result of
+    case Result of
         {ok, [undefined, undefined, undefined]} ->
-             {<<"response">>, [{<<"status">>, 1}]};
+             {ok, TomlBin} = handler_helper:error(1, <<"Token Error">>);
         {ok, [IP, Port, UserIdBin]} ->
-             {<<"response">>, [{<<"status">>, 0},
-                               {<<"server">>, IP},
-                               {<<"port">>, Port}]};
+            Toml = {<<"response">>, [{<<"status">>, 0},
+                                     {<<"server">>, IP},
+                                     {<<"port">>, Port}]},
+            {ok, TomlBin} = toml:term_2_binary(Toml);
         _ ->
-            {<<"response">>, [{<<"status">>, 2}]}
+            {ok, TomlBin} = handler_helper:error(2, <<"Unkown Error">>)
     end,
-    {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request([<<"failed">>], <<"POST">>, Req) ->
     PostVals = cowboy_req:parse_cookies(Req),
     {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
     {ok, TokenKey} = redis:key({token, Token}),
     Result = redis:q([<<"HMGET">>, TokenKey, <<"ip">>, <<"port">>]),
-    Toml = case Result of
+    case Result of
         {ok, [undefined, undefined]} ->
-            {<<"response">>, [{<<"status">>, 1}]};
+            {ok, TomlBin} = handler_helper:error(1, <<"Token Error">>);
         {ok, [IP, Port]} ->
             case gen_tcp:connect(erlang:binary_to_list(IP),
                                  erlang:binary_to_integer(Port), []) of
                 {ok, Socket} ->
                     ok = gen_tcp:close(Socket),
-                    {<<"response">>, [{<<"status">>, 3},
-                                      {<<"r">>, <<"IM is online">>}]};
+                    {ok, TomlBin} = handler_helper:error(1, <<"IM is online">>);
                 {error, _Reason} ->
                     {ok, IMListKey} = redis:key(im_list),
                     redis:q([<<"HDEL">>, IMListKey, utility:ip_port(IP, Port)]),
@@ -98,16 +93,16 @@ handle_request([<<"failed">>], <<"POST">>, Req) ->
                     {ok, TokenKey} = redis:key({token, Token}),
                     redis:q([<<"HMSET">>, TokenKey,
                              <<"ip">>, NewIP, <<"port">>, NewPort]),
-                    {<<"response">>, [{<<"status">>, 0},
-                                      {<<"server">>, NewIP},
-                                      {<<"port">>, NewPort}]};
+                    Toml = {<<"response">>, [{<<"status">>, 0},
+                                             {<<"server">>, NewIP},
+                                             {<<"port">>, NewPort}]},
+                    {ok, TomlBin} = toml:term_2_binary(Toml);
                 _ ->
-                    {<<"response">>, [{<<"status">>, 2}]}
+                    {ok, TomlBin} = handler_helper:error(2, <<"Unkown Error">>)
             end;
         _ ->
-            {<<"response">>, [{<<"status">>, 2}]}
+            {ok, TomlBin} = handler_helper:error(2, <<"Unkown Error">>)
     end,
-    {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request(_, _, Req) ->
     handler_helper:return404(Req).

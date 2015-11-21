@@ -30,11 +30,9 @@ handle_request([<<"phone">>, PhoneBin], <<"GET">>, Req) ->
         {ok, _} ->
             case users:find({phone, PhoneBin}) of
                 {ok, []} ->
-                    Toml = {<<"response">>, [{<<"status">>, 0}]},
-                    {ok, TomlBin} = toml:term_2_binary(Toml);
+                    {ok, TomlBin} = handler_helper:success();
                 {ok, Result} ->
-                    Toml1 = {<<"response">>, [{<<"status">>, 0}]},
-                    {ok, TomlBin1} = toml:term_2_binary(Toml1),
+                    {ok, TomlBin1} = handler_helper:success(),
                     {ok, Toml2} = users:to_toml(Result),
                     {ok, TomlBin2} = toml:term_2_binary(Toml2),
                     TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
@@ -49,11 +47,9 @@ handle_request([<<"id">>, IdBin], <<"GET">>, Req) ->
             Id = erlang:binary_to_integer(IdBin),
             case users:find({id, Id}) of
                 {ok, []} ->
-                    Toml = {<<"response">>, [{<<"status">>, 0}]},
-                    {ok, TomlBin} = toml:term_2_binary(Toml);
+                    {ok, TomlBin} = handler_helper:success();
                 {ok, Result} ->
-                    Toml1 = {<<"response">>, [{<<"status">>, 0}]},
-                    {ok, TomlBin1} = toml:term_2_binary(Toml1),
+                    {ok, TomlBin1} = handler_helper:success(),
                     {ok, Toml2} = users:to_toml(Result),
                     {ok, TomlBin2} = toml:term_2_binary(Toml2),
                     TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
@@ -67,15 +63,11 @@ handle_request([], <<"POST">>, Req) ->
     {<<"password">>, Password} = lists:keyfind(<<"password">>, 1, PostVals),
     case users:create(Name, Phone, Password) of
         ok ->
-            Response = {<<"response">>, [{<<"status">>, 0}]},
-            {ok, TomlBin} = toml:term_2_binary(Response);
+            {ok, TomlBin} = handler_helper:success();
         {error, user_exist} ->
-            Response = {<<"response">>, [{<<"status">>, 1},
-                                         {<<"reason">>, <<"User Exist">>}]},
-            {ok, TomlBin} = toml:term_2_binary(Response);
+            {ok, TomlBin} = handler_helper:error(1, <<"User Exist">>);
         _ ->
-            Response = {<<"response">>, [{<<"status">>, 2}]},
-            {ok, TomlBin} = toml:term_2_binary(Response)
+            {ok, TomlBin} = handler_helper:error(2, <<"Unknown reason">>)
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request(_, _, Req) ->
