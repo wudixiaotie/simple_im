@@ -125,74 +125,6 @@ id="a_01"
 s=0
 ```
 
-#### <a name="im_add_contact_request">add contact request</a>:  
-```toml
-[[r]]
-id="b_01"
-t="add_contact"
-to=2
-message="hello"
-```
-#### <a name="im_add_contact_response">add contact response</a>:  
-failed(s means status, value 1 is failed):
-```toml
-[[rr]]
-id="b_02"
-r="error reason"
-s=1
-```
-success(s means status, value 0 is success):
-```toml
-[[rr]]
-id="b_02"
-s=0
-```
-
-#### <a name="im_accept_contact_request">accept contact request</a>:  
-```toml
-[[r]]
-id="b_01"
-t="accept_contact"
-to=1
-```
-#### <a name="im_accept_contact_response">accept contact response</a>:  
-failed(s means status, value 1 is failed):
-```toml
-[[rr]]
-id="b_02"
-r="error reason"
-s=1
-```
-success(s means status, value 0 is success):
-```toml
-[[rr]]
-id="b_02"
-s=0
-```
-
-#### <a name="im_delete_contact_request">delete contact request</a>:  
-```toml
-[[r]]
-id="b_01"
-t="delete_contact"
-to=1
-```
-#### <a name="im_delete_contact_response">delete contact response</a>:  
-failed(s means status, value 1 is failed):
-```toml
-[[rr]]
-id="b_02"
-r="error reason"
-s=1
-```
-success(s means status, value 0 is success):
-```toml
-[[rr]]
-id="b_02"
-s=0
-contact_version=9
-```
-
 #### <a name="im_create_group_request">create group request</a>:  
 ```toml
 [[r]]
@@ -398,12 +330,65 @@ curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "phone=8618266175357" --data-url
 ```
 
 ### Contacts
+#### Get contacts
 ##### <a name="http_find_contacts_request">request</a>:
 curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP0bDec4INGQ/T" -i https://localhost:8080/contact/version/0
 ##### <a name="http_find_contacts_response">response</a>:
 ```toml
-[[response]] status = 0
+[[response]] status = 0 version = 19
 [[user]] id = 2 name = "xiaotie" phone = "8618266175357" avatar = ""
+```
+#### add contact
+##### <a name="http_add_contact_request">request</a>:
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "to=3" --data-urlencode "ask=hello" --cookie "token=rTMKaZ4dLO1riAQ3o7zMWZ1KFbfXdwX5" -i https://localhost:8080/contact
+##### <a name="http_add_contact_response">response</a>:
+```toml
+[[response]] status = 0
+```
+```toml
+[[response]] status = 1 reason = "error reason"
+```
+##### <a name="im_add_contact_notify">add contact notify</a>:  
+```toml
+[[n]]
+t="add_contact"
+from=2
+to=3
+ask="hello"
+```
+#### accept contact
+##### <a name="http_accept_contact_request">request</a>:
+curl --cacert priv/ssl/cowboy-ca.crt -X UPDATE -d "to=2" --cookie "token=TkUDSOv0z8UIOWr+faW8E0xNk1G7R4Ef" -i https://localhost:8080/contact
+##### <a name="http_accept_contact_response">response</a>:
+```toml
+[[response]] status = 0
+```
+```toml
+[[response]] status = 1 reason = "error reason"
+```
+##### <a name="im_accept_contact_notify">accept contact notify</a>:  
+```toml
+[[n]]
+t="accept_contact"
+from=3
+to=2
+```
+#### delete contact
+##### <a name="http_delete_contact_request">request</a>:
+curl --cacert priv/ssl/cowboy-ca.crt -X DELETE -d "to=2" --cookie "token=TkUDSOv0z8UIOWr+faW8E0xNk1G7R4Ef" -i https://localhost:8080/contact
+##### <a name="http_delete_contact_response">response</a>:
+```toml
+[[response]] status = 0
+```
+```toml
+[[response]] status = 1 reason = "error reason"
+```
+##### <a name="im_delete_contact_notify">delete contact notify</a>:  
+```toml
+[[n]]
+t="delete_contact"
+from=3
+to=2
 ```
 
 ### Upload

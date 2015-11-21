@@ -29,12 +29,94 @@ handle_request([<<"version">>, ContactVersionBin], <<"GET">>, Req) ->
             ok;
         {ok, UserId} ->
             ContactVersion = erlang:binary_to_integer(ContactVersionBin),
-            {ok, ContactList} = contacts:find(UserId, ContactVersion),
+            {ok, CurrentVersion, ContactList} = contacts:find(UserId, ContactVersion),
             {ok, Toml2} = users:to_toml(ContactList),
-            Toml1 = {<<"response">>, [{<<"status">>, 0}]},
+            Toml1 = {<<"response">>, [{<<"status">>, 0},
+                                      {<<"version">>, CurrentVersion}]},
             {ok, TomlBin1} = toml:term_2_binary(Toml1),
             {ok, TomlBin2} = toml:term_2_binary(Toml2),
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
+    end,
+    cowboy_req:reply(200, [], TomlBin, Req);
+handle_request([], <<"POST">>, Req) ->
+    case handler_helper:verify_token(Req) of
+        {error, TomlBin} ->
+            ok;
+        {ok, UserId} ->
+            {ok, PostVals, _} = cowboy_req:body_qs(Req),
+            case utility:check_parameters([<<"to">>, <<"ask">>], PostVals) of
+                {ok, [ToUserIdBin, Ask]} ->
+                    ToUserId = erlang:binary_to_integer(ToUserIdBin),
+                    case pre_contacts:create(UserId, ToUserId, Ask) of
+                        {ok, 0} ->
+                            N = {<<"n">>, [{<<"t">>, <<"add_contact">>},
+                                           {<<"from">>, UserId},
+                                           {<<"to">>, ToUserId},
+                                           {<<"ask">>, Ask}]},
+                            {ok, NBin} = toml:term_2_binary(N),
+                            ok = agent:offer_a_reward(NBin),
+                            {ok, TomlBin} = handler_helper:success();
+                        {ok, 1} ->
+                            {ok, TomlBin} = handler_helper:error(1, <<"Contact exists">>);
+                        {ok, 2} ->
+                            {ok, TomlBin} = handler_helper:error(1, <<"Waiting for accept">>);
+                        {ok, _} ->
+                            {ok, TomlBin} = handler_helper:error(1, <<"Unkonw Error">>)
+                    end;
+                {error, Reason} ->
+                    log:e("[HTTP] Login Error: ~p~n", [Reason]),
+                    {ok, TomlBin} = handler_helper:error(3, Reason)
+            end
+    end,
+    cowboy_req:reply(200, [], TomlBin, Req);
+handle_request([], <<"UPDATE">>, Req) ->
+    case handler_helper:verify_token(Req) of
+        {error, TomlBin} ->
+            ok;
+        {ok, BUserId} ->
+            {ok, PostVals, _} = cowboy_req:body_qs(Req),
+            case utility:check_parameters([<<"to">>], PostVals) of
+                {ok, [AUserIdBin]} ->
+                    AUserId = erlang:binary_to_integer(AUserIdBin),
+                    case contacts:create(AUserId, BUserId) of
+                        ok ->
+                            N = {<<"n">>, [{<<"t">>, <<"accept_contact">>},
+                                           {<<"from">>, BUserId},
+                                           {<<"to">>, AUserId}]},
+                            {ok, NBin} = toml:term_2_binary(N),
+                            ok = agent:offer_a_reward(NBin),
+                            {ok, TomlBin} = handler_helper:success();
+                        {error, unauthorized} ->
+                            {ok, TomlBin} = handler_helper:error(1, <<"Unauthorized operate">>);
+                        {error, unknown} ->
+                            {ok, TomlBin} = handler_helper:error(1, <<"Unkonw Error">>)
+                    end;
+                {error, Reason} ->
+                    log:e("[HTTP] Login Error: ~p~n", [Reason]),
+                    {ok, TomlBin} = handler_helper:error(3, Reason)
+            end
+    end,
+    cowboy_req:reply(200, [], TomlBin, Req);
+handle_request([], <<"DELETE">>, Req) ->
+    case handler_helper:verify_token(Req) of
+        {error, TomlBin} ->
+            ok;
+        {ok, UserId} ->
+            {ok, PostVals, _} = cowboy_req:body_qs(Req),
+            case utility:check_parameters([<<"to">>], PostVals) of
+                {ok, [ToUserIdBin]} ->
+                    ToUserId = erlang:binary_to_integer(ToUserIdBin),
+                    ok = contacts:delete(UserId, ToUserId),
+                    N = {<<"n">>, [{<<"t">>, <<"delete_contact">>},
+                                   {<<"from">>, UserId},
+                                   {<<"to">>, ToUserId}]},
+                    {ok, NBin} = toml:term_2_binary(N),
+                    ok = agent:offer_a_reward(NBin),
+                    {ok, TomlBin} = handler_helper:success();
+                {error, Reason} ->
+                    log:e("[HTTP] Login Error: ~p~n", [Reason]),
+                    {ok, TomlBin} = handler_helper:error(3, Reason)
+            end
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
 handle_request(_, _, Req) ->

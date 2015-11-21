@@ -49,9 +49,9 @@ make(Socket) ->
 
 init([]) ->
     cf_worker_sup:start_link(),
-    ConnectSize = env:get(connect_size),
-    ok = create_multiple_worker(ConnectSize),
-    State = #state{queue = queue:new(), max = ConnectSize},
+    CFSize = env:get(cf_size),
+    ok = create_multiple_worker(CFSize),
+    State = #state{queue = queue:new(), max = CFSize},
     {ok, State}.
 
 
@@ -76,7 +76,7 @@ handle_info({free_worker, Name}, State) ->
     NewQueue = queue:in(Name, State#state.queue),
     {noreply, State#state{queue = NewQueue}};
 handle_info(Info, State) ->
-    log:e("cf got unknown request:~p~n", [Info]),
+    log:e("[IM] Client factory got unknown request:~p~n", [Info]),
     {noreply, State}.
 
 

@@ -4,7 +4,7 @@
 %% http server route
 %% ===================================================================
 
--module(route).
+-module(http_route).
 
 -export([path/0]).
 

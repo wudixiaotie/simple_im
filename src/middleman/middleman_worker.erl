@@ -33,33 +33,41 @@ start_link(Socket, WorkFor) ->
 %% gen_server callbacks
 %% ===================================================================
 
-init([Socket, WorkFor]) ->
-    {ok, Id} = utility:random_binary_16(),
+init([Socket, hunter]) ->
+    {ok, Id} = register_hunter(),
     ok = inet:setopts(Socket, [{active, true}, {packet, 0}, binary]),
-    true = ets:insert(hunter_list, {Id, self()}),
-    {ok, #state{id = Id, socket = Socket, worke_for = WorkFor}}.
+    {ok, #state{id = Id, socket = Socket, worke_for = hunter}};
+init([Socket, master]) ->
+    ok = inet:setopts(Socket, [{active, true}, {packet, 0}, binary]),
+    {ok, #state{socket = Socket, worke_for = master}}.
 
 
 handle_call(_Request, _From, State) -> {reply, nomatch, State}.
 handle_cast(_Msg, State) -> {noreply, State}.
 
 
-handle_info({tcp, Socket, _Data}, #state{worke_for = master} = State) ->
-    ok = gen_tcp:send(Socket, <<"ok">>),
+handle_info({tcp, _Socket, Bin}, #state{worke_for = master} = State) ->
+    Max = ets:lookup_element(hunter_list, max, 2),
+    {ok, HunterId} = utility:random_number(Max),
+    HunterPid = ets:lookup_element(hunter_list, HunterId, 2),
+    HunterPid ! {job, Bin},
     {noreply, State};
-handle_info({tcp_closed, _Socket}, #state{worke_for = master} = State) ->
+handle_info({job, Bin}, #state{worke_for = hunter} = State) ->
+    ok = gen_tcp:send(State#state.socket, Bin),
+    {noreply, State};
+handle_info({tcp_closed, _Socket}, State) ->
     {stop, tcp_closed, State};
 handle_info(_Info, State) -> {noreply, State}.
 
 
-terminate(Reason, State) ->
+terminate(Reason, #state{id = Id} = State) ->
     case State#state.worke_for of
         hunter ->
-            true = ets:delete(hunter_list, State#state.id);
+            true = ets:delete(hunter_list, Id);
         master ->
             ok
     end,
-    log:e("[Middleman] Worker ~p down! Reason: ~p~n", [State#state.socket, Reason]),
+    log:e("[Middleman] Middleman worker ~p down! Reason: ~p~n", [Id, Reason]),
     ok.
 code_change(_OldVer, State, _Extra) -> {ok, State}.
 
@@ -68,3 +76,15 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+register_hunter() ->
+    register_hunter(1).
+register_hunter(N) ->
+    case ets:lookup(hunter_list, N) of
+        [] ->
+            true = ets:insert(hunter_list, {N, self()}),
+            true = ets:insert(hunter_list, {max, N}),
+            {ok, N};
+        _ ->
+            register_hunter(N + 1)
+    end.

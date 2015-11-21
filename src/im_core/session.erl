@@ -41,7 +41,7 @@ register(UserId, Pid) ->
         true ->
             ok;
         Error ->
-            log:e("session register error: ~p~n", [Error])
+            log:e("[IM] Session register error: ~p~n", [Error])
     end,
     update_session(insert, Session).
 
@@ -53,7 +53,7 @@ unregister(UserId) ->
         true ->
             ok;
         Error ->
-            log:e("session unregister error: ~p~n", [Error])
+            log:e("[IM] Session unregister error: ~p~n", [Error])
     end,
     update_session(delete, UserId).
 
@@ -109,7 +109,7 @@ handle_cast(_Msg, State) ->
 
 
 handle_info({copy_from, FatherNode}, State) ->
-    log:i("~p start copy session data from ~p~n", [node(), FatherNode]),
+    log:i("[IM] ~p start copy session data from ~p~n", [node(), FatherNode]),
     SessionList = gen_server:call({?MODULE, FatherNode}, copy, infinity),
     init_session(SessionList),
     {noreply, State};
@@ -119,7 +119,7 @@ handle_info({update, Type, Arg}, State) ->
         true ->
             ok;
         Error ->
-            log:e("session update error: ~p~n", [Error])
+            log:e("[IM] Session update error: ~p~n", [Error])
     end,
     {noreply, State};
 handle_info(_Info, State) ->

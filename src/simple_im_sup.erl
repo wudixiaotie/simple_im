@@ -14,6 +14,10 @@
                           restart   => permanent,
                           type      => Type}).
 
+-define(AGENT_CHILD(FUN), #{id      => agent,
+                            start   => {agent, FUN, []},
+                            restart => permanent,
+                            type    => worker}).
 
 -define(HTTP_CHILD(Name, Mod, Args, Type), #{id      => Name,
                                              start   => {Mod, start_link, Args},
@@ -43,14 +47,16 @@ init([im]) ->
             ?CHILD(session, worker),
             ?CHILD(cf, worker),
             ?CHILD(client_sup, supervisor),
-            ?CHILD(listener, worker)]} };
+            ?CHILD(listener, worker),
+            ?AGENT_CHILD(work_for_hunter)]} };
 init([http]) ->
     {ok, { {one_for_one, 5, 10},
            [?HTTP_CHILD(postgresql, postgresql, [http], worker),
             ?HTTP_CHILD(redis, redis, [], worker),
             ?HTTP_CHILD(ranch, dependant, [ranch], supervisor),
             ?HTTP_CHILD(cowboy_app, dependant, [cowboy_app], supervisor),
-            ?HTTP_CHILD(cowboy_http, dependant, [cowboy_http], worker)]} };
+            ?HTTP_CHILD(cowboy_http, dependant, [cowboy_http], worker),
+            ?AGENT_CHILD(work_for_master)]} };
 init([middleman]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(middleman_worker_sup, supervisor),

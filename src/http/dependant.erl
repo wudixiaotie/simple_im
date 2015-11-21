@@ -24,7 +24,7 @@ start_link(cowboy_app) ->
     {ok, Pid} = start_app(cowboy, cowboy_sup),
     {ok, Pid};
 start_link(cowboy_http) ->
-    RoutePath = route:path(),
+    RoutePath = http_route:path(),
     Dispatch = cowboy_router:compile(RoutePath),
     DefaultHttpPort = env:get(http_port),
     {ok, Port} = utility:free_port(DefaultHttpPort),
@@ -47,7 +47,7 @@ start_link(cowboy_http) ->
         {keyfile, PrivDir ++ "/ssl/server.key"}
     ], [{env, [{dispatch, Dispatch}]}]),
 
-    log:i("Http server with SSL/TLS encryption start to listen port: ~p~n", [Port]),
+    log:i("[Http] Server with SSL/TLS encryption start to listen port: ~p~n", [Port]),
     true = erlang:link(Pid),
     {ok, Pid}.
 

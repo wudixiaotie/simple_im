@@ -81,8 +81,8 @@ handle_info({replace_socket, Message, #device{socket = Socket} = Device},
     end,
     setopts(Socket),
     {noreply, NewState, NewState#state.heartbeat_timeout};
-handle_info({tcp, Socket, Data}, State) ->
-    {ok, Toml} = toml:binary_2_term(Data),
+handle_info({tcp, Socket, Bin}, State) ->
+    {ok, Toml} = toml:binary_2_term(Bin),
     {ok, NewState} = process_packet(Toml, Socket, State),
     {noreply, NewState, NewState#state.heartbeat_timeout};
 % tcp connection change to passive
@@ -129,13 +129,13 @@ handle_info(timeout, State) ->
     proc_lib:hibernate(gen_server, enter_loop, [?MODULE, [], State]),
     {noreply, State, State#state.heartbeat_timeout};
 handle_info(Info, State) ->
-    log:i("Unknown Info: ~p.~n", [Info]),
+    log:i("[IM] Client got an unknown info: ~p.~n", [Info]),
     {noreply, State, State#state.heartbeat_timeout}.
 
 
 terminate(Reason, #state{user_id = UserId} = State) ->
     ok = delete_useless_token(State#state.device_list),
-    log:i("Client ~p terminate with reason: ~p~n", [self(), Reason]),
+    log:i("[IM] Client ~p terminate with reason: ~p~n", [self(), Reason]),
     ok = offline:store(UserId, State#state.msg_cache),
     session:unregister(UserId).
 code_change(_OldVer, State, _Extra) -> {ok, State}.
@@ -230,7 +230,7 @@ delete_useless_token([]) ->
 % request
 process_packet([{<<"r">>, Attrs}|T], Socket, State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-    log:i("Got r id=~p~n", [MsgId]),
+    log:i("[IM] Client got r id=~p~n", [MsgId]),
     {value, Device, OtherDeivces} = lists:keytake(Socket,
                                                   #device.socket,
                                                   State#state.device_list),
@@ -288,72 +288,72 @@ process_packet([], _, NewState) ->
     {ok, NewState}.
 
 
-process_request({<<"t">>, <<"add_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
-    {<<"to">>, ToUserId} = lists:keyfind(<<"to">>, 1, Attrs),
-    UserId = State#state.user_id,
-    {<<"message">>, AddContactMessage} = lists:keyfind(<<"message">>, 1, Attrs),
-    case pre_contacts:create(UserId, ToUserId, AddContactMessage) of
-        {ok, 0} ->
-            NewAttrs = add_ts_from(Attrs, UserId),
-            {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-            Message = #message{id = MsgId, bin = RequestBin},
-            {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-                                                        Message,
-                                                        State,
-                                                        ignore),
-            ok = send_msg_2_single_user(ToUserId, Message),
-            RR = {<<"rr">>, [{<<"id">>, MsgId}, {<<"status">>, 0}]},
-            {RR, NewState};
-        {ok, 1} ->
-            RR = {<<"rr">>, [{<<"id">>, MsgId},
-                             {<<"status">>, 1},
-                             {<<"r">>, <<"Contact exists">>}]},
-            {RR, State};
-        {ok, 2} ->
-            RR = {<<"rr">>, [{<<"id">>, MsgId},
-                             {<<"status">>, 1},
-                             {<<"r">>, <<"Waiting for accept">>}]},
-            {RR, State};
-        {ok, _} ->
-            RR = {<<"rr">>, [{<<"id">>, MsgId},
-                             {<<"status">>, 1},
-                             {<<"r">>, <<"Unkonw Error">>}]},
-            {RR, State}
-    end;
-process_request({<<"t">>, <<"accept_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
-    {<<"to">>, AUserId} = lists:keyfind(<<"to">>, 1, Attrs),
-    BUserId = State#state.user_id,
-    ok = contacts:create(AUserId, BUserId),
+% process_request({<<"t">>, <<"add_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
+%     {<<"to">>, ToUserId} = lists:keyfind(<<"to">>, 1, Attrs),
+%     UserId = State#state.user_id,
+%     {<<"message">>, AddContactMessage} = lists:keyfind(<<"message">>, 1, Attrs),
+%     case pre_contacts:create(UserId, ToUserId, AddContactMessage) of
+%         {ok, 0} ->
+%             NewAttrs = add_ts_from(Attrs, UserId),
+%             {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
+%             Message = #message{id = MsgId, bin = RequestBin},
+%             {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
+%                                                         Message,
+%                                                         State,
+%                                                         ignore),
+%             ok = send_msg_2_single_user(ToUserId, Message),
+%             RR = {<<"rr">>, [{<<"id">>, MsgId}, {<<"status">>, 0}]},
+%             {RR, NewState};
+%         {ok, 1} ->
+%             RR = {<<"rr">>, [{<<"id">>, MsgId},
+%                              {<<"status">>, 1},
+%                              {<<"r">>, <<"Contact exists">>}]},
+%             {RR, State};
+%         {ok, 2} ->
+%             RR = {<<"rr">>, [{<<"id">>, MsgId},
+%                              {<<"status">>, 1},
+%                              {<<"r">>, <<"Waiting for accept">>}]},
+%             {RR, State};
+%         {ok, _} ->
+%             RR = {<<"rr">>, [{<<"id">>, MsgId},
+%                              {<<"status">>, 1},
+%                              {<<"r">>, <<"Unkonw Error">>}]},
+%             {RR, State}
+%     end;
+% process_request({<<"t">>, <<"accept_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
+%     {<<"to">>, AUserId} = lists:keyfind(<<"to">>, 1, Attrs),
+%     BUserId = State#state.user_id,
+%     ok = contacts:create(AUserId, BUserId),
 
-    NewAttrs = add_ts_from(Attrs, BUserId),
-    {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-    Message = #message{id = MsgId, bin = RequestBin},
-    {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-                                                Message,
-                                                State,
-                                                ignore),
-    ok = send_msg_2_single_user(AUserId, Message),
+%     NewAttrs = add_ts_from(Attrs, BUserId),
+%     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
+%     Message = #message{id = MsgId, bin = RequestBin},
+%     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
+%                                                 Message,
+%                                                 State,
+%                                                 ignore),
+%     ok = send_msg_2_single_user(AUserId, Message),
 
-    RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-                     {<<"status">>, 0}]},
-    {RR, NewState};
-process_request({<<"t">>, <<"delete_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
-    {<<"to">>, ToUserId} = lists:keyfind(<<"to">>, 1, Attrs),
-    UserId = State#state.user_id,
-    ok = contacts:delete(UserId, ToUserId),
+%     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+%                      {<<"status">>, 0}]},
+%     {RR, NewState};
+% process_request({<<"t">>, <<"delete_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
+%     {<<"to">>, ToUserId} = lists:keyfind(<<"to">>, 1, Attrs),
+%     UserId = State#state.user_id,
+%     ok = contacts:delete(UserId, ToUserId),
 
-    NewAttrs = add_ts_from(Attrs, UserId),
-    {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-    Message = #message{id = MsgId, bin = RequestBin},
-    {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-                                                Message,
-                                                State,
-                                                ignore),
-    ok = send_msg_2_single_user(ToUserId, Message),
+%     NewAttrs = add_ts_from(Attrs, UserId),
+%     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
+%     Message = #message{id = MsgId, bin = RequestBin},
+%     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
+%                                                 Message,
+%                                                 State,
+%                                                 ignore),
+%     ok = send_msg_2_single_user(ToUserId, Message),
 
-    RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-                     {<<"status">>, 0}]},
-    {RR, NewState};
+%     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
+%                      {<<"status">>, 0}]},
+%     {RR, NewState};
 process_request({<<"t">>, <<"create_group">>}, Attrs, MsgId, OtherDeivces, State) ->
     {<<"name">>, GroupName} = lists:keyfind(<<"name">>, 1, Attrs),
     {<<"members">>, Members} = lists:keyfind(<<"members">>, 1, Attrs),
@@ -448,7 +448,7 @@ process_message(Socket, State, {Type, Attrs}) ->
                                                   State#state.device_list),
 
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-    log:i("Got msg id=~p~n", [MsgId]),
+    log:i("[IM] Client got msg id=~p~n", [MsgId]),
     % Ack = {<<"a">>,
     %        [{<<"id">>, MsgId}]},
     % {ok, AckBin} = toml:term_2_binary(Ack),
@@ -478,7 +478,7 @@ send_msg_2_single_user(UserId, Message) ->
     case session:find(UserId) of
         offline ->
             ok = offline:store(UserId, [Message]),
-            log:i("offline msg: ~p~n", [Message]);
+            log:i("[IM] Client store offline msg: ~p~n", [Message]);
         {ok, ToPid} ->
             ToPid ! Message
     end,

@@ -6,7 +6,7 @@
 
 -module(handler_helper).
 
--export([init/3, verify_token/1, return404/1]).
+-export([init/3, verify_token/1, return404/1, success/0, error/2]).
 
 
 
@@ -41,3 +41,14 @@ return404(Req) ->
     Toml = {<<"response">>, [{<<"status">>, 404}]},
     {ok, TomlBin} = toml:term_2_binary(Toml),
     cowboy_req:reply(404, [], TomlBin, Req).
+
+
+success() ->
+    {ok, <<"[[response]] status = 0">>}.
+
+
+error(Status, Reason) ->
+    Toml = {<<"response">>, [{<<"status">>, Status},
+                             {<<"reason">>, Reason}]},
+    {ok, TomlBin} = toml:term_2_binary(Toml),
+    {ok, TomlBin}.

@@ -44,7 +44,10 @@ find(UserId, 0) when is_integer(UserId) ->
              WHERE u.id = c.contact_id
              AND c.user_id = $1;">>,
     {ok, _, Result} = postgresql:exec(SQL, [UserId]),
-    {ok, Result};
+
+    SQLVersion = <<"SELECT contact_version FROM users WHERE id = $1">>,
+    {ok, _, [{CurrentVersion}]} = postgresql:exec(SQLVersion, [UserId]),
+    {ok, CurrentVersion, Result};
 find(UserId, ContactVersion)
     when is_integer(UserId), is_integer(ContactVersion) ->
     SQL = <<"SELECT u.id,
@@ -56,7 +59,10 @@ find(UserId, ContactVersion)
              AND c.user_id = $1
              AND c.contact_version > $2;">>,
     {ok, _, Result} = postgresql:exec(SQL, [UserId, ContactVersion]),
-    {ok, Result}.
+
+    SQLVersion = <<"SELECT contact_version FROM users WHERE id = $1">>,
+    {ok, _, [{CurrentVersion}]} = postgresql:exec(SQLVersion, [UserId]),
+    {ok, CurrentVersion, Result}.
 
 
 

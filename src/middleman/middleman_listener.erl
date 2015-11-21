@@ -47,9 +47,9 @@ accept(MiddlemanListenSocket) ->
 
             ok = inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
             receive
-                {tcp, Socket, Role} ->
+                {tcp, Socket, RoleBin} ->
                     ok = gen_tcp:send(Socket, ?READY),
-                    WorkFor = erlang:binary_to_atom(Role),
+                    WorkFor = erlang:binary_to_atom(RoleBin, utf8),
                     case supervisor:start_child(middleman_worker_sup, [Socket, WorkFor]) of
                         {ok, Pid} ->
                             ok = gen_tcp:controlling_process(Socket, Pid);

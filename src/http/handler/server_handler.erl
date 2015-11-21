@@ -48,12 +48,12 @@ handle_request([<<"login">>], <<"POST">>, Req) ->
                     {<<"response">>, [{<<"status">>, 2},
                                       {<<"reason">>, <<"User doesn't exist!">>}]};
                 {error, Reason} ->
-                    log:e("HTTP: Login Error: ~p~n", [Reason]),
+                    log:e("[HTTP] Login Error: ~p~n", [Reason]),
                     {<<"response">>, [{<<"status">>, 3},
                                       {<<"reason">>, <<"Unkown Error">>}]}
             end;
         {error, Reason} ->
-            log:e("HTTP: Login Error: ~p~n", [Reason]),
+            log:e("[HTTP] Login Error: ~p~n", [Reason]),
             {<<"response">>, [{<<"status">>, 3},
                               {<<"reason">>, Reason}]}
     end,

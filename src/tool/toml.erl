@@ -16,6 +16,8 @@
 
 term_2_binary(Tuple) when is_tuple(Tuple) ->
     tuple_2_binary(Tuple);
+term_2_binary([]) ->
+    {ok, <<>>};
 term_2_binary(List) when is_list(List) ->
     list_2_binary(List);
 term_2_binary(_) ->

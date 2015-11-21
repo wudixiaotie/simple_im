@@ -53,9 +53,9 @@ handle_info({make, Socket}, State) ->
             State#state{timer_ref = TimerRef}
     end,
     {noreply, NewState};
-handle_info({tcp, Socket, Data}, State) ->
+handle_info({tcp, Socket, Bin}, State) ->
     timer:cancel(State#state.timer_ref),
-    {ok, Toml} = toml:binary_2_term(Data),
+    {ok, Toml} = toml:binary_2_term(Bin),
     [{<<"r">>, Attrs}|_] = Toml,
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
@@ -81,7 +81,7 @@ handle_info({tcp, Socket, Data}, State) ->
                                                      socket = Socket,
                                                      token = Token},
                                     {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
-                                    log:i("Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
+                                    log:i("[IM] Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
                                     ok = gen_tcp:controlling_process(Device#device.socket, Pid);
                                 {ok, Pid} ->
                                     RR = {<<"rr">>,
@@ -99,7 +99,7 @@ handle_info({tcp, Socket, Data}, State) ->
                                             ok = gen_tcp:controlling_process(Device#device.socket, Pid);
                                         _ ->
                                             {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
-                                            log:i("Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
+                                            log:i("[IM] Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
                                             ok = gen_tcp:controlling_process(Device#device.socket, Pid)
                                     end;
                                 {error, _} ->

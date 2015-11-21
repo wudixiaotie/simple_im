@@ -35,7 +35,7 @@ start_link() ->
 init([]) ->
     DefaultIMPort = env:get(im_port),
     {ok, Port} = utility:free_port(DefaultIMPort),
-    log:i("IM server start to listen port: ~p~n", [Port]),
+    log:i("[IM] Server start to listen port: ~p~n", [Port]),
     Opts = [binary,
             {packet, 0},
             {reuseaddr, true},
@@ -62,7 +62,7 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
         ok ->
             case {inet:sockname(ClientSocket), inet:peername(ClientSocket)} of
                 {{ok, {ServerAddr, ServerPort}}, {ok, {ClientAddr, ClientPort}}} ->
-                    log:i("listener accept socket:(~w), server:~p(~p), client:~p(~p)~n",
+                    log:i("[IM] Listener accept socket:(~w), server:~p(~p), client:~p(~p)~n",
                           [ClientSocket, ServerAddr, ServerPort, ClientAddr, ClientPort]),
                     cf:make(ClientSocket);
                 _ ->
@@ -80,7 +80,7 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
             {stop, Error, State}
     end;
 handle_info(Info, State) ->
-    log:e("Listener got unknown request:~p~n", [Info]),
+    log:e("[IM] Listener got unknown request:~p~n", [Info]),
     {noreply, State}.
 
 
