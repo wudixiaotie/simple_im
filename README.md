@@ -19,7 +19,7 @@ Edit /etc/hosts file, add line of 'your IP address   simple_im.com', make sure y
 ```shell
 ./start.sh middleman
 ```
-#### 4.Start IM server:  
+#### 5.Start IM server:  
 For single node run
 ```shell
 ./start.sh n1 im
@@ -38,17 +38,17 @@ For multiple nodes run
 ```shell
 ./start.sh n3 im
 ```
-#### 5.Start HTTP server:  
+#### 6.Start HTTP server:  
 ```shell
 ./start.sh http
 ```
-#### 6.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
+#### 7.Download [simple_im_client](https://github.com/wudixiaotie/simple_im_client), go to its root path:
 change the test user info of the client at client_manager.erl then in a new shell type 
 ```shell
 ./start.sh a
 ```
 to start the client.  
-#### 7.See the server and client log.
+#### 8.See the server and client log.
 ```log
 Got r id=<<"a_01">>
 Got r id=<<"a_01">>
