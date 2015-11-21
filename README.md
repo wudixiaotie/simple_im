@@ -15,6 +15,10 @@ db:init()
 Then quite by type q().
 #### 3.Add dns of simple_im.com:    
 Edit /etc/hosts file, add line of 'your IP address   simple_im.com', make sure your ip address is the real ip, not localhost or 127.0.0.1  
+#### 4.Start Middleman server: 
+```shell
+./start.sh middleman
+```
 #### 4.Start IM server:  
 For single node run
 ```shell
