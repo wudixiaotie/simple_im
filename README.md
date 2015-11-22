@@ -129,98 +129,7 @@ id="a_01"
 s=0
 ```
 
-#### <a name="im_create_group_request">create group request</a>:  
-```toml
-[[r]]
-id="c_01"
-t="create_group"
-name="fuck"
-members=[2,3]
-```
-#### <a name="im_create_group_response">create group response</a>:  
-failed(s means status, value 1 is failed):
-```toml
-[[rr]]
-id="c_02"
-r="error reason"
-s=1
-```
-success(s means status, value 0 is success):
-```toml
-[[rr]]
-id="c_02"
-s=0
-[group]
-id = 9
-key = "PLwXRfpe7zFl3FWN"
-```
 
-#### <a name="im_delete_group_request">delete group request</a>:  
-```toml
-[[r]]
-id="c_01"
-t="delete_group"
-group_id=9
-```
-#### <a name="im_delete_group_response">delete group response</a>:  
-failed(s means status, value 1 is failed):
-```toml
-[[rr]]
-id="c_02"
-r="error reason"
-s=1
-```
-success(s means status, value 0 is success):
-```toml
-[[rr]]
-id="c_02"
-s=0
-```
-
-#### <a name="im_create_group_member_request">create group member request</a>:  
-```toml
-[[r]]
-id="c_02"
-t="create_group_member"
-group_id=9
-key="PLwXRfpe7zFl3FWN"
-```
-#### <a name="im_create_group_member_response">create group member response</a>:  
-failed(s means status, value 1 is failed):
-```toml
-[[rr]]
-id="c_02"
-r="error reason"
-s=1
-```
-success(s means status, value 0 is success):
-```toml
-[[rr]]
-id="c_02"
-s=0
-```
-
-#### <a name="im_delete_group_member_request">create group member request</a>:  
-```toml
-[[r]]
-id="c_02"
-t="delete_group_member"
-group_id=9
-```
-#### <a name="im_delete_group_member_response">create group member response</a>:  
-failed(s means status, value 1 is failed):
-```toml
-[[rr]]
-id="c_02"
-r="error reason"
-s=1
-```
-success(s means status, value 0 is success):
-```toml
-[[rr]]
-id="c_02"
-s=0
-```
 
 ### Message:  
 ```toml
@@ -240,6 +149,14 @@ id="a_02"
 id="a_02"
 c="hello"
 group=123
+```
+### Notify Message:  
+```toml
+[[n]]
+t="delete_group_member"
+g_id = 2
+gm_id = 2
+ts = 1448185739
 ```
 
 ## Http request:
@@ -344,7 +261,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP
 ```
 #### add contact
 ##### <a name="http_add_contact_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "to=3" --data-urlencode "ask=hello" --cookie "token=rTMKaZ4dLO1riAQ3o7zMWZ1KFbfXdwX5" -i https://localhost:8080/contact
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "to=2" --data-urlencode "ask=hello" --cookie "token=I0kUMlwgXy6DfFwd+1indo6+rsF+YJfd" -i https://localhost:8080/contact
 ##### <a name="http_add_contact_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -356,13 +273,14 @@ curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "to=3" --data-urlencode "ask=hel
 ```toml
 [[n]]
 t="add_contact"
-from=2
-to=3
+from=1
+to=2
 ask="hello"
+ts = 1448185739
 ```
 #### accept contact
 ##### <a name="http_accept_contact_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X UPDATE -d "to=2" --cookie "token=TkUDSOv0z8UIOWr+faW8E0xNk1G7R4Ef" -i https://localhost:8080/contact
+curl --cacert priv/ssl/cowboy-ca.crt -X UPDATE --cookie "token=2nL0Lqm/B77lzNWCfhfG1NWdTyEzlQ3U" -i https://localhost:8080/contact/1
 ##### <a name="http_accept_contact_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -374,12 +292,13 @@ curl --cacert priv/ssl/cowboy-ca.crt -X UPDATE -d "to=2" --cookie "token=TkUDSOv
 ```toml
 [[n]]
 t="accept_contact"
-from=3
-to=2
+from=2
+to=1
+ts = 1448185739
 ```
 #### delete contact
 ##### <a name="http_delete_contact_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X DELETE -d "to=2" --cookie "token=TkUDSOv0z8UIOWr+faW8E0xNk1G7R4Ef" -i https://localhost:8080/contact
+curl --cacert priv/ssl/cowboy-ca.crt -X DELETE --cookie "token=I0kUMlwgXy6DfFwd+1indo6+rsF+YJfd" -i https://localhost:8080/contact/2
 ##### <a name="http_delete_contact_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -391,8 +310,83 @@ curl --cacert priv/ssl/cowboy-ca.crt -X DELETE -d "to=2" --cookie "token=TkUDSOv
 ```toml
 [[n]]
 t="delete_contact"
-from=3
+from=1
 to=2
+ts = 1448185739
+```
+
+### Groups
+#### create group
+##### <a name="http_create_group_request">request</a>:
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "members[]=2&members[]=3" --data-urlencode "name=group1" --cookie "token=I0kUMlwgXy6DfFwd+1indo6+rsF+YJfd" -i https://localhost:8080/group
+##### <a name="http_create_group_response">response</a>:
+```toml
+[[response]] status = 0
+```
+```toml
+[[response]] status = 1 reason = "error reason"
+```
+##### <a name="im_create_group_notify">create group notify</a>:  
+```toml
+[[n]]
+t="create_group"
+g_id = 9
+g_key = "PLwXRfpe7zFl3FWN"
+ts = 1448185739
+```
+#### delete group
+##### <a name="http_delete_group_request">request</a>:
+curl --cacert priv/ssl/cowboy-ca.crt -X DELETE --cookie "token=I0kUMlwgXy6DfFwd+1indo6+rsF+YJfd" -i https://localhost:8080/group/1
+##### <a name="http_delete_group_response">response</a>:
+```toml
+[[response]] status = 0
+```
+```toml
+[[response]] status = 1 reason = "error reason"
+```
+##### <a name="im_delete_group_notify">delete group notify</a>:  
+```toml
+[[n]]
+t="delete_group"
+g_id = 1
+ts = 1448185739
+```
+#### create group member
+##### <a name="http_create_group_member_request">request</a>:
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "g_id=2" --data-urlencode "g_key=PLwXRfpe7zFl3FWN" --cookie "token=2nL0Lqm/B77lzNWCfhfG1NWdTyEzlQ3U" -i https://localhost:8080/group/member
+curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "g_id=2" --cookie "token=I0kUMlwgXy6DfFwd+1indo6+rsF+YJfd" -i https://localhost:8080/group/member/2
+##### <a name="http_create_group_member_response">response</a>:
+```toml
+[[response]] status = 0
+```
+```toml
+[[response]] status = 1 reason = "error reason"
+```
+##### <a name="im_create_group_notify">create group member notify</a>:  
+```toml
+[[n]]
+t="create_group_member"
+g_id = 2
+gm_id = 2
+ts = 1448185739
+```
+#### delete group member
+##### <a name="http_delete_group_member_request">request</a>:
+curl --cacert priv/ssl/cowboy-ca.crt -X DELETE -d "g_id=2" --cookie "token=2nL0Lqm/B77lzNWCfhfG1NWdTyEzlQ3U" -i https://localhost:8080/group/member
+##### <a name="http_delete_group_member_response">response</a>:
+```toml
+[[response]] status = 0
+```
+```toml
+[[response]] status = 1 reason = "error reason"
+```
+##### <a name="im_delete_group_notify">delete group member notify</a>:  
+```toml
+[[n]]
+t="delete_group_member"
+g_id = 2
+gm_id = 2
+ts = 1448185739
 ```
 
 ### Upload
@@ -413,3 +407,28 @@ Value: MsgBin
 Type: HASH  
 Key: <<"client_", Token/binary>>  
 Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
+
+
+# Speed of toml and jsx:
+### jsx:
+#### jsx:decode(<<"{\"r\": {\"id\": \"c_01\", \"t\": \"create_group\", \"name\": \"fuck\", \"members\": [2,3]}}">>).
+=====================
+execute [1000] times of {jsx, decode, [<<"{\"r\": {\"id\": \"c_01\", \"t\": \"create_group\", \"name\": \"fuck\", \"members\": [2,3]}}">>]}:
+Maximum: 65(μs) 6.5e-5(s)
+Minimum: 22(μs) 2.2e-5(s)
+Sum: 27786(μs)  0.027786(s)
+Average: 27.786(μs)     2.7786e-5(s)
+Greater: 432
+Less: 568
+=====================
+### toml:
+#### toml:binary_2_term(<<"[[r]] id=\"c_01\" t=\"create_group\" name=\"fuck\" members=[2,3]">>).
+=====================
+execute [1000] times of {toml, binary_2_term, [<<"[[r]] id=\"c_01\" t=\"create_group\" name=\"fuck\" members=[2,3]">>]}:
+Maximum: 65(μs) 6.5e-5(s)
+Minimum: 6(μs)  6.0e-6(s)
+Sum: 7381(μs)   0.007381(s)
+Average: 7.381(μs)      7.381e-6(s)
+Greater: 289
+Less: 711
+=====================

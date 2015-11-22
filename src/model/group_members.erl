@@ -6,7 +6,7 @@
 
 -module(group_members).
 
--export([create/3, find/1, delete/2]).
+-export([create_by_key/3, create_by_creator/3, find/1, delete/2]).
 
 
 
@@ -14,13 +14,30 @@
 %% API functions
 %% ===================================================================
 
-create(GroupId, Key, MemberId) ->
-    SQL = <<"SELECT create_group_member($1, $2, $3);">>,
+create_by_key(GroupId, Key, MemberId) ->
+    SQL = <<"SELECT create_group_member_by_key($1, $2, $3);">>,
     {ok, _, [{Result}]} = postgresql:exec(SQL, [GroupId, Key, MemberId]),
     case Result of
         0 ->
             ok;
         1 ->
+            {error, group_not_exist};
+        2 ->
+            {error, unauthorized};
+        _ ->
+            {error, unknown}
+    end.
+
+
+create_by_creator(GroupId, CreatorId, MemberId) ->
+    SQL = <<"SELECT create_group_member_by_creator($1, $2, $3);">>,
+    {ok, _, [{Result}]} = postgresql:exec(SQL, [GroupId, CreatorId, MemberId]),
+    case Result of
+        0 ->
+            ok;
+        1 ->
+            {error, group_not_exist};
+        2 ->
             {error, unauthorized};
         _ ->
             {error, unknown}

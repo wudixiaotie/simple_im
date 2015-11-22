@@ -16,10 +16,11 @@
 
 path() ->
     [{'_', [
-        {"/health", health_handler, []},
-        {"/server/[...]", server_handler, []},
-        {"/offline/[...]", offline_handler, []},
         {"/contact/[...]", contact_handler, []},
-        {"/user/[...]", user_handler, []},
-        {"/upload/[...]", upload_handler, []}
+        {"/group/[...]", group_handler, []},
+        {"/health", health_handler, []},
+        {"/offline/[...]", offline_handler, []},
+        {"/server/[...]", server_handler, []},
+        {"/upload/[...]", upload_handler, []},
+        {"/user/[...]", user_handler, []}
     ]}].

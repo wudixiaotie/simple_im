@@ -6,7 +6,9 @@
 
 -module(groups).
 
--export([create/3, delete/2]).
+-export([create/3, delete/2, find/1]).
+
+-include("group.hrl").
 
 
 
@@ -32,6 +34,16 @@ delete(GroupId, CreatorId) ->
             {error, unauthorized};
         _ ->
             {error, unknown}
+    end.
+
+
+find({group_id, GroupId}) ->
+    SQL = <<"SELECT * FROM groups WHERE id = $1;">>,
+    case postgresql:exec(SQL, [GroupId]) of
+        {ok, _, []} ->
+            {error, null};
+        {ok, _, [{A, B, C, D, E, F}]} ->
+            {ok, {group, A, B, C, D, E, F}}
     end.
 
 
