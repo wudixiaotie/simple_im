@@ -227,19 +227,6 @@ delete_useless_token([]) ->
     ok.
 
 
-% % request
-% process_packet([{<<"r">>, Attrs}|T], Socket, State) ->
-%     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-%     log:i("[IM] Client got r id=~p~n", [MsgId]),
-%     {value, Device, OtherDeivces} = lists:keytake(Socket,
-%                                                   #device.socket,
-%                                                   State#state.device_list),
-%     Type = lists:keyfind(<<"t">>, 1, Attrs),
-%     {RR, NewStateTemp} = process_request(Type, Attrs, MsgId, OtherDeivces, State),
-%     {ok, RRBin} = toml:term_2_binary(RR),
-%     RRMessage = #message{id = MsgId, bin = RRBin},
-%     {ok, NewState} = send_msg_2_single_device(Device, RRMessage, NewStateTemp),
-%     process_packet(T, Socket, NewState);
 % message
 process_packet([{<<"m">>, Attrs}|T], Socket, State) ->
     {ok, Message, NewState} = process_message(Socket, State, {<<"m">>, Attrs}),
@@ -288,160 +275,6 @@ process_packet([], _, NewState) ->
     {ok, NewState}.
 
 
-% process_request({<<"t">>, <<"add_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
-%     {<<"to">>, ToUserId} = lists:keyfind(<<"to">>, 1, Attrs),
-%     UserId = State#state.user_id,
-%     {<<"message">>, AddContactMessage} = lists:keyfind(<<"message">>, 1, Attrs),
-%     case pre_contacts:create(UserId, ToUserId, AddContactMessage) of
-%         {ok, 0} ->
-%             NewAttrs = add_ts_from(Attrs, UserId),
-%             {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-%             Message = #message{id = MsgId, bin = RequestBin},
-%             {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-%                                                         Message,
-%                                                         State,
-%                                                         ignore),
-%             ok = send_msg_2_single_user(ToUserId, Message),
-%             RR = {<<"rr">>, [{<<"id">>, MsgId}, {<<"status">>, 0}]},
-%             {RR, NewState};
-%         {ok, 1} ->
-%             RR = {<<"rr">>, [{<<"id">>, MsgId},
-%                              {<<"status">>, 1},
-%                              {<<"r">>, <<"Contact exists">>}]},
-%             {RR, State};
-%         {ok, 2} ->
-%             RR = {<<"rr">>, [{<<"id">>, MsgId},
-%                              {<<"status">>, 1},
-%                              {<<"r">>, <<"Waiting for accept">>}]},
-%             {RR, State};
-%         {ok, _} ->
-%             RR = {<<"rr">>, [{<<"id">>, MsgId},
-%                              {<<"status">>, 1},
-%                              {<<"r">>, <<"Unkonw Error">>}]},
-%             {RR, State}
-%     end;
-% process_request({<<"t">>, <<"accept_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
-%     {<<"to">>, AUserId} = lists:keyfind(<<"to">>, 1, Attrs),
-%     BUserId = State#state.user_id,
-%     ok = contacts:create(AUserId, BUserId),
-
-%     NewAttrs = add_ts_from(Attrs, BUserId),
-%     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-%     Message = #message{id = MsgId, bin = RequestBin},
-%     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-%                                                 Message,
-%                                                 State,
-%                                                 ignore),
-%     ok = send_msg_2_single_user(AUserId, Message),
-
-%     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-%                      {<<"status">>, 0}]},
-%     {RR, NewState};
-% process_request({<<"t">>, <<"delete_contact">>}, Attrs, MsgId, OtherDeivces, State) ->
-%     {<<"to">>, ToUserId} = lists:keyfind(<<"to">>, 1, Attrs),
-%     UserId = State#state.user_id,
-%     ok = contacts:delete(UserId, ToUserId),
-
-%     NewAttrs = add_ts_from(Attrs, UserId),
-%     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-%     Message = #message{id = MsgId, bin = RequestBin},
-%     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-%                                                 Message,
-%                                                 State,
-%                                                 ignore),
-%     ok = send_msg_2_single_user(ToUserId, Message),
-
-%     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-%                      {<<"status">>, 0}]},
-%     {RR, NewState};
-% process_request({<<"t">>, <<"create_group">>}, Attrs, MsgId, OtherDeivces, State) ->
-%     {<<"name">>, GroupName} = lists:keyfind(<<"name">>, 1, Attrs),
-%     {<<"members">>, Members} = lists:keyfind(<<"members">>, 1, Attrs),
-%     UserId = State#state.user_id,
-
-%     {ok, GroupId, Key} = groups:create(GroupName, UserId, Members),
-
-%     Ts = {<<"ts">>, utility:timestamp()},
-%     NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
-%     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-%     Message = #message{id = MsgId, bin = RequestBin},
-%     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-%                                                 Message,
-%                                                 State,
-%                                                 ignore),
-%     ok = send_msg_2_multiple_user(Members, UserId, Message),
-
-%     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-%                      {<<"status">>, 0},
-%                      {<<"group">>, [{<<"id">>, GroupId},
-%                                     {<<"key">>, Key}]}]},
-%     {RR, NewState};
-% process_request({<<"t">>, <<"delete_group">>}, Attrs, MsgId, OtherDeivces, State) ->
-%     {<<"group_id">>, GroupId} = lists:keyfind(<<"group_id">>, 1, Attrs),
-%     UserId = State#state.user_id,
-%     {ok, Members} = group_members:find({group_id, GroupId}),
-%     ok = groups:delete(GroupId, UserId),
-
-%     Ts = {<<"ts">>, utility:timestamp()},
-%     NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
-%     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-%     Message = #message{id = MsgId, bin = RequestBin},
-%     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-%                                                 Message,
-%                                                 State,
-%                                                 ignore),
-%     ok = send_msg_2_multiple_user(Members, UserId, Message),
-
-%     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-%                      {<<"status">>, 0}]},
-%     {RR, NewState};
-% process_request({<<"t">>, <<"create_group_member">>}, Attrs, MsgId, OtherDeivces, State) ->
-%     {<<"group_id">>, GroupId} = lists:keyfind(<<"group_id">>, 1, Attrs),
-%     {<<"key">>, Key} = lists:keyfind(<<"key">>, 1, Attrs),
-%     UserId = State#state.user_id,
-%     {ok, Members} = group_members:find({group_id, GroupId}),
-%     ok = group_members:create(GroupId, Key, UserId),
-
-%     Ts = {<<"ts">>, utility:timestamp()},
-%     NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
-%     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-%     Message = #message{id = MsgId, bin = RequestBin},
-%     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-%                                                 Message,
-%                                                 State,
-%                                                 ignore),
-%     ok = send_msg_2_multiple_user(Members, UserId, Message),
-
-%     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-%                      {<<"status">>, 0}]},
-%     {RR, NewState};
-% process_request({<<"t">>, <<"delete_group_member">>}, Attrs, MsgId, OtherDeivces, State) ->
-%     {<<"group_id">>, GroupId} = lists:keyfind(<<"group_id">>, 1, Attrs),
-%     {ok, Members} = group_members:find({group_id, GroupId}),
-%     UserId = State#state.user_id,
-%     ok = group_members:delete(GroupId, UserId),
-
-%     Ts = {<<"ts">>, utility:timestamp()},
-%     NewAttrs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
-%     {ok, RequestBin} = toml:term_2_binary({<<"r">>, NewAttrs}),
-%     Message = #message{id = MsgId, bin = RequestBin},
-%     {ok, NewState} = send_msg_2_multiple_device(OtherDeivces,
-%                                                 Message,
-%                                                 State,
-%                                                 ignore),
-%     ok = send_msg_2_multiple_user(Members, UserId, Message),
-
-%     RR = {<<"rr">>, [{<<"id">>, MsgId}, 
-%                      {<<"status">>, 0}]},
-%     {RR, NewState};
-% process_request(_, _, MsgId, _, State) ->
-%     RR = {<<"rr">>,
-%           [{<<"id">>, MsgId},
-%            {<<"s">>, 1},
-%            {<<"r">>, <<"Unknown request">>}]},
-%     {RR, State}.
-
-
 process_message(Socket, State, {Type, Attrs}) ->
     {value, Device, OtherDeivces} = lists:keytake(Socket,
                                                   #device.socket,
@@ -459,7 +292,7 @@ process_message(Socket, State, {Type, Attrs}) ->
     Ts = {<<"ts">>, utility:timestamp()},
     AttrsWithTs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
     From = {<<"from">>, State#state.user_id},
-    NewAttrs = lists:keystore(<<"from">>, 1, AttrsWithTs, From).
+    NewAttrs = lists:keystore(<<"from">>, 1, AttrsWithTs, From),
     NewToml = {Type, NewAttrs},
     {ok, NewTomlBin} = toml:term_2_binary(NewToml),
     Message = #message{id = MsgId, bin = NewTomlBin},

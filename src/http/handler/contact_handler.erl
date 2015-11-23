@@ -38,14 +38,14 @@ handle_request([<<"version">>, ContactVersionBin], <<"GET">>, Req) ->
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([], <<"POST">>, Req) ->
+handle_request([ToUserIdBin], <<"POST">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, UserId} ->
             {ok, PostVals, _} = cowboy_req:body_qs(Req),
-            case utility:check_parameters([<<"to">>, <<"ask">>], PostVals) of
-                {ok, [ToUserIdBin, Ask]} ->
+            case utility:check_parameters([<<"ask">>], PostVals) of
+                {ok, [Ask]} ->
                     ToUserId = erlang:binary_to_integer(ToUserIdBin),
                     case pre_contacts:create(UserId, ToUserId, Ask) of
                         {ok, 0} ->
@@ -69,7 +69,7 @@ handle_request([], <<"POST">>, Req) ->
             end
     end,
     cowboy_req:reply(200, [], TomlBin, Req);
-handle_request([AUserIdBin], <<"UPDATE">>, Req) ->
+handle_request([AUserIdBin], <<"PUT">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;

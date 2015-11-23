@@ -129,8 +129,6 @@ id="a_01"
 s=0
 ```
 
-
-
 ### Message:  
 ```toml
 [[m]]
@@ -261,7 +259,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=3vPjUabByvMwBFR9tIeP
 ```
 #### add contact
 ##### <a name="http_add_contact_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "to=2" --data-urlencode "ask=hello" --cookie "token=I0kUMlwgXy6DfFwd+1indo6+rsF+YJfd" -i https://localhost:8080/contact
+curl --cacert priv/ssl/cowboy-ca.crt -X POST --data-urlencode "ask=hello" --cookie "token=I0kUMlwgXy6DfFwd+1indo6+rsF+YJfd" -i https://localhost:8080/contact/2
 ##### <a name="http_add_contact_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -280,7 +278,7 @@ ts = 1448185739
 ```
 #### accept contact
 ##### <a name="http_accept_contact_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X UPDATE --cookie "token=2nL0Lqm/B77lzNWCfhfG1NWdTyEzlQ3U" -i https://localhost:8080/contact/1
+curl --cacert priv/ssl/cowboy-ca.crt -X PUT --cookie "token=2nL0Lqm/B77lzNWCfhfG1NWdTyEzlQ3U" -i https://localhost:8080/contact/1
 ##### <a name="http_accept_contact_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -353,8 +351,8 @@ ts = 1448185739
 ```
 #### create group member
 ##### <a name="http_create_group_member_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "g_id=2" --data-urlencode "g_key=PLwXRfpe7zFl3FWN" --cookie "token=2nL0Lqm/B77lzNWCfhfG1NWdTyEzlQ3U" -i https://localhost:8080/group/member
-curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "g_id=2" --cookie "token=I0kUMlwgXy6DfFwd+1indo6+rsF+YJfd" -i https://localhost:8080/group/member/2
+curl --cacert priv/ssl/cowboy-ca.crt -X POST --data-urlencode "g_key=PLwXRfpe7zFl3FWN" --cookie "token=2nL0Lqm/B77lzNWCfhfG1NWdTyEzlQ3U" -i https://localhost:8080/group/2/member
+curl --cacert priv/ssl/cowboy-ca.crt -X POST --cookie "token=I0kUMlwgXy6DfFwd+1indo6+rsF+YJfd" -i https://localhost:8080/group/2/member/2
 ##### <a name="http_create_group_member_response">response</a>:
 ```toml
 [[response]] status = 0
@@ -372,7 +370,7 @@ ts = 1448185739
 ```
 #### delete group member
 ##### <a name="http_delete_group_member_request">request</a>:
-curl --cacert priv/ssl/cowboy-ca.crt -X DELETE -d "g_id=2" --cookie "token=2nL0Lqm/B77lzNWCfhfG1NWdTyEzlQ3U" -i https://localhost:8080/group/member
+curl --cacert priv/ssl/cowboy-ca.crt -X DELETE --cookie "token=eRooKi4EFYz6YYx0PWM86cQQzK0MejNI" -i https://localhost:8080/group/2/member
 ##### <a name="http_delete_group_member_response">response</a>:
 ```toml
 [[response]] status = 0
