@@ -120,7 +120,6 @@ handle_info({msg_cache, OriginalMsgCache}, State) ->
         [] ->
             NewState = State;
         _ ->
-
             {ok, NewState} = merge_msg_cache(State, OriginalMsgCache)
     end,
     {noreply, NewState, NewState#state.heartbeat_timeout};

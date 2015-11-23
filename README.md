@@ -88,18 +88,21 @@ Got msg id=<<"a_02">>
 ### Create Contact:
 ![CreateContact](https://raw.githubusercontent.com/wudixiaotie/simple_im/master/assets/create_contact.png)  
 
-1. Search Contact:
+0. Client A Search Contact:
      1. [Http Search Contact request](#http_find_user_by_phone_request).
      2. [Http Search Contact response](#http_find_user_by_phone_response).
-2. Add contact request: A to Server & Server response:
-     1. [IM add contact request](#im_add_contact_request).
-     2. [IM add contact response](#im_add_contact_response).
-3. Add contact request: Server to B.
-4. Accept contact request: B to Server: [IM accept contact request](#im_accept_contact_request).
-5. Accept contact request: Server to A: [IM accept contact request](#im_accept_contact_request).
-6. A update contact by version: [Update contact by version](#http_find_contacts_request).
-7. Server response to B: [IM accept contact response](#im_accept_contact_response).
-8. B update contact by version: [Update contact by version](#http_find_contacts_request).
+1. Client A add Client B as contact thought http request:
+     1. [HTTP add contact request](#http_add_contact_request).
+     2. [HTTP add contact response](#http_add_contact_response).
+2. Http server send notification to Middleman: [IM add contact notification](#im_add_contact_notification).
+3. Middleman send notification to IM: [IM add contact notification](#im_add_contact_notification).
+4. IM send notification to client B: [IM add contact notification](#im_add_contact_notification).
+5. Client B accept Client A as contact thought http request:
+     1. [HTTP accept contact request](#http_accept_contact_request).
+     2. [HTTP accept contact response](#http_accept_contact_response).
+6. Http server send notification to Middleman: [IM accept contact notification](#im_accept_contact_notification).
+7. Middleman send notification to IM: [IM accept contact notification](#im_accept_contact_notification).
+8. IM send notification to client B: [IM accept contact notification](#im_accept_contact_notification).
 
 
 ## Protocol
@@ -148,9 +151,10 @@ id="a_02"
 c="hello"
 group=123
 ```
-### Notify Message:  
+### Notification Message:  
 ```toml
 [[n]]
+id = "n_1448185739"
 t="delete_group_member"
 g_id = 2
 gm_id = 2
@@ -267,7 +271,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -X POST --data-urlencode "ask=hello" --cook
 ```toml
 [[response]] status = 1 reason = "error reason"
 ```
-##### <a name="im_add_contact_notify">add contact notify</a>:  
+##### <a name="im_add_contact_notification">add contact notification</a>:  
 ```toml
 [[n]]
 t="add_contact"
@@ -286,7 +290,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -X PUT --cookie "token=2nL0Lqm/B77lzNWCfhfG
 ```toml
 [[response]] status = 1 reason = "error reason"
 ```
-##### <a name="im_accept_contact_notify">accept contact notify</a>:  
+##### <a name="im_accept_contact_notification">accept contact notification</a>:  
 ```toml
 [[n]]
 t="accept_contact"
@@ -304,7 +308,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -X DELETE --cookie "token=I0kUMlwgXy6DfFwd+
 ```toml
 [[response]] status = 1 reason = "error reason"
 ```
-##### <a name="im_delete_contact_notify">delete contact notify</a>:  
+##### <a name="im_delete_contact_notification">delete contact notification</a>:  
 ```toml
 [[n]]
 t="delete_contact"
@@ -324,7 +328,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -X POST -d "members[]=2&members[]=3" --data
 ```toml
 [[response]] status = 1 reason = "error reason"
 ```
-##### <a name="im_create_group_notify">create group notify</a>:  
+##### <a name="im_create_group_notification">create group notification</a>:  
 ```toml
 [[n]]
 t="create_group"
@@ -342,7 +346,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -X DELETE --cookie "token=I0kUMlwgXy6DfFwd+
 ```toml
 [[response]] status = 1 reason = "error reason"
 ```
-##### <a name="im_delete_group_notify">delete group notify</a>:  
+##### <a name="im_delete_group_notification">delete group notification</a>:  
 ```toml
 [[n]]
 t="delete_group"
@@ -360,7 +364,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -X POST --cookie "token=I0kUMlwgXy6DfFwd+1i
 ```toml
 [[response]] status = 1 reason = "error reason"
 ```
-##### <a name="im_create_group_notify">create group member notify</a>:  
+##### <a name="im_create_group_notification">create group member notification</a>:  
 ```toml
 [[n]]
 t="create_group_member"
@@ -378,7 +382,7 @@ curl --cacert priv/ssl/cowboy-ca.crt -X DELETE --cookie "token=eRooKi4EFYz6YYx0P
 ```toml
 [[response]] status = 1 reason = "error reason"
 ```
-##### <a name="im_delete_group_notify">delete group member notify</a>:  
+##### <a name="im_delete_group_notification">delete group member notification</a>:  
 ```toml
 [[n]]
 t="delete_group_member"

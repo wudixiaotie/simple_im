@@ -6,7 +6,8 @@
 
 -module(handler_helper).
 
--export([init/3, verify_token/1, return404/1, success/0, error/2]).
+-export([init/3, verify_token/1, return404/1, success/0, error/2,
+         complete_notification/1]).
 
 
 
@@ -50,3 +51,11 @@ error(Status, Reason) ->
                              {<<"reason">>, Reason}]},
     {ok, TomlBin} = toml:term_2_binary(Toml),
     {ok, TomlBin}.
+
+
+complete_notification(Attrs) ->
+    Timestamp = utility:timestamp(),
+    TimestampBin = erlang:integer_to_binary(Timestamp),
+    NewAttrs = [{<<"id">>, <<"n_", TimestampBin/binary>>},
+                {<<"ts">>, Timestamp}|Attrs],
+    {ok, {<<"n">>, NewAttrs}}.

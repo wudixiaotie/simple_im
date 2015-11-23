@@ -35,10 +35,10 @@ handle_request([], <<"POST">>, Req) ->
                         {ok, Members} ->
                             {ok, GroupId, Key} = groups:create(GroupName, UserId, Members),
 
-                            N = {<<"n">>, [{<<"t">>, <<"create_group">>},
-                                           {<<"g_id">>, GroupId},
-                                           {<<"g_key">>, Key},
-                                           {<<"ts">>, utility:timestamp()}]},
+                            Attrs = [{<<"t">>, <<"create_group">>},
+                                     {<<"g_id">>, GroupId},
+                                     {<<"g_key">>, Key}],
+                            {ok, N} = handler_helper:complete_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
                             ok = agent:offer_a_reward(NBin),
                             {ok, TomlBin} = handler_helper:success();
@@ -57,9 +57,9 @@ handle_request([GroupIdBin], <<"DELETE">>, Req) ->
         {ok, UserId} ->
             GroupId = erlang:binary_to_integer(GroupIdBin),
             ok = groups:delete(GroupId, UserId),
-            N = {<<"n">>, [{<<"t">>, <<"delete_group">>},
-                           {<<"g_id">>, GroupId},
-                           {<<"ts">>, utility:timestamp()}]},
+            Attrs = [{<<"t">>, <<"delete_group">>},
+                     {<<"g_id">>, GroupId}],
+            {ok, N} = handler_helper:complete_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
             ok = agent:offer_a_reward(NBin),
             {ok, TomlBin} = handler_helper:success()
@@ -76,10 +76,10 @@ handle_request([GroupIdBin, <<"member">>], <<"POST">>, Req) ->
                     GroupId = erlang:binary_to_integer(GroupIdBin),
                     case group_members:create_by_key(GroupId, Key, UserId) of
                         ok ->
-                            N = {<<"n">>, [{<<"t">>, <<"create_group_member">>},
-                                           {<<"g_id">>, GroupId},
-                                           {<<"gm_id">>, UserId},
-                                           {<<"ts">>, utility:timestamp()}]},
+                            Attrs = [{<<"t">>, <<"create_group_member">>},
+                                     {<<"g_id">>, GroupId},
+                                     {<<"gm_id">>, UserId}],
+                            {ok, N} = handler_helper:complete_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
                             ok = agent:offer_a_reward(NBin),
                             {ok, TomlBin} = handler_helper:success();
@@ -104,10 +104,10 @@ handle_request([GroupIdBin, <<"member">>, MemberIdBin], <<"POST">>, Req) ->
             MemberId = erlang:binary_to_integer(MemberIdBin),
             case group_members:create_by_creator(GroupId, UserId, MemberId) of
                 ok ->
-                    N = {<<"n">>, [{<<"t">>, <<"create_group_member">>},
-                                   {<<"g_id">>, GroupId},
-                                   {<<"gm_id">>, MemberId},
-                                   {<<"ts">>, utility:timestamp()}]},
+                    Attrs = [{<<"t">>, <<"create_group_member">>},
+                             {<<"g_id">>, GroupId},
+                             {<<"gm_id">>, MemberId}],
+                    {ok, N} = handler_helper:complete_notification(Attrs),
                     {ok, NBin} = toml:term_2_binary(N),
                     ok = agent:offer_a_reward(NBin),
                     {ok, TomlBin} = handler_helper:success();
@@ -127,10 +127,10 @@ handle_request([GroupIdBin, <<"member">>], <<"DELETE">>, Req) ->
         {ok, UserId} ->
             GroupId = erlang:binary_to_integer(GroupIdBin),
             ok = group_members:delete(GroupId, UserId),
-            N = {<<"n">>, [{<<"t">>, <<"delete_group_member">>},
-                           {<<"g_id">>, GroupId},
-                           {<<"gm_id">>, UserId},
-                           {<<"ts">>, utility:timestamp()}]},
+            Attrs = [{<<"t">>, <<"delete_group_member">>},
+                     {<<"g_id">>, GroupId},
+                     {<<"gm_id">>, UserId}],
+            {ok, N} = handler_helper:complete_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
             ok = agent:offer_a_reward(NBin),
             {ok, TomlBin} = handler_helper:success()

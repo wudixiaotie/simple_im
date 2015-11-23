@@ -18,6 +18,7 @@
 -record(state, {socket, role}).
 
 -include("connection.hrl").
+-include("message.hrl").
 
 
 
@@ -72,9 +73,8 @@ handle_cast(_Msg, State) -> {noreply, State}.
 
 % hunter agent got message from middleman
 handle_info({tcp, _Socket, TomlBin}, #state{role = hunter} = State) ->
-    % {ok, Toml} = toml:binary_2_term(TomlBin),
-    % {<<"to">>, To}
-    io:format("=Agent got: ~p~n", [TomlBin]),
+    {ok, TomlList} = toml:binary_2_term(TomlBin),
+    ok = process_toml(TomlList, TomlBin),
     {noreply, State};
 handle_info({tcp_closed, _Socket}, State) ->
     {stop, tcp_closed, State};
@@ -91,3 +91,24 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+process_toml([Toml|T], TomlBin) ->
+    case Toml of
+        {<<"n">>, Attrs} ->
+            {<<"t">>, Type} = lists:keyfind(<<"t">>, 1, Attrs),
+            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+            Message = #message{id = MsgId, bin = TomlBin},
+            ok = process_notification(Type, Attrs, Message);
+        _ ->
+            ok
+    end,
+    process_toml(T, TomlBin);
+process_toml([], _) ->
+    ok.
+    
+
+process_notification(<<"add_contact">>, Attrs, Message) ->
+    {<<"from">>, FromId} = lists:keyfind(<<"from">>, 1, Attrs),
+    {<<"to">>, ToId} = lists:keyfind(<<"to">>, 1, Attrs),
+    ok = client:send_msg_2_mutiple_user([FromId, ToId], Message),
+    ok.

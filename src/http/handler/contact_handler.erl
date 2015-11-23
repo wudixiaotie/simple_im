@@ -49,11 +49,11 @@ handle_request([ToUserIdBin], <<"POST">>, Req) ->
                     ToUserId = erlang:binary_to_integer(ToUserIdBin),
                     case pre_contacts:create(UserId, ToUserId, Ask) of
                         {ok, 0} ->
-                            N = {<<"n">>, [{<<"t">>, <<"add_contact">>},
-                                           {<<"from">>, UserId},
-                                           {<<"to">>, ToUserId},
-                                           {<<"ask">>, Ask},
-                                           {<<"ts">>, utility:timestamp()}]},
+                            Attrs = [{<<"t">>, <<"add_contact">>},
+                                     {<<"from">>, UserId},
+                                     {<<"to">>, ToUserId},
+                                     {<<"ask">>, Ask}],
+                            {ok, N} = handler_helper:complete_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
                             ok = agent:offer_a_reward(NBin),
                             {ok, TomlBin} = handler_helper:success();
@@ -77,10 +77,10 @@ handle_request([AUserIdBin], <<"PUT">>, Req) ->
             AUserId = erlang:binary_to_integer(AUserIdBin),
             case contacts:create(AUserId, BUserId) of
                 ok ->
-                    N = {<<"n">>, [{<<"t">>, <<"accept_contact">>},
-                                   {<<"from">>, BUserId},
-                                   {<<"to">>, AUserId},
-                                   {<<"ts">>, utility:timestamp()}]},
+                    Attrs = [{<<"t">>, <<"accept_contact">>},
+                             {<<"from">>, BUserId},
+                             {<<"to">>, AUserId}],
+                    {ok, N} = handler_helper:complete_notification(Attrs),
                     {ok, NBin} = toml:term_2_binary(N),
                     ok = agent:offer_a_reward(NBin),
                     {ok, TomlBin} = handler_helper:success();
@@ -98,10 +98,10 @@ handle_request([ToUserIdBin], <<"DELETE">>, Req) ->
         {ok, UserId} ->
             ToUserId = erlang:binary_to_integer(ToUserIdBin),
             ok = contacts:delete(UserId, ToUserId),
-            N = {<<"n">>, [{<<"t">>, <<"delete_contact">>},
-                           {<<"from">>, UserId},
-                           {<<"to">>, ToUserId},
-                           {<<"ts">>, utility:timestamp()}]},
+            Attrs = [{<<"t">>, <<"delete_contact">>},
+                     {<<"from">>, UserId},
+                     {<<"to">>, ToUserId}],
+            {ok, N} = handler_helper:complete_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
             ok = agent:offer_a_reward(NBin),
             {ok, TomlBin} = handler_helper:success()
