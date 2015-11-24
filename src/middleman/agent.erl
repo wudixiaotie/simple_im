@@ -105,10 +105,40 @@ process_toml([Toml|T], TomlBin) ->
     process_toml(T, TomlBin);
 process_toml([], _) ->
     ok.
-    
+
 
 process_notification(<<"add_contact">>, Attrs, Message) ->
+    ok = notify(Attrs, Message),
+    ok;
+process_notification(<<"accept_contact">>, Attrs, Message) ->
+    ok = notify(Attrs, Message),
+    ok;
+process_notification(<<"delete_contact">>, Attrs, Message) ->
+    ok = notify(Attrs, Message),
+    ok;
+process_notification(<<"create_group">>, Attrs, Message) ->
+    ok = notify_group(Attrs, Message),
+    ok;
+process_notification(<<"delete_group">>, Attrs, Message) ->
+    ok = notify_group(Attrs, Message),
+    ok;
+process_notification(<<"create_group_member">>, Attrs, Message) ->
+    ok = notify_group(Attrs, Message),
+    ok;
+process_notification(<<"delete_group_member">>, Attrs, Message) ->
+    ok = notify_group(Attrs, Message),
+    ok.
+
+
+notify(Attrs, Message) ->
     {<<"from">>, FromId} = lists:keyfind(<<"from">>, 1, Attrs),
     {<<"to">>, ToId} = lists:keyfind(<<"to">>, 1, Attrs),
-    ok = client:send_msg_2_mutiple_user([FromId, ToId], Message),
+    ok = router:route_to_mutiple_user([FromId, ToId], Message),
+    ok.
+
+
+notify_group(Attrs, Message) ->
+    {<<"g_id">>, GroupId} = lists:keyfind(<<"g_id">>, 1, Attrs),
+    {ok, UserIdList} = group_members:find({group_id, GroupId}),
+    ok = router:route_to_mutiple_user(UserIdList, Message),
     ok.

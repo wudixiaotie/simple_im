@@ -21,6 +21,8 @@ BEGIN
                        created_at)
     VALUES(group_id, name, creator_id, key, now, now);
 
+    INSERT INTO group_members VALUES(group_id, creator_id, now, now);
+
     FOREACH member_id IN ARRAY members
     LOOP
         INSERT INTO group_members VALUES(group_id, member_id, now, now);

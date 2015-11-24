@@ -231,7 +231,7 @@ process_packet([{<<"m">>, Attrs}|T], Socket, State) ->
     {ok, Message, NewState} = process_message(Socket, State, {<<"m">>, Attrs}),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserId} ->
-            ok = send_msg_2_single_user(ToUserId, Message);
+            ok = router:route_to_single_user(ToUserId, Message);
         _ ->
             ignore
     end,
@@ -239,11 +239,11 @@ process_packet([{<<"m">>, Attrs}|T], Socket, State) ->
 % group message
 process_packet([{<<"gm">>, Attrs}|T], Socket, State) ->
     {ok, Message, NewState} = process_message(Socket, State, {<<"gm">>, Attrs}),
-    case lists:keyfind(<<"group">>, 1, Attrs) of
-        {<<"group">>, GroupId} ->
+    case lists:keyfind(<<"g_id">>, 1, Attrs) of
+        {<<"g_id">>, GroupId} ->
             UserId = State#state.user_id,
             {ok, UserIdList} = group_members:find({group_id, GroupId}),
-            ok = send_msg_2_multiple_user(UserIdList, UserId, Message);
+            ok = router:route_to_mutiple_user(UserIdList, UserId, Message);
         _ ->
             ignore
     end,
@@ -300,23 +300,3 @@ process_message(Socket, State, {Type, Attrs}) ->
                                                 NewStateTemp,
                                                 ignore),
     {ok, Message, NewState}.
-
-
-send_msg_2_single_user(UserId, Message) ->
-    case session:find(UserId) of
-        offline ->
-            ok = offline:store(UserId, [Message]),
-            log:i("[IM] Client store offline msg: ~p~n", [Message]);
-        {ok, ToPid} ->
-            ToPid ! Message
-    end,
-    ok.
-
-
-send_msg_2_multiple_user([BeIgnoredUserId|T], BeIgnoredUserId, Message) ->
-    send_msg_2_multiple_user(T, BeIgnoredUserId, Message);
-send_msg_2_multiple_user([UserId|T], BeIgnoredUserId, Message) ->
-    ok = send_msg_2_single_user(UserId, Message),
-    send_msg_2_multiple_user(T, BeIgnoredUserId, Message);
-send_msg_2_multiple_user([], _, _) ->
-    ok.

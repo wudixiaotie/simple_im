@@ -149,7 +149,7 @@ id="a_02"
 [[gm]]
 id="a_02"
 c="hello"
-group=123
+g_id=123
 ```
 ### Notification Message:  
 ```toml
@@ -215,9 +215,9 @@ curl --cacert priv/ssl/cowboy-ca.crt -X GET --cookie "token=7m2jbsYaGNoWT2JztF/N
 ##### <a name="http_get_offline_response">response</a>:
 ```toml
 [[response]] status = 0
-[[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
-[[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
-[[m]] c = "hello" id = "a_02" ts = 1444719450 [m.to] id = 3 [m.from] device = "android" id = 1
+[[m]] c = "hello" id = "a_02" ts = 1444719450 to = 3 from = 1
+[[m]] c = "hello" id = "a_02" ts = 1444719450 to = 3 from = 1
+[[m]] c = "hello" id = "a_02" ts = 1444719450 to = 3 from = 1
 ```
 #### Clean offline message
 ##### <a name="http_clean_offline_request">request</a>:
