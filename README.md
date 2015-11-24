@@ -414,23 +414,23 @@ Value: [<<"ip">>, Ip,<<"port">>, Port, <<"user_id">>, UserId]
 # Speed of toml and jsx:
 ### jsx:
 #### jsx:decode(<<"{\"r\": {\"id\": \"c_01\", \"t\": \"create_group\", \"name\": \"fuck\", \"members\": [2,3]}}">>).
-=====================
-execute [1000] times of {jsx, decode, [<<"{\"r\": {\"id\": \"c_01\", \"t\": \"create_group\", \"name\": \"fuck\", \"members\": [2,3]}}">>]}:
-Maximum: 65(μs) 6.5e-5(s)
-Minimum: 22(μs) 2.2e-5(s)
-Sum: 27786(μs)  0.027786(s)
-Average: 27.786(μs)     2.7786e-5(s)
-Greater: 432
-Less: 568
+=====================  
+execute [1000] times of {jsx, decode, [<<"{\"r\": {\"id\": \"c_01\", \"t\": \"create_group\", \"name\": \"fuck\", \"members\": [2,3]}}">>]}:  
+Maximum: 65(μs) 6.5e-5(s)  
+Minimum: 22(μs) 2.2e-5(s)  
+Sum: 27786(μs)  0.027786(s)  
+Average: 27.786(μs)     2.7786e-5(s)  
+Greater: 432  
+Less: 568  
 =====================
 ### toml:
 #### toml:binary_2_term(<<"[[r]] id=\"c_01\" t=\"create_group\" name=\"fuck\" members=[2,3]">>).
-=====================
-execute [1000] times of {toml, binary_2_term, [<<"[[r]] id=\"c_01\" t=\"create_group\" name=\"fuck\" members=[2,3]">>]}:
-Maximum: 65(μs) 6.5e-5(s)
-Minimum: 6(μs)  6.0e-6(s)
-Sum: 7381(μs)   0.007381(s)
-Average: 7.381(μs)      7.381e-6(s)
-Greater: 289
-Less: 711
+=====================  
+execute [1000] times of {toml, binary_2_term, [<<"[[r]] id=\"c_01\" t=\"create_group\" name=\"fuck\" members=[2,3]">>]}:  
+Maximum: 65(μs) 6.5e-5(s)  
+Minimum: 6(μs)  6.0e-6(s)  
+Sum: 7381(μs)   0.007381(s)  
+Average: 7.381(μs)      7.381e-6(s)  
+Greater: 289  
+Less: 711  
 =====================
