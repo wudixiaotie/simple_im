@@ -45,9 +45,9 @@ init([im]) ->
            [?CHILD(postgresql, worker),
             ?CHILD(redis, worker),
             ?CHILD(session, worker),
-            ?CHILD(cf, worker),
             ?CHILD(client_sup, supervisor),
-            ?CHILD(listener, worker),
+            ?CHILD(cf_worker_sup, supervisor),
+            ?CHILD(listener_sup, supervisor),
             ?AGENT_CHILD(work_for_hunter)]} };
 init([http]) ->
     {ok, { {one_for_one, 5, 10},

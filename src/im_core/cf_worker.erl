@@ -9,13 +9,15 @@
 -behaviour(gen_server).
 
 % APIs
--export([start_link/1]).
+-export([start_link/2]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {name :: atom(), timer_ref}).
+-record(state, {name :: atom(),
+                cf_name :: atom(),
+                timer_ref}).
 
 -include("device.hrl").
 -include("message.hrl").
@@ -26,17 +28,17 @@
 %% APIs
 %% ===================================================================
 
-start_link(Name) ->
-    gen_server:start_link({local, Name}, ?MODULE, [Name], []).
+start_link(Name, CFName) ->
+    gen_server:start_link({local, Name}, ?MODULE, [Name, CFName], []).
 
 
 %% ===================================================================
 %% gen_server callbacks
 %% ===================================================================
 
-init([Name]) ->
-    free_worker(Name),
-    {ok, #state{name = Name}}.
+init([Name, CFName]) ->
+    free_worker(Name, CFName),
+    {ok, #state{name = Name, cf_name = CFName}}.
 
 
 handle_call(_Request, _From, State) -> {reply, nomatch, State}.
@@ -121,7 +123,7 @@ handle_info({tcp, Socket, Bin}, State) ->
         {error, Reason} ->
             send_error(Socket, MsgId, Reason)
     end,
-    free_worker(State#state.name),
+    free_worker(State#state.name, State#state.cf_name),
     timer:cancel(State#state.timer_ref),
     {noreply, State#state{timer_ref = undefined}};
 handle_info(_Info, State) -> {noreply, State}.
@@ -135,8 +137,8 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Internal functions
 %% ===================================================================
 
-free_worker(Name) ->
-    cf ! {free_worker, Name}.
+free_worker(Name, CFName) ->
+    CFName ! {free_worker, Name}.
 
 
 send_error(Socket, MsgId, Reason) ->
