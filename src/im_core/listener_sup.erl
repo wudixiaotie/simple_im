@@ -45,6 +45,5 @@ init([]) ->
 start_listener(0) ->
     ok;
 start_listener(N) ->
-    Name = erlang:list_to_atom("listener_" ++ erlang:integer_to_list(N)),
-    supervisor:start_child(listener_sup, [Name]),
+    supervisor:start_child(listener_sup, [N]),
     start_listener(N - 1).
