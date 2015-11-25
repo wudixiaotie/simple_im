@@ -13,7 +13,7 @@
 -behaviour(gen_server).
 
 % APIs
--export([start_link/0, make/1]).
+-export([start_link/1, make/1]).
 
 % gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -27,8 +27,8 @@
 %% APIs
 %% ===================================================================
 
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link(Name) ->
+    gen_server:start_link({local, Name}, ?MODULE, [], []).
 
 
 make(Socket) ->

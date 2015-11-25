@@ -8,6 +8,8 @@
 
 -export([get/1]).
 
+-define(DEFAULT_IM_LISTENER_POOLSIZE, 3).
+
 -define(DEFAULT_IM_PORT, 1987).
 
 -define(DEFAULT_HTTP_PORT, 8080).
@@ -67,6 +69,7 @@ get(Key) ->
 %% Internal functions
 %% ===================================================================
 
+get_default(im_listener_poolsize) -> ?DEFAULT_IM_LISTENER_POOLSIZE;
 get_default(im_port) -> ?DEFAULT_IM_PORT;
 get_default(http_port) -> ?DEFAULT_HTTP_PORT;
 get_default(middleman_host) -> ?DEFAULT_MIDDLEMAN_HOST;
