@@ -7,8 +7,8 @@
 -module(router).
 
 % APIs
--export([route_to_single_user/2, route_to_mutiple_user/2, 
-         route_to_mutiple_user/3]).
+-export([route_to_single_user/2, route_to_multiple_user/2, 
+         route_to_multiple_user/3]).
 
 
 
@@ -27,17 +27,17 @@ route_to_single_user(UserId, Message) ->
     ok.
 
 
-route_to_mutiple_user([UserId|T], Message) ->
+route_to_multiple_user([UserId|T], Message) ->
     ok = route_to_single_user(UserId, Message),
-    route_to_mutiple_user(T, Message);
-route_to_mutiple_user([], _) ->
+    route_to_multiple_user(T, Message);
+route_to_multiple_user([], _) ->
     ok.
 
 
-route_to_mutiple_user([BeIgnoredUserId|T], BeIgnoredUserId, Message) ->
-    route_to_mutiple_user(T, BeIgnoredUserId, Message);
-route_to_mutiple_user([UserId|T], BeIgnoredUserId, Message) ->
+route_to_multiple_user([BeIgnoredUserId|T], BeIgnoredUserId, Message) ->
+    route_to_multiple_user(T, BeIgnoredUserId, Message);
+route_to_multiple_user([UserId|T], BeIgnoredUserId, Message) ->
     ok = route_to_single_user(UserId, Message),
-    route_to_mutiple_user(T, BeIgnoredUserId, Message);
-route_to_mutiple_user([], _, _) ->
+    route_to_multiple_user(T, BeIgnoredUserId, Message);
+route_to_multiple_user([], _, _) ->
     ok.

@@ -243,7 +243,7 @@ process_packet([{<<"gm">>, Attrs}|T], Socket, State) ->
         {<<"g_id">>, GroupId} ->
             UserId = State#state.user_id,
             {ok, UserIdList} = group_members:find({group_id, GroupId}),
-            ok = router:route_to_mutiple_user(UserIdList, UserId, Message);
+            ok = router:route_to_multiple_user(UserIdList, UserId, Message);
         _ ->
             ignore
     end,

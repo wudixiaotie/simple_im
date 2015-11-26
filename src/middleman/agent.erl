@@ -133,12 +133,12 @@ process_notification(<<"delete_group_member">>, Attrs, Message) ->
 notify(Attrs, Message) ->
     {<<"from">>, FromId} = lists:keyfind(<<"from">>, 1, Attrs),
     {<<"to">>, ToId} = lists:keyfind(<<"to">>, 1, Attrs),
-    ok = router:route_to_mutiple_user([FromId, ToId], Message),
+    ok = router:route_to_multiple_user([FromId, ToId], Message),
     ok.
 
 
 notify_group(Attrs, Message) ->
     {<<"g_id">>, GroupId} = lists:keyfind(<<"g_id">>, 1, Attrs),
     {ok, UserIdList} = group_members:find({group_id, GroupId}),
-    ok = router:route_to_mutiple_user(UserIdList, Message),
+    ok = router:route_to_multiple_user(UserIdList, Message),
     ok.
