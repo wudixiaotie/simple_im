@@ -9,7 +9,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -26,8 +26,8 @@
 %% API functions
 %% ===================================================================
 
-start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+start_link(Name) ->
+    supervisor:start_link({local, Name}, ?MODULE, []).
 
 
 
@@ -36,4 +36,4 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {simple_one_for_one, 0, 1}, [?CHILD] } }.
+    {ok, { {simple_one_for_one, 10, 5}, [?CHILD] } }.

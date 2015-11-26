@@ -46,7 +46,6 @@ init([im]) ->
             ?CHILD(redis, worker),
             ?CHILD(session, worker),
             ?CHILD(client_sup, supervisor),
-            ?CHILD(cf_worker_sup, supervisor),
             ?CHILD(listener_sup, supervisor),
             ?AGENT_CHILD(work_for_hunter)]} };
 init([http]) ->

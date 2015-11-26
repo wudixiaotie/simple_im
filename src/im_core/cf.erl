@@ -20,6 +20,7 @@
          terminate/2, code_change/3]).
 
 -record(state, {name :: atom(),
+                cf_worker_sup_name :: atom(),
                 queue,
                 max :: integer()}).
 
@@ -51,9 +52,14 @@ make(CFPid, Socket) ->
 %% ===================================================================
 
 init([Name]) ->
+    CFWorkerSupName = erlang:list_to_atom(erlang:atom_to_list(Name) ++ "_cf_worker_sup"),
+    cf_worker_sup:start_link(CFWorkerSupName),
     CFSize = env:get(cf_size),
-    ok = create_multiple_worker(Name, CFSize),
-    State = #state{name = Name, queue = queue:new(), max = CFSize},
+    ok = create_multiple_worker(Name, CFWorkerSupName, CFSize),
+    State = #state{name = Name,
+                   cf_worker_sup_name = CFWorkerSupName,
+                   queue = queue:new(),
+                   max = CFSize},
     {ok, State}.
 
 
@@ -61,7 +67,9 @@ handle_call(get_worker, _From, State) ->
     NewState = case queue:out(State#state.queue) of
         {empty, _} ->
             NewMax = State#state.max + 1,
-            {ok, WorkerName} = create_single_worker(State#state.name, NewMax),
+            {ok, WorkerName} = create_single_worker(State#state.name,
+                                                    State#state.cf_worker_sup_name,
+                                                    NewMax),
             State#state{max = NewMax};
         {{value, WorkerName}, NewQueue} ->
             State#state{queue = NewQueue}
@@ -90,16 +98,16 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Internal functions
 %% ===================================================================
 
-create_multiple_worker(_, 0) ->
+create_multiple_worker(_, _, 0) ->
     ok;
-create_multiple_worker(CFName, N) ->
-    create_single_worker(CFName, N),
-    create_multiple_worker(CFName, N - 1).
+create_multiple_worker(CFName, CFWorkerSupName, N) ->
+    create_single_worker(CFName, CFWorkerSupName, N),
+    create_multiple_worker(CFName, CFWorkerSupName, N - 1).
 
 
-create_single_worker(CFName, WorkerIndex) ->
+create_single_worker(CFName, CFWorkerSupName, WorkerIndex) ->
     Name = worker_name(CFName, WorkerIndex),
-    supervisor:start_child(cf_worker_sup, [Name, CFName]),
+    supervisor:start_child(CFWorkerSupName, [Name, CFName]),
     {ok, Name}.
 
 

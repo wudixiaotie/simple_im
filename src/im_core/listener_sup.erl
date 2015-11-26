@@ -39,7 +39,7 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {simple_one_for_one, 0, 1}, [?CHILD] } }.
+    {ok, { {simple_one_for_one, 10, 5}, [?CHILD] } }.
 
 
 start_listener(0) ->
