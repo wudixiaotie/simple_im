@@ -76,8 +76,7 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
             ok
     end,
     {ok, NewAcceptorRef} = prim_inet:async_accept(ListenSocket, -1),
-    NewState = State#state{acceptor_ref = NewAcceptorRef},
-    {noreply, NewState};
+    {noreply, State#state{acceptor_ref = NewAcceptorRef}};
 handle_info(Info, State) ->
     log:e("[IM] Listener got unknown request:~p~n", [Info]),
     {noreply, State}.
