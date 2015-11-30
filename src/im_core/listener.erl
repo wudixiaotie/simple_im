@@ -62,27 +62,22 @@ handle_cast(_Msg, State) -> {noreply, State}.
 
 handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
              #state{listen_socket = ListenSocket, acceptor_ref = AcceptorRef} = State) ->
-    case set_sockopt(State#state.listen_socket, ClientSocket) of
-        ok ->
-            case {inet:sockname(ClientSocket), inet:peername(ClientSocket)} of
-                {{ok, {ServerAddr, ServerPort}}, {ok, {ClientAddr, ClientPort}}} ->
-                    log:i("[IM] Listener accept socket:(~w), server:~w(~p), client:~w(~p)~n",
-                          [ClientSocket, ServerAddr, ServerPort, ClientAddr, ClientPort]),
-                    cf:make(State#state.cf_name, ClientSocket);
-                _ ->
-                    ok
-            end,
-            case prim_inet:async_accept(ListenSocket, -1) of
-                {ok, NewAcceptorRef} ->
-                    ok;
-                {error, NewAcceptorRef} ->
-                    exit({async_accept, inet:format_error(NewAcceptorRef)})
-            end,
-            NewState = State#state{acceptor_ref = NewAcceptorRef},
-            {noreply, NewState};
-        Error ->
-            {stop, Error, State}
-    end;
+    %% Taken from prim_inet.  We are merely copying some socket options from the
+    %% listening socket to the new TCP socket.
+    true = inet_db:register_socket(ClientSocket, inet_tcp),
+    {ok, Opts} = prim_inet:getopts(ListenSocket, [active, nodelay, keepalive, delay_send, priority, tos]),
+    ok = prim_inet:setopts(ClientSocket, Opts),
+    case {inet:sockname(ClientSocket), inet:peername(ClientSocket)} of
+        {{ok, {ServerAddr, ServerPort}}, {ok, {ClientAddr, ClientPort}}} ->
+            log:i("[IM] Listener accept socket:(~w), server:~w(~p), client:~w(~p)~n",
+                  [ClientSocket, ServerAddr, ServerPort, ClientAddr, ClientPort]),
+            cf:make(State#state.cf_name, ClientSocket);
+        _ ->
+            ok
+    end,
+    {ok, NewAcceptorRef} = prim_inet:async_accept(ListenSocket, -1),
+    NewState = State#state{acceptor_ref = NewAcceptorRef},
+    {noreply, NewState};
 handle_info(Info, State) ->
     log:e("[IM] Listener got unknown request:~p~n", [Info]),
     {noreply, State}.
@@ -98,20 +93,3 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-%% Taken from prim_inet.  We are merely copying some socket options from the
-%% listening socket to the new TCP socket.
-set_sockopt(ListenSocket, ClientSocket) ->
-    true = inet_db:register_socket(ClientSocket, inet_tcp),
-    case prim_inet:getopts(ListenSocket, [active, nodelay, keepalive, delay_send, priority, tos]) of
-        {ok, Opts} ->
-            case prim_inet:setopts(ClientSocket, Opts) of
-                ok ->
-                    ok;
-                Error ->
-                    ok = gen_tcp:close(ClientSocket),
-                    Error
-            end;
-        Error ->
-            ok = gen_tcp:close(ClientSocket), Error
-    end.
