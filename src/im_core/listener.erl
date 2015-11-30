@@ -34,6 +34,8 @@ start_link(Index) ->
 %% ===================================================================
 
 init([Index]) ->
+    {ok, CfName} = cf:start_link(Index),
+
     DefaultIMPort = env:get(im_port),
     {ok, Port} = utility:free_port(DefaultIMPort),
     log:i("[IM] Server start to listen port: ~p~n", [Port]),
@@ -45,7 +47,6 @@ init([Index]) ->
             {active, false}],
     {ok, ListenSocket} = gen_tcp:listen(Port, Opts),
     {ok, AcceptorRef} = prim_inet:async_accept(ListenSocket, -1),
-    {ok, CfName} = cf:start_link(Index),
     State = #state{listen_socket = ListenSocket,
                    cf_name = CfName,
                    acceptor_ref = AcceptorRef},
