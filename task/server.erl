@@ -4,6 +4,7 @@
 
 
 start() ->
+    ssl:start(),
     Opts = [binary,
             {packet, 0},
             {reuseaddr, true},
@@ -23,16 +24,17 @@ accept(ListenSocket) ->
     true = inet_db:register_socket(ClientSocket, inet_tcp),
     {ok, Opts1} = prim_inet:getopts(ListenSocket, [active, nodelay, keepalive, delay_send, priority, tos]),
     ok = prim_inet:setopts(ClientSocket, Opts1),
-    loop(ListenSocket, ClientSocket).
+    {ok, SSLSocket} = ssl:ssl_accept(ClientSocket, [{cacertfile, "priv/ssl/cowboy-ca.crt"},
+                                                    {certfile, "priv/ssl/server.crt"},
+                                                    {keyfile, "priv/ssl/server.key"}]),
+    ssl:setopts(SSLSocket, [{active, 300}, {packet, 0}, binary]),
+    loop(ListenSocket, SSLSocket).
 
 
 
-loop(ListenSocket, Socket) ->
-io:format("=============1~n"),
-    case gen_tcp:recv(Socket, 0) of
-        {error,ebadf} ->
-            accept(ListenSocket);
-        Data ->
-            io:format("=============~p~n", [Data])
+loop(ListenSocket, SSLSocket) ->
+    receive
+        Any ->
+            io:format("=============~p~n", [Any])
     end,
-    loop(ListenSocket, Socket).
+    loop(ListenSocket, SSLSocket).

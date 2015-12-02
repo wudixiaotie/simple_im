@@ -9,7 +9,8 @@
 -export([md5_hex_32/1, random_binary_16/0, random_number/1,
          guid/0, free_port/1, index_of/2, ip_port/2,
          timestamp/0, delete_from_list/2, join/2,
-         unpack/1, check_parameters/2, strip_head/1]).
+         unpack/1, check_parameters/2, strip_head/1,
+         ssl_configs/0]).
 
 
 
@@ -98,6 +99,20 @@ strip_head([$\n|T]) ->
     strip_head(T);
 strip_head(Rest) ->
     {ok, Rest}.
+
+
+ssl_configs() ->
+    {ok, ApplicationName} = application:get_application(),
+    case code:priv_dir(ApplicationName) of
+        {error, bad_name} ->
+            PrivDir = "priv";
+        PrivDir ->
+            ok
+    end,
+    SslConfigs = [{cacertfile, PrivDir ++ "/ssl/" ++ env:get(cacertfile)},
+                 {certfile, PrivDir ++ "/ssl/" ++ env:get(certfile)},
+                 {keyfile, PrivDir ++ "/ssl/" ++ env:get(keyfile)}],
+    {ok, SslConfigs}.
 
 
 

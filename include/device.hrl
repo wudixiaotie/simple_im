@@ -1,4 +1,4 @@
 -record (device, {name :: binary(),
-                  socket :: port(),
+                  ssl_socket,
                   token :: binary(),
                   msg_cache = []}).

@@ -8,6 +8,12 @@
 
 -export([get/1]).
 
+-define(CACERTFILE, "cowboy-ca.crt").
+
+-define(CERTFILE, "server.crt").
+
+-define(KEYFILE, "server.key").
+
 -define(DEFAULT_IM_LISTENER_POOLSIZE, 3).
 
 -define(DEFAULT_IM_PORT, 1987).
@@ -69,6 +75,9 @@ get(Key) ->
 %% Internal functions
 %% ===================================================================
 
+get_default(cacertfile) -> ?CACERTFILE;
+get_default(certfile) -> ?CERTFILE;
+get_default(keyfile) -> ?KEYFILE;
 get_default(im_listener_poolsize) -> ?DEFAULT_IM_LISTENER_POOLSIZE;
 get_default(im_port) -> ?DEFAULT_IM_PORT;
 get_default(http_port) -> ?DEFAULT_HTTP_PORT;

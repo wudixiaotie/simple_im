@@ -38,14 +38,14 @@ start_link(Message, UserId, Device) ->
 %% gen_server callbacks
 %% ===================================================================
 
-init([Message, UserId, #device{socket = Socket} = Device]) ->
+init([Message, UserId, #device{ssl_socket = SslSocket} = Device]) ->
     ok = session:register(UserId, self()),
-    ok = gen_tcp:send(Device#device.socket, Message#message.bin),
+    ok = ssl:send(Device#device.ssl_socket, Message#message.bin),
     State = #state{heartbeat_timeout = env:get(heartbeat_timeout),
                    user_id = UserId,
                    device_list = [Device],
                    msg_cache = []},
-    ok = setopts(Socket),
+    ok = setopts(SslSocket),
     {ok, State, State#state.heartbeat_timeout}.
 
 
@@ -60,15 +60,15 @@ handle_cast(_Msg, State) ->
 %% socket
 %% ===================================================================
 
-handle_info({replace_socket, Message, #device{socket = Socket} = Device},
+handle_info({replace_socket, Message, #device{ssl_socket = SslSocket} = Device},
             #state{device_list = DeviceList} = State) ->
-    ok = gen_tcp:send(Socket, Message#message.bin),
+    ok = ssl:send(SslSocket, Message#message.bin),
 
     NewState = case lists:keytake(Device#device.name,
                                   #device.name, DeviceList) of
-        {value, #device{socket = OldSocket} = OldDevice, OtherDeivces} ->
-            ok = gen_tcp:close(OldSocket),
-            ok = clean_mailbox(OldSocket),
+        {value, #device{ssl_socket = OldSslSocket} = OldDevice, OtherDeivces} ->
+            ok = ssl:close(OldSslSocket),
+            ok = clean_mailbox(OldSslSocket),
             ok = delete_useless_token([OldDevice]),
 
             OldDeviceMsgCache = OldDevice#device.msg_cache,
@@ -79,18 +79,14 @@ handle_info({replace_socket, Message, #device{socket = Socket} = Device},
         false ->
             State#state{device_list = [Device|DeviceList]}
     end,
-    setopts(Socket),
+    setopts(SslSocket),
     {noreply, NewState, NewState#state.heartbeat_timeout};
-handle_info({tcp, Socket, Bin}, State) ->
+handle_info({ssl, SslSocket, Bin}, State) ->
     {ok, Toml} = toml:binary_2_term(Bin),
-    {ok, NewState} = process_packet(Toml, Socket, State),
+    {ok, NewState} = process_packet(Toml, SslSocket, State),
     {noreply, NewState, NewState#state.heartbeat_timeout};
-% tcp connection change to passive
-handle_info({tcp_passive, Socket}, State) ->
-    setopts(Socket),
-    {noreply, State, State#state.heartbeat_timeout};
 % connection closed
-handle_info({tcp_closed, _Socket}, State) ->
+handle_info({ssl_closed, _SslSocket}, State) ->
     {noreply, State, State#state.heartbeat_timeout};
 
 
@@ -146,15 +142,15 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% ===================================================================
 
 send_msg_cache([Device|T]) ->
-    ok = loop_send_msg(Device#device.socket, Device#device.msg_cache),
+    ok = loop_send_msg(Device#device.ssl_socket, Device#device.msg_cache),
     send_msg_cache(T);
 send_msg_cache([]) ->
     ok.
 
 
-loop_send_msg(Socket, [Message|T]) ->
-    ok = gen_tcp:send(Socket, Message#message.bin),
-    loop_send_msg(Socket, T);
+loop_send_msg(SslSocket, [Message|T]) ->
+    ok = ssl:send(SslSocket, Message#message.bin),
+    loop_send_msg(SslSocket, T);
 loop_send_msg(_, []) ->
     ok.
 
@@ -170,18 +166,18 @@ merge_msg_cache(State, OldMsgCache) ->
 merge_msg_cache([Device|T], OldMsgCache, NewDeviceList) ->
     NewDeviceMsgCache = Device#device.msg_cache ++ OldMsgCache,
     NewDevice = Device#device{msg_cache = NewDeviceMsgCache},
-    ok = loop_send_msg(NewDevice#device.socket, NewDevice#device.msg_cache),
+    ok = loop_send_msg(NewDevice#device.ssl_socket, NewDevice#device.msg_cache),
     merge_msg_cache(T, OldMsgCache, [NewDevice|NewDeviceList]);
 merge_msg_cache([], _, NewDeviceList) ->
     {ok, NewDeviceList}.
 
 
-send_msg_2_single_device(#device{socket = Socket} = Device, Message, State) ->
-    ok = gen_tcp:send(Socket, Message#message.bin),
+send_msg_2_single_device(#device{ssl_socket = SslSocket} = Device, Message, State) ->
+    ok = ssl:send(SslSocket, Message#message.bin),
     NewDeviceMsgCache = [Message|Device#device.msg_cache],
     NewDevice = Device#device{msg_cache = NewDeviceMsgCache},
-    NewDeviceList = lists:keystore(Socket,
-                                   #device.socket,
+    NewDeviceList = lists:keystore(SslSocket,
+                                   #device.ssl_socket,
                                    State#state.device_list,
                                    NewDevice),
     NewState = State#state{device_list = NewDeviceList},
@@ -199,19 +195,17 @@ send_msg_2_multiple_device([], _, State, ignore) ->
     {ok, State}.
 
 
-setopts(Socket) ->
-    ok = inet:setopts(Socket, [{active, 300}, {packet, 0}, binary]),
+setopts(SslSocket) ->
+    ok = ssl:setopts(SslSocket, [{active, true}, {packet, 0}, binary]),
     ok.
 
 
-clean_mailbox(Socket) ->
+clean_mailbox(OldSslSocket) ->
     receive
-        {tcp, Socket, _} ->
-            clean_mailbox(Socket);
-        {tcp_passive, Socket} ->
-            clean_mailbox(Socket);
-        {tcp_closed, Socket} ->
-            clean_mailbox(Socket)
+        {ssl, OldSslSocket, _} ->
+            clean_mailbox(OldSslSocket);
+        {ssl_closed, OldSslSocket} ->
+            clean_mailbox(OldSslSocket)
     after
         0 ->
             ok
@@ -227,18 +221,18 @@ delete_useless_token([]) ->
 
 
 % message
-process_packet([{<<"m">>, Attrs}|T], Socket, State) ->
-    {ok, Message, NewState} = process_message(Socket, State, {<<"m">>, Attrs}),
+process_packet([{<<"m">>, Attrs}|T], SslSocket, State) ->
+    {ok, Message, NewState} = process_message(SslSocket, State, {<<"m">>, Attrs}),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserId} ->
             ok = router:route_to_single_user(ToUserId, Message);
         _ ->
             ignore
     end,
-    process_packet(T, Socket, NewState);
+    process_packet(T, SslSocket, NewState);
 % group message
-process_packet([{<<"gm">>, Attrs}|T], Socket, State) ->
-    {ok, Message, NewState} = process_message(Socket, State, {<<"gm">>, Attrs}),
+process_packet([{<<"gm">>, Attrs}|T], SslSocket, State) ->
+    {ok, Message, NewState} = process_message(SslSocket, State, {<<"gm">>, Attrs}),
     case lists:keyfind(<<"g_id">>, 1, Attrs) of
         {<<"g_id">>, GroupId} ->
             UserId = State#state.user_id,
@@ -247,36 +241,36 @@ process_packet([{<<"gm">>, Attrs}|T], Socket, State) ->
         _ ->
             ignore
     end,
-    process_packet(T, Socket, NewState);
+    process_packet(T, SslSocket, NewState);
 % ack
-process_packet([{<<"a">>, Attrs}|T], Socket, State) ->
+process_packet([{<<"a">>, Attrs}|T], SslSocket, State) ->
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     NewMsgCache = lists:keydelete(MsgId,
                                   #message.id,
                                   State#state.msg_cache),
 
-    Device = lists:keyfind(Socket,
-                           #device.socket,
+    Device = lists:keyfind(SslSocket,
+                           #device.ssl_socket,
                            State#state.device_list),
     NewDeviceMsgCache = lists:keydelete(MsgId,
                                         #message.id,
                                         Device#device.msg_cache),
     NewDevice = Device#device{msg_cache = NewDeviceMsgCache},
-    NewDeviceList = lists:keystore(Socket,
-                                   #device.socket,
+    NewDeviceList = lists:keystore(SslSocket,
+                                   #device.ssl_socket,
                                    State#state.device_list,
                                    NewDevice),
 
     NewState = State#state{device_list = NewDeviceList,
                            msg_cache = NewMsgCache},
-    process_packet(T, Socket, NewState);
+    process_packet(T, SslSocket, NewState);
 process_packet([], _, NewState) ->
     {ok, NewState}.
 
 
-process_message(Socket, State, {Type, Attrs}) ->
-    {value, Device, OtherDeivces} = lists:keytake(Socket,
-                                                  #device.socket,
+process_message(SslSocket, State, {Type, Attrs}) ->
+    {value, Device, OtherDeivces} = lists:keytake(SslSocket,
+                                                  #device.ssl_socket,
                                                   State#state.device_list),
 
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
