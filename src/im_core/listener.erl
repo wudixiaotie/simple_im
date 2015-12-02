@@ -38,7 +38,7 @@ init([Index]) ->
 
     DefaultIMPort = env:get(im_port),
     {ok, Port} = utility:free_port(DefaultIMPort),
-    log:i("[IM] Server start to listen port: ~p~n", [Port]),
+    log:i("[IM] Server with SSL/TLS encryption start to listen port: ~p~n", [Port]),
     Opts = [binary,
             {packet, 0},
             {reuseaddr, true},
