@@ -32,7 +32,7 @@ start_link() ->
 init([]) ->
     {ok, { {simple_one_for_one, 5, 10},
            [#{id        => middleman_worker,
-              start     => {middleman_worker, start_link, []},
+              start     => {middleman_helper, start_worker, []},
               restart   => temporary,
               shutdown  => brutal_kill,
               type      => worker}]} }.

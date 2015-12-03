@@ -52,7 +52,7 @@ handle_request([<<"login">>], <<"POST">>, Req) ->
             end;
         {error, Reason} ->
             log:e("[HTTP] Login Error: ~p~n", [Reason]),
-                    {ok, TomlBin} = handler_helper:error(3, Reason)
+            {ok, TomlBin} = handler_helper:error(3, Reason)
     end,
     handler_helper:return(200, TomlBin, Req);
 handle_request([<<"reconnect">>], <<"POST">>, Req) ->
