@@ -37,7 +37,7 @@ handle_request([<<"version">>, ContactVersionBin], <<"GET">>, Req) ->
             {ok, TomlBin2} = toml:term_2_binary(Toml2),
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([ToUserIdBin], <<"POST">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
@@ -68,7 +68,7 @@ handle_request([ToUserIdBin], <<"POST">>, Req) ->
                     {ok, TomlBin} = handler_helper:error(3, Reason)
             end
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([AUserIdBin], <<"PUT">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
@@ -90,7 +90,7 @@ handle_request([AUserIdBin], <<"PUT">>, Req) ->
                     {ok, TomlBin} = handler_helper:error(1, <<"Unkonw Error">>)
             end
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([ToUserIdBin], <<"DELETE">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
@@ -106,7 +106,7 @@ handle_request([ToUserIdBin], <<"DELETE">>, Req) ->
             ok = agent:offer_a_reward(NBin),
             {ok, TomlBin} = handler_helper:success()
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request(_, _, Req) ->
     handler_helper:return404(Req).
 

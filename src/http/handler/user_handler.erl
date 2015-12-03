@@ -38,7 +38,7 @@ handle_request([<<"phone">>, PhoneBin], <<"GET">>, Req) ->
                     TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
             end
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([<<"id">>, IdBin], <<"GET">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
@@ -55,7 +55,7 @@ handle_request([<<"id">>, IdBin], <<"GET">>, Req) ->
                     TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
             end
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([], <<"POST">>, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
     {<<"name">>, Name} = lists:keyfind(<<"name">>, 1, PostVals),
@@ -69,7 +69,7 @@ handle_request([], <<"POST">>, Req) ->
         _ ->
             {ok, TomlBin} = handler_helper:error(2, <<"Unknown reason">>)
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request(_, _, Req) ->
     handler_helper:return404(Req).
 

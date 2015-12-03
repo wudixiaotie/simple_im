@@ -26,14 +26,16 @@ init(Req, Opts) ->
 handle_request([<<"audio">>], <<"POST">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
-            cowboy_req:reply(200, [], TomlBin, Req);
+            handler_helper:return(200, TomlBin, Req);
         {ok, UserId} ->
             {ok, Headers, Req2} = cowboy_req:part(Req),
             {ok, Data, Req3} = cowboy_req:part_body(Req2),
             {ok, RandomBin} = utility:random_binary_16(),
             FileId = <<"audio_", RandomBin/binary>>,
             {ok, <<"OK">>} = redis:q([<<"SET">>, FileId, Data]),
-            cowboy_req:reply(200, [], FileId, Req3)
+            {ok, TomlBin1} = handler_helper:success(),
+            TomlBin2 = <<" file_id = \"", FileId, "\"">>,
+            handler_helper:return(200, <<TomlBin1/binary, TomlBin2/binary>>, Req3)
     end;
 handle_request([<<"video">>], <<"POST">>, Req) ->
     ok;

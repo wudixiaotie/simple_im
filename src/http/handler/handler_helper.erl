@@ -7,7 +7,7 @@
 -module(handler_helper).
 
 -export([init/3, verify_token/1, return404/1, success/0, error/2,
-         complete_notification/1]).
+         complete_notification/1, return/3]).
 
 
 
@@ -39,7 +39,7 @@ verify_token(Req) ->
 
 return404(Req) ->
     TomlBin = <<"[[response]] status = 404">>,
-    cowboy_req:reply(404, [], TomlBin, Req).
+    return(404, TomlBin, Req).
 
 
 success() ->
@@ -59,3 +59,7 @@ complete_notification(Attrs) ->
     NewAttrs = [{<<"id">>, <<"n_", TimestampBin/binary>>},
                 {<<"ts">>, Timestamp}|Attrs],
     {ok, {<<"n">>, NewAttrs}}.
+
+
+return(Status, Bin, Req) ->
+    cowboy_req:reply(Status, [{<<"content-type">>, <<"text/html">>}], Bin, Req).

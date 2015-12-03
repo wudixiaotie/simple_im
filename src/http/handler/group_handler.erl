@@ -49,7 +49,7 @@ handle_request([], <<"POST">>, Req) ->
                     {ok, TomlBin} = handler_helper:error(3, <<"name Required">>)
             end
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([GroupIdBin], <<"DELETE">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
@@ -64,7 +64,7 @@ handle_request([GroupIdBin], <<"DELETE">>, Req) ->
             ok = agent:offer_a_reward(NBin),
             {ok, TomlBin} = handler_helper:success()
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([GroupIdBin, <<"member">>], <<"POST">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
@@ -94,7 +94,7 @@ handle_request([GroupIdBin, <<"member">>], <<"POST">>, Req) ->
                     {ok, TomlBin} = handler_helper:error(3, Reason)
             end
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([GroupIdBin, <<"member">>, MemberIdBin], <<"POST">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
@@ -119,7 +119,7 @@ handle_request([GroupIdBin, <<"member">>, MemberIdBin], <<"POST">>, Req) ->
                     {ok, TomlBin} = handler_helper:error(3, <<"Unknow Error">>)
             end
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([GroupIdBin, <<"member">>], <<"DELETE">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
@@ -135,7 +135,7 @@ handle_request([GroupIdBin, <<"member">>], <<"DELETE">>, Req) ->
             ok = agent:offer_a_reward(NBin),
             {ok, TomlBin} = handler_helper:success()
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request(_, _, Req) ->
     handler_helper:return404(Req).
 

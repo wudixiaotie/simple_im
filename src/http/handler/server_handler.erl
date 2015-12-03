@@ -54,7 +54,7 @@ handle_request([<<"login">>], <<"POST">>, Req) ->
             log:e("[HTTP] Login Error: ~p~n", [Reason]),
                     {ok, TomlBin} = handler_helper:error(3, Reason)
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([<<"reconnect">>], <<"POST">>, Req) ->
     [{<<"token">>, Token}] = cowboy_req:parse_cookies(Req),
     {ok, [{<<"id">>, UserIdBin}], _} = cowboy_req:body_qs(Req),
@@ -71,7 +71,7 @@ handle_request([<<"reconnect">>], <<"POST">>, Req) ->
         _ ->
             {ok, TomlBin} = handler_helper:error(2, <<"Unkown Error">>)
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([<<"failed">>], <<"POST">>, Req) ->
     PostVals = cowboy_req:parse_cookies(Req),
     {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
@@ -103,7 +103,7 @@ handle_request([<<"failed">>], <<"POST">>, Req) ->
         _ ->
             {ok, TomlBin} = handler_helper:error(2, <<"Unkown Error">>)
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request(_, _, Req) ->
     handler_helper:return404(Req).
 

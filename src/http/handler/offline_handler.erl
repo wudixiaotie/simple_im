@@ -33,7 +33,7 @@ handle_request([], <<"GET">>, Req) ->
             {ok, TomlBin2} = list_2_binary(MsgList),
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request([], <<"DELETE">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
@@ -42,7 +42,7 @@ handle_request([], <<"DELETE">>, Req) ->
             ok = offline:clean(UserId),
             {ok, TomlBin} = handler_helper:success()
     end,
-    cowboy_req:reply(200, [], TomlBin, Req);
+    handler_helper:return(200, TomlBin, Req);
 handle_request(_, _, Req) ->
     handler_helper:return404(Req).
 
