@@ -34,6 +34,7 @@ start_link(Socket) ->
 %% ===================================================================
 
 init([Socket]) ->
+    erlang:process_flag(trap_exit, true),
     {ok, HunterName} = register_hunter(),
     ok = inet:setopts(Socket, [{active, true}, {packet, 0}, binary]),
     {ok, #state{name = HunterName, socket = Socket}}.
@@ -52,6 +53,7 @@ handle_info(_Info, State) -> {noreply, State}.
 
 
 terminate(Reason, State) ->
+    ok = notify_all_master(hunter_terminate),
     log:e("[Middleman] Middleman worker ~p has down! Reason: ~p~n", [State#state.name, Reason]),
     ok.
 code_change(_OldVer, State, _Extra) -> {ok, State}.
@@ -69,7 +71,23 @@ register_hunter(N) ->
     case erlang:whereis(HunterName) of
         undefined ->
             erlang:register(HunterName, self()),
+            ok = notify_all_master(hunter_init),
             {ok, HunterName};
         _ ->
             register_hunter(N + 1)
     end.
+
+
+notify_all_master(Content) ->
+    Names = erlang:registered(),
+    notify_all_master(Names, Content).
+notify_all_master([H|T], Content) ->
+    case erlang:atom_to_list(H) of
+        [$m, $a, $s, $t, $e, $r, $_|_] ->
+            H ! Content;
+        _ ->
+            ok
+    end,
+    notify_all_master(T, Content);
+notify_all_master([], _) ->
+    ok.

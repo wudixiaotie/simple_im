@@ -16,7 +16,7 @@
          terminate/2, code_change/3]).
 
 
--record(state, {socket, hunter_count}).
+-record(state, {name, socket, hunter_count}).
 
 
 
@@ -35,8 +35,9 @@ start_link(Socket) ->
 
 init([Socket]) ->
     ok = inet:setopts(Socket, [{active, true}, {packet, 0}, binary]),
+    {ok, MasterName} = register_master(),
     {ok, HunterCount} = hunter_count(),
-    {ok, #state{socket = Socket, hunter_count = HunterCount}}.
+    {ok, #state{name = MasterName, socket = Socket, hunter_count = HunterCount}}.
 
 
 handle_call(_Request, _From, State) -> {reply, nomatch, State}.
@@ -49,6 +50,12 @@ handle_info({tcp, _Socket, Bin}, State) ->
     {noreply, State};
 handle_info({tcp_closed, _Socket}, State) ->
     {stop, tcp_closed, State};
+handle_info(hunter_init, State) ->
+    HunterCount = State#state.hunter_count,
+    {noreply, State#state{hunter_count = HunterCount + 1}};
+handle_info(hunter_terminate, State) ->
+    HunterCount = State#state.hunter_count,
+    {noreply, State#state{hunter_count = HunterCount - 1}};
 handle_info(_Info, State) -> {noreply, State}.
 
 
@@ -64,22 +71,29 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% ===================================================================
 
 hunter_count() ->
-    hunter_count(1, normal).
-hunter_count(N, max) ->
-    {ok, HunterName} = middleman_helper:hunter_name(N),
-    case erlang:whereis(HunterName) of
-        undefined ->
-            {ok, N};
+    Names = erlang:registered(),
+    hunter_count(Names, 0).
+hunter_count([H|T], HunterCount) ->
+    case erlang:atom_to_list(H) of
+        [$h, $u, $n, $t, $e, $r, $_|_] ->
+            hunter_count(T, HunterCount + 1);
         _ ->
-            hunter_count(N + 1, normal)
+            hunter_count(T, HunterCount)
     end;
-hunter_count(N, normal) ->
-    {ok, HunterName} = middleman_helper:hunter_name(N),
-    case erlang:whereis(HunterName) of
+hunter_count([], HunterCount) ->
+    {ok, HunterCount}.
+
+
+register_master() ->
+    register_master(1).
+register_master(N) ->
+    {ok, MasterName} = middleman_helper:master_name(N),
+    case erlang:whereis(MasterName) of
         undefined ->
-            hunter_count(N + 1, max);
+            erlang:register(MasterName, self()),
+            {ok, MasterName};
         _ ->
-            hunter_count(N + 1, normal)
+            register_master(N + 1)
     end.
 
 
@@ -90,7 +104,7 @@ look_for_hunter(HunterCount, Times) when Times < 3 ->
     {ok, HunterName} = middleman_helper:hunter_name(Index),
     case erlang:whereis(HunterName) of
         undefined ->
-            look_for_hunter(Times + 1);
+            look_for_hunter(HunterCount, Times + 1);
         _ ->
             {ok, HunterName}
     end;

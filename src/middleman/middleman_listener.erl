@@ -30,7 +30,6 @@ start_link() ->
 init() ->
     true = erlang:register(?MODULE, self()),
     MiddlemanPort = env:get(middleman_port),
-    ets:new(hunter_list, [named_table, public, {read_concurrency, true}]),
     log:i("[Middleman] Start to listen port: ~p~n", [MiddlemanPort]),
     Opts = [binary,
             {packet, 0},
