@@ -29,8 +29,8 @@ random_binary_16() ->
 
 
 random_number(Max) ->
-    <<A:32, B:32, C:32>> = crypto:strong_rand_bytes (12),
-    random:seed (A, B, C),
+    <<A:32, B:32, C:32>> = crypto:strong_rand_bytes(12),
+    random:seed(A, B, C),
     {ok, random:uniform(Max)}.
 
 

@@ -21,6 +21,6 @@ path() ->
         {"/health", health_handler, []},
         {"/offline/[...]", offline_handler, []},
         {"/server/[...]", server_handler, []},
-        {"/upload/[...]", upload_handler, []},
+        {"/file/[...]", file_handler, []},
         {"/user/[...]", user_handler, []}
     ]}].
