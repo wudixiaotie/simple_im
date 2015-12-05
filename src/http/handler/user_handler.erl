@@ -58,16 +58,18 @@ handle_request([<<"id">>, IdBin], <<"GET">>, Req) ->
     handler_helper:return(200, TomlBin, Req);
 handle_request([], <<"POST">>, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    {<<"name">>, Name} = lists:keyfind(<<"name">>, 1, PostVals),
-    {<<"phone">>, Phone} = lists:keyfind(<<"phone">>, 1, PostVals),
-    {<<"password">>, Password} = lists:keyfind(<<"password">>, 1, PostVals),
-    case users:create(Name, Phone, Password) of
-        ok ->
-            {ok, TomlBin} = handler_helper:success();
-        {error, user_exist} ->
-            {ok, TomlBin} = handler_helper:error(1, <<"User Exist">>);
-        _ ->
-            {ok, TomlBin} = handler_helper:error(2, <<"Unknown reason">>)
+    case utility:check_parameters([<<"name">>, <<"phone">>, <<"password">>], PostVals) of
+        {ok, [Name, Phone, Password]} ->
+            case users:create(Name, Phone, Password) of
+                ok ->
+                    {ok, TomlBin} = handler_helper:success();
+                {error, user_exist} ->
+                    {ok, TomlBin} = handler_helper:error(1, <<"User Exist">>);
+                _ ->
+                    {ok, TomlBin} = handler_helper:error(2, <<"Unknown reason">>)
+            end;
+        {error, Reason} ->
+            {ok, TomlBin} = handler_helper:error(3, Reason)
     end,
     handler_helper:return(200, TomlBin, Req);
 handle_request(_, _, Req) ->

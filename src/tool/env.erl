@@ -56,7 +56,11 @@
 
 -define(DEFAULT_DEVICE_LIST, [<<"android">>, <<"iphone">>, <<"ipad">>]).
 
--define(DEFAULT_FILE_DIR, "/tmp/file/").
+-define(DEFAULT_AUDIO_DIR, "/tmp/file/audio/").
+
+-define(DEFAULT_VIDEO_DIR, "/tmp/file/video/").
+
+-define(DEFAULT_IMAGE_DIR, "/tmp/file/image/").
 
 
 
@@ -103,4 +107,6 @@ get_default(redis_pools) -> ?DEFAULT_REDIS_POOLS;
 get_default(redis_global_or_local) -> ?DEFAULT_REDIS_GLOBAL_OR_LOCAL;
 
 get_default(device_list) -> ?DEFAULT_DEVICE_LIST;
-get_default(file_dir) -> ?DEFAULT_FILE_DIR.
+get_default(audio_dir) -> ?DEFAULT_AUDIO_DIR;
+get_default(video_dir) -> ?DEFAULT_VIDEO_DIR;
+get_default(image_dir) -> ?DEFAULT_IMAGE_DIR.

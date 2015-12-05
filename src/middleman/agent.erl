@@ -99,7 +99,8 @@ process_toml([Toml|T], TomlBin) ->
             {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
             Message = #message{id = MsgId, bin = TomlBin},
             ok = process_notification(Type, Attrs, Message);
-        _ ->
+        Any ->
+            io:format("=============~p~n", [Any]),
             ok
     end,
     process_toml(T, TomlBin);

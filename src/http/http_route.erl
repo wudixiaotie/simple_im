@@ -21,6 +21,10 @@ path() ->
         {"/health", health_handler, []},
         {"/offline/[...]", offline_handler, []},
         {"/server/[...]", server_handler, []},
-        {"/file/[...]", file_handler, []},
-        {"/user/[...]", user_handler, []}
+        {"/user/[...]", user_handler, []},
+        {"/m/[...]", m_handler, []},
+        {"/gm/[...]", gm_handler, []},
+        {"/file/audio/[...]", cowboy_static, {dir, env:get(audio_dir)}},
+        {"/file/video/[...]", cowboy_static, {dir, env:get(video_dir)}},
+        {"/file/image/[...]", cowboy_static, {dir, env:get(image_dir)}}
     ]}].
