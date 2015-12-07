@@ -74,7 +74,7 @@ handle_cast(_Msg, State) -> {noreply, State}.
 % hunter agent got message from middleman
 handle_info({tcp, _Socket, TomlBin}, #state{role = hunter} = State) ->
     {ok, TomlList} = toml:binary_2_term(TomlBin),
-    ok = process_toml(TomlList, TomlBin),
+    ok = process_toml(TomlList),
     {noreply, State};
 handle_info({tcp_closed, _Socket}, State) ->
     {stop, tcp_closed, State};
@@ -92,19 +92,29 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Internal functions
 %% ===================================================================
 
-process_toml([Toml|T], TomlBin) ->
+process_toml([Toml|T]) ->
     case Toml of
         {<<"n">>, Attrs} ->
             {<<"t">>, Type} = lists:keyfind(<<"t">>, 1, Attrs),
             {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+            {ok, TomlBin} = toml:term_2_binary(Toml),
             Message = #message{id = MsgId, bin = TomlBin},
             ok = process_notification(Type, Attrs, Message);
-        Any ->
-            io:format("=============~p~n", [Any]),
+        {<<"m">>, Attrs} ->
+            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+            {ok, TomlBin} = toml:term_2_binary(Toml),
+            Message = #message{id = MsgId, bin = TomlBin},
+            ok = notify(Attrs, Message);
+        {<<"gm">>, Attrs} ->
+            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+            {ok, TomlBin} = toml:term_2_binary(Toml),
+            Message = #message{id = MsgId, bin = TomlBin},
+            ok = notify_group(Attrs, Message);
+        _ ->
             ok
     end,
-    process_toml(T, TomlBin);
-process_toml([], _) ->
+    process_toml(T);
+process_toml([]) ->
     ok.
 
 
