@@ -25,7 +25,7 @@ init(Req, Opts) ->
 
 handle_request([<<"audio">>], <<"POST">>, Req) ->
     FileDir = erlang:list_to_binary(env:get(audio_dir)),
-    process(<<"audio">>, FileDir, <<".mp4">>, Req);
+    process(<<"audio">>, FileDir, <<".amr">>, Req);
 handle_request([<<"video">>], <<"POST">>, Req) ->
     FileDir = erlang:list_to_binary(env:get(video_dir)),
     process(<<"video">>, FileDir, <<".mp4">>, Req);
@@ -53,7 +53,7 @@ process(Type, FileDir, Extension, Req) ->
                     FileName = <<FileId/binary, Extension/binary>>,
                     FilePath = <<FileDir/binary, FileName/binary>>,
                     ok = file:write_file(FilePath, Data),
-                    Url = <<"file/video/", FileName/binary>>,
+                    Url = <<"file/", Type/binary, "/", FileName/binary>>,
                     ToUserId = erlang:binary_to_integer(ToUserIdBin),
                     M = {<<"m">>, [{<<"c">>, Url},
                                    {<<"from">>, UserId},
