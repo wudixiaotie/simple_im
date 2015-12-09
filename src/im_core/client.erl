@@ -81,9 +81,9 @@ handle_info({replace_socket, Message, #device{ssl_socket = SslSocket} = Device},
     end,
     setopts(SslSocket),
     {noreply, NewState, NewState#state.heartbeat_timeout};
-handle_info({ssl, SslSocket, Bin}, State) ->
+handle_info({ssl, _, Bin}, State) ->
     {ok, Toml} = toml:binary_2_term(Bin),
-    {ok, NewState} = process_packet(Toml, SslSocket, State),
+    {ok, NewState} = process_packet(Toml, State),
     {noreply, NewState, NewState#state.heartbeat_timeout};
 % connection closed
 handle_info({ssl_closed, _SslSocket}, State) ->
@@ -95,6 +95,9 @@ handle_info({ssl_closed, _SslSocket}, State) ->
 %% business receiver
 %% ===================================================================
 
+handle_info({middleman, Toml}, State) ->
+    {ok, NewState} = process_packet(Toml, State),
+    {noreply, NewState, NewState#state.heartbeat_timeout};
 handle_info(Message, State) when is_record(Message, message) ->
     {ok, NewState} = send_msg_2_multiple_device(State#state.device_list,
                                                 Message,
@@ -220,19 +223,20 @@ delete_useless_token([]) ->
     ok.
 
 
+
 % message
-process_packet([{<<"m">>, Attrs}|T], SslSocket, State) ->
-    {ok, Message, NewState} = process_message(SslSocket, State, {<<"m">>, Attrs}),
+process_packet([{<<"m">>, Attrs}|T], State) ->
+    {ok, Message, NewState} = process_message(State, {<<"m">>, Attrs}),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserId} ->
             ok = router:route_to_single_user(ToUserId, Message);
         _ ->
             ignore
     end,
-    process_packet(T, SslSocket, NewState);
+    process_packet(T, NewState);
 % group message
-process_packet([{<<"gm">>, Attrs}|T], SslSocket, State) ->
-    {ok, Message, NewState} = process_message(SslSocket, State, {<<"gm">>, Attrs}),
+process_packet([{<<"gm">>, Attrs}|T], State) ->
+    {ok, Message, NewState} = process_message(State, {<<"gm">>, Attrs}),
     case lists:keyfind(<<"g_id">>, 1, Attrs) of
         {<<"g_id">>, GroupId} ->
             UserId = State#state.user_id,
@@ -241,36 +245,39 @@ process_packet([{<<"gm">>, Attrs}|T], SslSocket, State) ->
         _ ->
             ignore
     end,
-    process_packet(T, SslSocket, NewState);
+    process_packet(T, NewState);
 % ack
-process_packet([{<<"a">>, Attrs}|T], SslSocket, State) ->
+process_packet([{<<"a">>, Attrs}|T], State) ->
+io:format("=============~p~n", [Attrs]),
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
+    {<<"device">>, DeviceName} = lists:keyfind(<<"device">>, 1, Attrs),
     NewMsgCache = lists:keydelete(MsgId,
                                   #message.id,
                                   State#state.msg_cache),
 
-    Device = lists:keyfind(SslSocket,
-                           #device.ssl_socket,
+    Device = lists:keyfind(DeviceName,
+                           #device.name,
                            State#state.device_list),
     NewDeviceMsgCache = lists:keydelete(MsgId,
                                         #message.id,
                                         Device#device.msg_cache),
     NewDevice = Device#device{msg_cache = NewDeviceMsgCache},
-    NewDeviceList = lists:keystore(SslSocket,
-                                   #device.ssl_socket,
+    NewDeviceList = lists:keystore(DeviceName,
+                                   #device.name,
                                    State#state.device_list,
                                    NewDevice),
 
     NewState = State#state{device_list = NewDeviceList,
                            msg_cache = NewMsgCache},
-    process_packet(T, SslSocket, NewState);
-process_packet([], _, NewState) ->
+    process_packet(T, NewState);
+process_packet([], NewState) ->
     {ok, NewState}.
 
 
-process_message(SslSocket, State, {Type, Attrs}) ->
-    {value, Device, OtherDeivces} = lists:keytake(SslSocket,
-                                                  #device.ssl_socket,
+process_message(State, {Type, Attrs}) ->
+    {<<"device">>, DeviceName} = lists:keyfind(<<"device">>, 1, Attrs),
+    {value, Device, OtherDeivces} = lists:keytake(DeviceName,
+                                                  #device.name,
                                                   State#state.device_list),
 
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
