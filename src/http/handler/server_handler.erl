@@ -25,8 +25,8 @@ init(Req, Opts) ->
 
 handle_request([<<"login">>], <<"POST">>, Req) ->
     {ok, PostVals, _} = cowboy_req:body_qs(Req),
-    case utility:check_parameters([<<"phone">>, <<"password">>], PostVals) of
-        {ok, [Phone, Password]} ->
+    case utility:check_parameters([<<"phone">>, <<"password">>, <<"device">>], PostVals) of
+        {ok, [Phone, Password, DeviceName]} ->
             case users:verify(Phone, Password) of
                 {ok, true, UserId} ->
                     {ok, Token} = utility:guid(),
@@ -34,7 +34,8 @@ handle_request([<<"login">>], <<"POST">>, Req) ->
                     {ok, TokenKey} = redis:key({token, Token}),
                     {ok, <<"OK">>} = redis:q([<<"HMSET">>, TokenKey,
                                               <<"ip">>, IP, <<"port">>, Port,
-                                              <<"user_id">>, UserId]),
+                                              <<"user_id">>, UserId,
+                                              <<"device">>, DeviceName]),
                     {ok, <<"1">>} = redis:q([<<"EXPIRE">>, TokenKey, 100]),
                     Toml = {<<"response">>, [{<<"status">>, 0},
                                              {<<"server">>, IP},

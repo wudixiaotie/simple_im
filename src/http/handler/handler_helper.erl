@@ -26,14 +26,14 @@ verify_token(Req) ->
     PostVals = cowboy_req:parse_cookies(Req),
     {<<"token">>, Token} = lists:keyfind(<<"token">>, 1, PostVals),
     {ok, TokenKey} = redis:key({token, Token}),
-    Result = redis:q([<<"HGET">>, TokenKey, <<"user_id">>]),
+    Result = redis:q([<<"HMGET">>, TokenKey, <<"user_id">>, <<"device">>]),
     case Result of
         {ok, undefined} ->
             {ok, TomlBin} = ?MODULE:error(1, <<"Token error">>),
             {error, TomlBin};
-        {ok, UserIdBin} ->
+        {ok, [UserIdBin, DeviceName]} ->
             UserId = erlang:binary_to_integer(UserIdBin),
-            {ok, UserId}
+            {ok, UserId, DeviceName}
     end.
 
 

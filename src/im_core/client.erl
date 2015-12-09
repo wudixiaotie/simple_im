@@ -248,9 +248,8 @@ process_packet([{<<"gm">>, Attrs}|T], State) ->
     process_packet(T, NewState);
 % ack
 process_packet([{<<"a">>, Attrs}|T], State) ->
-io:format("=============~p~n", [Attrs]),
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-    {<<"device">>, DeviceName} = lists:keyfind(<<"device">>, 1, Attrs),
+    {<<"d">>, DeviceName} = lists:keyfind(<<"d">>, 1, Attrs),
     NewMsgCache = lists:keydelete(MsgId,
                                   #message.id,
                                   State#state.msg_cache),
@@ -275,7 +274,7 @@ process_packet([], NewState) ->
 
 
 process_message(State, {Type, Attrs}) ->
-    {<<"device">>, DeviceName} = lists:keyfind(<<"device">>, 1, Attrs),
+    {<<"d">>, DeviceName} = lists:keyfind(<<"d">>, 1, Attrs),
     {value, Device, OtherDeivces} = lists:keytake(DeviceName,
                                                   #device.name,
                                                   State#state.device_list),

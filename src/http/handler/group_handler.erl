@@ -78,7 +78,7 @@ handle_request([GroupIdBin, <<"member">>], <<"POST">>, Req) ->
                         ok ->
                             Attrs = [{<<"t">>, <<"create_group_member">>},
                                      {<<"g_id">>, GroupId},
-                                     {<<"gm_id">>, UserId}],
+                                     {<<"member_id">>, UserId}],
                             {ok, N} = handler_helper:complete_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
                             ok = agent:offer_a_reward(NBin),
@@ -106,7 +106,7 @@ handle_request([GroupIdBin, <<"member">>, MemberIdBin], <<"POST">>, Req) ->
                 ok ->
                     Attrs = [{<<"t">>, <<"create_group_member">>},
                              {<<"g_id">>, GroupId},
-                             {<<"gm_id">>, MemberId}],
+                             {<<"member_id">>, MemberId}],
                     {ok, N} = handler_helper:complete_notification(Attrs),
                     {ok, NBin} = toml:term_2_binary(N),
                     ok = agent:offer_a_reward(NBin),
@@ -129,7 +129,7 @@ handle_request([GroupIdBin, <<"member">>], <<"DELETE">>, Req) ->
             ok = group_members:delete(GroupId, UserId),
             Attrs = [{<<"t">>, <<"delete_group_member">>},
                      {<<"g_id">>, GroupId},
-                     {<<"gm_id">>, UserId}],
+                     {<<"member_id">>, UserId}],
             {ok, N} = handler_helper:complete_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
             ok = agent:offer_a_reward(NBin),

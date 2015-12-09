@@ -69,10 +69,10 @@ handle_info({ssl, SslSocket, Bin}, State) ->
                 {<<"t">>, <<"login">>} ->
                     UserIdBin = erlang:integer_to_binary(UserId),
                     {ok, TokenKey} = redis:key({token, Token}),
-                    case redis:q([<<"HGET">>, TokenKey, <<"user_id">>]) of
+                    case redis:q([<<"HMGET">>, TokenKey, <<"user_id">>, <<"device">>]) of
                         {ok, undefined} ->
                             send_error(SslSocket, MsgId, <<"Token Error">>);
-                        {ok, UserIdBin} ->
+                        {ok, [UserIdBin, DeviceName]} ->
                             {ok, <<"1">>} = redis:q([<<"PERSIST">>, TokenKey]),
                             case session:find(UserId) of
                                 offline ->
