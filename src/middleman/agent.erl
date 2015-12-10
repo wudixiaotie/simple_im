@@ -92,64 +92,9 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 %% Internal functions
 %% ===================================================================
 
-process_toml([Toml|T]) ->
-    case Toml of
-        {<<"n">>, Attrs} ->
-            {<<"t">>, Type} = lists:keyfind(<<"t">>, 1, Attrs),
-            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-            {ok, TomlBin} = toml:term_2_binary(Toml),
-            Message = #message{id = MsgId, bin = TomlBin},
-            ok = process_notification(Type, Attrs, Message);
-        {<<"m">>, Attrs} ->
-            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-            {ok, TomlBin} = toml:term_2_binary(Toml),
-            Message = #message{id = MsgId, bin = TomlBin},
-            ok = notify(Attrs, Message);
-        {<<"gm">>, Attrs} ->
-            {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
-            {ok, TomlBin} = toml:term_2_binary(Toml),
-            Message = #message{id = MsgId, bin = TomlBin},
-            ok = notify_group(Attrs, Message);
-        _ ->
-            ok
-    end,
+process_toml([{_, Attrs} = Toml|T]) ->
+    {<<"from">>, FromId} = lists:keyfind(<<"from">>, 1, Attrs),
+    ok = router:route_to_single_user(FromId, {middleman, Toml}),
     process_toml(T);
 process_toml([]) ->
-    ok.
-
-
-process_notification(<<"add_contact">>, Attrs, Message) ->
-    ok = notify(Attrs, Message),
-    ok;
-process_notification(<<"accept_contact">>, Attrs, Message) ->
-    ok = notify(Attrs, Message),
-    ok;
-process_notification(<<"delete_contact">>, Attrs, Message) ->
-    ok = notify(Attrs, Message),
-    ok;
-process_notification(<<"create_group">>, Attrs, Message) ->
-    ok = notify_group(Attrs, Message),
-    ok;
-process_notification(<<"delete_group">>, Attrs, Message) ->
-    ok = notify_group(Attrs, Message),
-    ok;
-process_notification(<<"create_group_member">>, Attrs, Message) ->
-    ok = notify_group(Attrs, Message),
-    ok;
-process_notification(<<"delete_group_member">>, Attrs, Message) ->
-    ok = notify_group(Attrs, Message),
-    ok.
-
-
-notify(Attrs, Message) ->
-    {<<"from">>, FromId} = lists:keyfind(<<"from">>, 1, Attrs),
-    {<<"to">>, ToId} = lists:keyfind(<<"to">>, 1, Attrs),
-    ok = router:route_to_multiple_user([FromId, ToId], Message),
-    ok.
-
-
-notify_group(Attrs, Message) ->
-    {<<"g_id">>, GroupId} = lists:keyfind(<<"g_id">>, 1, Attrs),
-    {ok, UserIdList} = group_members:find({group_id, GroupId}),
-    ok = router:route_to_multiple_user(UserIdList, Message),
     ok.

@@ -27,7 +27,7 @@ handle_request([], <<"POST">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, DeviceName} ->
             {ok, PostVals, _} = cowboy_req:body_qs(Req),
             case lists:keyfind(<<"name">>, 1, PostVals) of
                 {<<"name">>, GroupName} ->
@@ -37,8 +37,10 @@ handle_request([], <<"POST">>, Req) ->
 
                             Attrs = [{<<"t">>, <<"create_group">>},
                                      {<<"g_id">>, GroupId},
-                                     {<<"g_key">>, Key}],
-                            {ok, N} = handler_helper:complete_notification(Attrs),
+                                     {<<"g_key">>, Key},
+                                     {<<"from">>, UserId},
+                                     {<<"d">>, DeviceName}],
+                            {ok, N} = handler_helper:complete_group_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
                             ok = agent:offer_a_reward(NBin),
                             {ok, TomlBin} = handler_helper:success();
@@ -54,12 +56,14 @@ handle_request([GroupIdBin], <<"DELETE">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, DeviceName} ->
             GroupId = erlang:binary_to_integer(GroupIdBin),
             ok = groups:delete(GroupId, UserId),
             Attrs = [{<<"t">>, <<"delete_group">>},
-                     {<<"g_id">>, GroupId}],
-            {ok, N} = handler_helper:complete_notification(Attrs),
+                     {<<"g_id">>, GroupId},
+                     {<<"from">>, UserId},
+                     {<<"d">>, DeviceName}],
+            {ok, N} = handler_helper:complete_group_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
             ok = agent:offer_a_reward(NBin),
             {ok, TomlBin} = handler_helper:success()
@@ -69,7 +73,7 @@ handle_request([GroupIdBin, <<"member">>], <<"POST">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, DeviceName} ->
             {ok, PostVals, _} = cowboy_req:body_qs(Req),
             case utility:check_parameters([<<"g_key">>], PostVals) of
                 {ok, [Key]} ->
@@ -78,8 +82,10 @@ handle_request([GroupIdBin, <<"member">>], <<"POST">>, Req) ->
                         ok ->
                             Attrs = [{<<"t">>, <<"create_group_member">>},
                                      {<<"g_id">>, GroupId},
-                                     {<<"member_id">>, UserId}],
-                            {ok, N} = handler_helper:complete_notification(Attrs),
+                                     {<<"member_id">>, UserId},
+                                     {<<"from">>, UserId},
+                                     {<<"d">>, DeviceName}],
+                            {ok, N} = handler_helper:complete_group_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
                             ok = agent:offer_a_reward(NBin),
                             {ok, TomlBin} = handler_helper:success();
@@ -99,15 +105,17 @@ handle_request([GroupIdBin, <<"member">>, MemberIdBin], <<"POST">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, DeviceName} ->
             GroupId = erlang:binary_to_integer(GroupIdBin),
             MemberId = erlang:binary_to_integer(MemberIdBin),
             case group_members:create_by_creator(GroupId, UserId, MemberId) of
                 ok ->
                     Attrs = [{<<"t">>, <<"create_group_member">>},
                              {<<"g_id">>, GroupId},
-                             {<<"member_id">>, MemberId}],
-                    {ok, N} = handler_helper:complete_notification(Attrs),
+                             {<<"member_id">>, MemberId},
+                             {<<"from">>, UserId},
+                             {<<"d">>, DeviceName}],
+                    {ok, N} = handler_helper:complete_group_notification(Attrs),
                     {ok, NBin} = toml:term_2_binary(N),
                     ok = agent:offer_a_reward(NBin),
                     {ok, TomlBin} = handler_helper:success();
@@ -124,13 +132,15 @@ handle_request([GroupIdBin, <<"member">>], <<"DELETE">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, DeviceName} ->
             GroupId = erlang:binary_to_integer(GroupIdBin),
             ok = group_members:delete(GroupId, UserId),
             Attrs = [{<<"t">>, <<"delete_group_member">>},
                      {<<"g_id">>, GroupId},
-                     {<<"member_id">>, UserId}],
-            {ok, N} = handler_helper:complete_notification(Attrs),
+                     {<<"member_id">>, UserId},
+                     {<<"from">>, UserId},
+                     {<<"d">>, DeviceName}],
+            {ok, N} = handler_helper:complete_group_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
             ok = agent:offer_a_reward(NBin),
             {ok, TomlBin} = handler_helper:success()

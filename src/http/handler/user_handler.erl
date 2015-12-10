@@ -27,7 +27,7 @@ handle_request([<<"phone">>, PhoneBin], <<"GET">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, _} ->
+        {ok, _, _} ->
             case users:find({phone, PhoneBin}) of
                 {ok, []} ->
                     {ok, TomlBin} = handler_helper:success();
@@ -43,7 +43,7 @@ handle_request([<<"id">>, IdBin], <<"GET">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, _} ->
+        {ok, _, _} ->
             Id = erlang:binary_to_integer(IdBin),
             case users:find({id, Id}) of
                 {ok, []} ->

@@ -7,7 +7,8 @@
 -module(handler_helper).
 
 -export([init/3, verify_token/1, return404/1, success/0, error/2,
-         complete_notification/1, return/3, file_id/0, get_form_data/1]).
+         complete_notification/1, complete_group_notification/1,
+         return/3, file_id/0, get_form_data/1]).
 
 
 
@@ -28,7 +29,7 @@ verify_token(Req) ->
     {ok, TokenKey} = redis:key({token, Token}),
     Result = redis:q([<<"HMGET">>, TokenKey, <<"user_id">>, <<"device">>]),
     case Result of
-        {ok, undefined} ->
+        {ok, [undefined, undefined]} ->
             {ok, TomlBin} = ?MODULE:error(1, <<"Token error">>),
             {error, TomlBin};
         {ok, [UserIdBin, DeviceName]} ->
@@ -59,6 +60,14 @@ complete_notification(Attrs) ->
     NewAttrs = [{<<"id">>, <<"n_", TimestampBin/binary>>},
                 {<<"ts">>, Timestamp}|Attrs],
     {ok, {<<"n">>, NewAttrs}}.
+
+
+complete_group_notification(Attrs) ->
+    Timestamp = utility:timestamp(),
+    TimestampBin = erlang:integer_to_binary(Timestamp),
+    NewAttrs = [{<<"id">>, <<"gn_", TimestampBin/binary>>},
+                {<<"ts">>, Timestamp}|Attrs],
+    {ok, {<<"gn">>, NewAttrs}}.
 
 
 return(Status, Bin, Req) ->

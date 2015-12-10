@@ -27,7 +27,7 @@ handle_request([], <<"GET">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, _} ->
             {ok, MsgList} = offline:get(UserId),
             {ok, TomlBin1} = handler_helper:success(),
             {ok, TomlBin2} = list_2_binary(MsgList),
@@ -38,7 +38,7 @@ handle_request([], <<"DELETE">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, _} ->
             ok = offline:clean(UserId),
             {ok, TomlBin} = handler_helper:success()
     end,

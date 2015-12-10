@@ -27,7 +27,7 @@ handle_request([<<"version">>, ContactVersionBin], <<"GET">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, _} ->
             ContactVersion = erlang:binary_to_integer(ContactVersionBin),
             {ok, CurrentVersion, ContactList} = contacts:find(UserId, ContactVersion),
             {ok, Toml2} = users:to_toml(ContactList),
@@ -42,7 +42,7 @@ handle_request([ToUserIdBin], <<"POST">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, DeviceName} ->
             {ok, PostVals, _} = cowboy_req:body_qs(Req),
             case utility:check_parameters([<<"ask">>], PostVals) of
                 {ok, [Ask]} ->
@@ -52,7 +52,8 @@ handle_request([ToUserIdBin], <<"POST">>, Req) ->
                             Attrs = [{<<"t">>, <<"add_contact">>},
                                      {<<"from">>, UserId},
                                      {<<"to">>, ToUserId},
-                                     {<<"ask">>, Ask}],
+                                     {<<"ask">>, Ask},
+                                     {<<"d">>, DeviceName}],
                             {ok, N} = handler_helper:complete_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
                             ok = agent:offer_a_reward(NBin),
@@ -73,13 +74,14 @@ handle_request([AUserIdBin], <<"PUT">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, BUserId} ->
+        {ok, BUserId, DeviceName} ->
             AUserId = erlang:binary_to_integer(AUserIdBin),
             case contacts:create(AUserId, BUserId) of
                 ok ->
                     Attrs = [{<<"t">>, <<"accept_contact">>},
                              {<<"from">>, BUserId},
-                             {<<"to">>, AUserId}],
+                             {<<"to">>, AUserId},
+                             {<<"d">>, DeviceName}],
                     {ok, N} = handler_helper:complete_notification(Attrs),
                     {ok, NBin} = toml:term_2_binary(N),
                     ok = agent:offer_a_reward(NBin),
@@ -95,12 +97,13 @@ handle_request([ToUserIdBin], <<"DELETE">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
-        {ok, UserId} ->
+        {ok, UserId, DeviceName} ->
             ToUserId = erlang:binary_to_integer(ToUserIdBin),
             ok = contacts:delete(UserId, ToUserId),
             Attrs = [{<<"t">>, <<"delete_contact">>},
                      {<<"from">>, UserId},
-                     {<<"to">>, ToUserId}],
+                     {<<"to">>, ToUserId},
+                     {<<"d">>, DeviceName}],
             {ok, N} = handler_helper:complete_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
             ok = agent:offer_a_reward(NBin),

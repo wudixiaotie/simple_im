@@ -45,7 +45,7 @@ process(Type, FileDir, Extension, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             handler_helper:return(200, TomlBin, Req);
-        {ok, UserId} ->
+        {ok, UserId, DeviceName} ->
             {ok, PostVals, Req2} = handler_helper:get_form_data(Req),
             case utility:check_parameters([Type, <<"to">>], PostVals) of
                 {ok, [Data, ToUserIdBin]} ->
@@ -58,8 +58,9 @@ process(Type, FileDir, Extension, Req) ->
                     M = {<<"m">>, [{<<"c">>, Url},
                                    {<<"from">>, UserId},
                                    {<<"to">>, ToUserId},
-                                   {<<"timestamp">>, utility:timestamp()},
+                                   {<<"ts">>, utility:timestamp()},
                                    {<<"t">>, Type},
+                                   {<<"d">>, DeviceName},
                                    {<<"id">>, <<"m_", FileId/binary>>}]},
                     {ok, MBin} = toml:term_2_binary(M),
                     ok = agent:offer_a_reward(MBin),

@@ -96,7 +96,7 @@ handle_info({ssl_closed, _SslSocket}, State) ->
 %% ===================================================================
 
 handle_info({middleman, Toml}, State) ->
-    {ok, NewState} = process_packet(Toml, State),
+    {ok, NewState} = process_packet([Toml], State),
     {noreply, NewState, NewState#state.heartbeat_timeout};
 handle_info(Message, State) when is_record(Message, message) ->
     {ok, NewState} = send_msg_2_multiple_device(State#state.device_list,
@@ -225,8 +225,9 @@ delete_useless_token([]) ->
 
 
 % message
-process_packet([{<<"m">>, Attrs}|T], State) ->
-    {ok, Message, NewState} = process_message(State, {<<"m">>, Attrs}),
+process_packet([{Type, Attrs}|T], State)
+    when Type == <<"m">> orelse Type == <<"n">> ->
+    {ok, Message, NewState} = process_message(State, {Type, Attrs}),
     case lists:keyfind(<<"to">>, 1, Attrs) of
         {<<"to">>, ToUserId} ->
             ok = router:route_to_single_user(ToUserId, Message);
@@ -235,8 +236,9 @@ process_packet([{<<"m">>, Attrs}|T], State) ->
     end,
     process_packet(T, NewState);
 % group message
-process_packet([{<<"gm">>, Attrs}|T], State) ->
-    {ok, Message, NewState} = process_message(State, {<<"gm">>, Attrs}),
+process_packet([{Type, Attrs}|T], State)
+    when Type == <<"gm">> orelse Type == <<"gn">> ->
+    {ok, Message, NewState} = process_message(State, {Type, Attrs}),
     case lists:keyfind(<<"g_id">>, 1, Attrs) of
         {<<"g_id">>, GroupId} ->
             UserId = State#state.user_id,

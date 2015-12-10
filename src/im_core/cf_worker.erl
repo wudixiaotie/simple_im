@@ -63,7 +63,7 @@ handle_info({ssl, SslSocket, Bin}, State) ->
     [{<<"r">>, Attrs}|_] = Toml,
     {<<"id">>, MsgId} = lists:keyfind(<<"id">>, 1, Attrs),
     {<<"user">>, UserInfo} = lists:keyfind(<<"user">>, 1, Attrs),
-    case utility:check_parameters([<<"id">>, <<"device">>, <<"token">>], UserInfo) of
+    case utility:check_parameters([<<"id">>, <<"d">>, <<"token">>], UserInfo) of
         {ok, [UserId, DeviceName, Token]} ->
             case lists:keyfind(<<"t">>, 1, Attrs) of
                 {<<"t">>, <<"login">>} ->
