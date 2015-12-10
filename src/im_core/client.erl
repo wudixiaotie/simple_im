@@ -223,7 +223,6 @@ delete_useless_token([]) ->
     ok.
 
 
-
 % message
 process_packet([{Type, Attrs}|T], State)
     when Type == <<"m">> orelse Type == <<"n">> ->
