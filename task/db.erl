@@ -4,10 +4,9 @@
 %% database tasks
 %% ===================================================================
 
--module (db).
+-module(db).
 
--export ([init/0]).
--compile (export_all).
+-export([init/0]).
 
 
 
@@ -22,7 +21,6 @@ init() ->
     ok = init_data(),
     log:i("=============Database all set up.~n"),
     ok.
-
 
 
 

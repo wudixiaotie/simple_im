@@ -7,9 +7,9 @@
 %% tc:ct(Module, Function, ArgsList, SpawnProcessesCount).
 %% ===================================================================
 
--module (tc).
+-module(tc).
 
--export ([t/4, ct/4]).
+-export([t/4, ct/4]).
 
 
 tc(M, F, A) ->
