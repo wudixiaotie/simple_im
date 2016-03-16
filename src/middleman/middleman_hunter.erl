@@ -34,7 +34,6 @@ start_link(Socket) ->
 %% ===================================================================
 
 init([Socket]) ->
-    erlang:process_flag(trap_exit, true),
     {ok, HunterName} = register_hunter(),
     ok = inet:setopts(Socket, [{active, true}, {packet, 0}, binary]),
     {ok, #state{name = HunterName, socket = Socket}}.
