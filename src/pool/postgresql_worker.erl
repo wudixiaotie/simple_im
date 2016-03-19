@@ -16,5 +16,5 @@
 
 start_link(DbHost, DbUsername, DbPassword, Opts, Index) ->
     {ok, Conn} = epgsql:connect(DbHost, DbUsername, DbPassword, Opts),
-    ets:insert(postgresql_connection, {Index, Conn}),    
+    ets:insert(postgresql_connection, {Index, Conn}),
     {ok, Conn}.
