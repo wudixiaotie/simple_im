@@ -1,11 +1,11 @@
 -module(gen_msg).
 
 % APIs
--export([start_link/2, init/3, start_link/3, init/4]).
+-export([start_link/2, init/3, start_link/3, init/4, enter_loop/2, enter_loop/3]).
 
 % system message
 -export([system_continue/3, system_terminate/4, system_get_state/1,
-         system_replace_state/2]).
+         system_replace_state/2, format_status/2]).
 
 
 
@@ -34,16 +34,80 @@ init(Parent, Name, Module, Args) ->
     do_init(Parent, Module, Args).
 
 
+enter_loop(Module, State) ->
+    enter_loop(Module, State, infinity).
+
+
+enter_loop(Module, State, Timeout) ->
+    Parent = get_parent(),
+    Debug = sys:debug_options([]),
+    loop(Parent, Debug, Module, State, Timeout).
+
+
+
+%% ===================================================================
+%% main loop
+%% ===================================================================
+
+do_init(Parent, Module, Args) ->
+    Debug = sys:debug_options([]),
+
+    % update process dictionary, so otp system can get real initial call
+    % not gen_msg:init/1. Also observer will get behaviour about this process
+    % instead of undefined.
+    erlang:put('$initial_call', {Module, init, 1}),
+
+    case Module:init(Args) of
+        {ok, State} ->
+            Timeout = infinity;
+        {ok, State, Timeout} ->
+            ok
+    end,
+
+    ok = proc_lib:init_ack(Parent, {ok, self()}),
+    loop(Parent, Debug, Module, State, Timeout).
+
+
+loop(Parent, Debug, Module, State, Timeout) ->
+    receive
+        {system, From, Msg} ->
+            sys:handle_system_msg(Msg, From, Parent, ?MODULE, Debug, [Module, State, Timeout]);
+        Msg ->
+            do_loop(Parent, Debug, Module, State, Msg)
+    after
+        Timeout ->
+            do_loop(Parent, Debug, Module, State, timeout)
+    end.
+
+
+do_loop(Parent, Debug, Module, State, Msg) ->
+    case catch Module:handle_msg(Msg, State) of
+        {ok, NewState} ->
+            loop(Parent, Debug, Module, NewState, infinity);
+        {ok, NewState, NewTimeout} ->
+            loop(Parent, Debug, Module, NewState, NewTimeout);
+        {'EXIT', Reason} ->
+            terminate(Reason, Module, State);
+        Other ->
+            terminate({bad_return_value, Other}, Module, State)
+    end.
+
+
+terminate(Reason, Module, State) ->
+    ok = Module:terminate(Reason, State),
+    erlang:exit(Reason).
+
+
 
 %% ===================================================================
 %% system message
 %% ===================================================================
 
-system_continue(Parent, Debug, [State, Module, Timeout]) ->
-    loop(Parent, Debug, State, Module, Timeout).
+system_continue(Parent, Debug, [Module, State, Timeout]) ->
+    loop(Parent, Debug, Module, State, Timeout).
 
 
-system_terminate(Reason, _Parent, _Debug, [State, Module, _Timeout]) ->
+system_terminate(Reason, _Parent, _Debug, [Module, State, _Timeout]) ->
     terminate(Reason, Module, State).
 
 
@@ -54,6 +118,26 @@ system_get_state([State, _Module, _Timeout]) ->
 system_replace_state(StateFun, State) ->
     NewState = StateFun(State),
     {ok, NewState, NewState}.
+
+
+format_status(_Opt, StatusData) ->
+    [_PDict, SysState, Parent, Debug, [_Module, State, _Timeout]] = StatusData,
+    case erlang:process_info(self(), registered_name) of
+        {registered_name, Name} ->
+            ok;
+        _ ->
+            Name = self()
+    end,
+    Header = gen:format_status_header("Status for generic msg server", Name),
+    Log = sys:get_debug(log, Debug, []),
+    Specfic = [{data, [{"State", State}]}],
+
+    [{header, Header},
+     {data, [{"Status", SysState},
+         {"Parent", Parent},
+         {"Logged events", Log}]} |
+     Specfic].
+
 
 
 %% ===================================================================
@@ -68,43 +152,26 @@ register_name({global, Name}) ->
     ok.
 
 
-do_init(Parent, Module, Args) ->
-    Debug = sys:debug_options([]),
-
-    case Module:init(Args) of
-        {ok, State} ->
-            Timeout = infinity;
-        {ok, State, Timeout} ->
-            ok
-    end,
-
-    ok = proc_lib:init_ack(Parent, {ok, self()}),
-    loop(Parent, Debug, State, Module, Timeout).
-
-
-loop(Parent, Debug, State, Module, Timeout) ->
-    receive
-        {system, From, Msg} ->
-            sys:handle_system_msg(Msg, From, Parent, ?MODULE, Debug, [State, Module, Timeout]);
-        Msg ->
-            handle_msg(Parent, Debug, State, Module, Timeout, Msg)
-    after
-        Timeout ->
-            handle_msg(Parent, Debug, State, Module, Timeout, timeout)
+get_parent() ->
+    case get('$ancestors') of
+        [Parent | _] when is_pid(Parent)->
+            Parent;
+        [Parent | _] when is_atom(Parent)->
+            name_to_pid(Parent);
+        _ ->
+            exit(process_was_not_started_by_proc_lib)
     end.
 
 
-handle_msg(Parent, Debug, State, Module, Timeout, Msg) ->
-    case catch Module:handle_msg(Msg, State) of
-        {ok, NewState} ->
-            loop(Parent, Debug, NewState, Module, infinity);
-        {ok, NewState, Timeout} ->
-            loop(Parent, Debug, NewState, Module, Timeout);
-        {'EXIT', Reason} ->
-            terminate(Reason, Module, State)
+name_to_pid(Name) ->
+    case whereis(Name) of
+        undefined ->
+            case global:whereis_name(Name) of
+                undefined ->
+                    exit(could_not_find_registered_name);
+                Pid ->
+                    Pid
+                end;
+        Pid ->
+            Pid
     end.
-
-
-terminate(Reason, Module, State) ->
-    ok = Module:terminate(Reason, State),
-    erlang:exit(Reason).

@@ -14,7 +14,7 @@
 
 -define(KEYFILE, "server.key").
 
--define(DEFAULT_IM_LISTENER_POOLSIZE, 3).
+-define(DEFAULT_IM_LISTENER_POOLSIZE, 2).
 
 -define(DEFAULT_IM_PORT, 1987).
 
@@ -30,8 +30,8 @@
 -define(DEFAULT_HEARTBEAT_TIMEOUT, 600000).
 
 -define(DEFAULT_NODE_LIST, ['s1@simple_im.com',
-                             's2@simple_im.com',
-                             's3@simple_im.com']).
+                            's2@simple_im.com',
+                            's3@simple_im.com']).
 
 -define(DEFAULT_DB_HOST, "localhost").
 

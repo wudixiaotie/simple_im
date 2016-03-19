@@ -6,14 +6,13 @@
 
 -module(client).
 
--behaviour(gen_server).
+-behaviour(gen_msg).
 
 % APIs
 -export([start_link/3]).
 
-% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+% gen_msg callbacks
+-export([init/1, handle_msg/2, terminate/2]).
 
 -record(state, {heartbeat_timeout,
                 user_id,
@@ -30,12 +29,12 @@
 %% ===================================================================
 
 start_link(Message, UserId, Device) ->
-    gen_server:start_link(?MODULE, [Message, UserId, Device], []).
+    gen_msg:start_link(?MODULE, [Message, UserId, Device]).
 
 
 
 %% ===================================================================
-%% gen_server callbacks
+%% gen_msg callbacks
 %% ===================================================================
 
 init([Message, UserId, #device{ssl_socket = SslSocket} = Device]) ->
@@ -49,18 +48,12 @@ init([Message, UserId, #device{ssl_socket = SslSocket} = Device]) ->
     {ok, State, State#state.heartbeat_timeout}.
 
 
-handle_call(_Request, _From, State) ->
-    {reply, nomatch, State, State#state.heartbeat_timeout}.
-handle_cast(_Msg, State) ->
-    {noreply, State, State#state.heartbeat_timeout}.
-
-
 
 %% ===================================================================
 %% socket
 %% ===================================================================
 
-handle_info({replace_socket, Message, #device{ssl_socket = SslSocket} = Device},
+handle_msg({replace_socket, Message, #device{ssl_socket = SslSocket} = Device},
             #state{device_list = DeviceList} = State) ->
     ok = ssl:send(SslSocket, Message#message.bin),
 
@@ -80,14 +73,14 @@ handle_info({replace_socket, Message, #device{ssl_socket = SslSocket} = Device},
             State#state{device_list = [Device|DeviceList]}
     end,
     setopts(SslSocket),
-    {noreply, NewState, NewState#state.heartbeat_timeout};
-handle_info({ssl, _, Bin}, State) ->
+    {ok, NewState, NewState#state.heartbeat_timeout};
+handle_msg({ssl, _, Bin}, State) ->
     {ok, Toml} = toml:binary_2_term(Bin),
     {ok, NewState} = process_packet(Toml, State),
-    {noreply, NewState, NewState#state.heartbeat_timeout};
+    {ok, NewState, NewState#state.heartbeat_timeout};
 % connection closed
-handle_info({ssl_closed, _SslSocket}, State) ->
-    {noreply, State, State#state.heartbeat_timeout};
+handle_msg({ssl_closed, _SslSocket}, State) ->
+    {ok, State, State#state.heartbeat_timeout};
 
 
 
@@ -95,15 +88,15 @@ handle_info({ssl_closed, _SslSocket}, State) ->
 %% business receiver
 %% ===================================================================
 
-handle_info({middleman, Toml}, State) ->
+handle_msg({middleman, Toml}, State) ->
     {ok, NewState} = process_packet([Toml], State),
-    {noreply, NewState, NewState#state.heartbeat_timeout};
-handle_info(Message, State) when is_record(Message, message) ->
+    {ok, NewState, NewState#state.heartbeat_timeout};
+handle_msg(Message, State) when is_record(Message, message) ->
     {ok, NewState} = send_msg_2_multiple_device(State#state.device_list,
                                                 Message,
                                                 State,
                                                 save),
-    {noreply, NewState, NewState#state.heartbeat_timeout};
+    {ok, NewState, NewState#state.heartbeat_timeout};
 
 
 
@@ -111,24 +104,24 @@ handle_info(Message, State) when is_record(Message, message) ->
 %% client logic functions
 %% ===================================================================
 
-handle_info({replaced_by, NewPid}, State) ->
+handle_msg({replaced_by, NewPid}, State) ->
     NewPid ! {msg_cache, State#state.msg_cache},
     {stop, {replaced_by, NewPid}, State};
-handle_info({msg_cache, OriginalMsgCache}, State) ->
+handle_msg({msg_cache, OriginalMsgCache}, State) ->
     case OriginalMsgCache of
         [] ->
             NewState = State;
         _ ->
             {ok, NewState} = merge_msg_cache(State, OriginalMsgCache)
     end,
-    {noreply, NewState, NewState#state.heartbeat_timeout};
-handle_info(timeout, State) ->
+    {ok, NewState, NewState#state.heartbeat_timeout};
+handle_msg(timeout, State) ->
     ok = offline:store(State#state.user_id, State#state.msg_cache),
-    proc_lib:hibernate(gen_server, enter_loop, [?MODULE, [], State]),
-    {noreply, State, State#state.heartbeat_timeout};
-handle_info(Info, State) ->
+    proc_lib:hibernate(gen_msg, enter_loop, [?MODULE, State]),
+    {ok, State, State#state.heartbeat_timeout};
+handle_msg(Info, State) ->
     log:i("[IM] Client got an unknown info: ~p.~n", [Info]),
-    {noreply, State, State#state.heartbeat_timeout}.
+    {ok, State, State#state.heartbeat_timeout}.
 
 
 terminate(Reason, #state{user_id = UserId} = State) ->
@@ -136,7 +129,6 @@ terminate(Reason, #state{user_id = UserId} = State) ->
     log:i("[IM] Client ~p terminate with reason: ~p~n", [self(), Reason]),
     ok = offline:store(UserId, State#state.msg_cache),
     session:unregister(UserId).
-code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 
 
