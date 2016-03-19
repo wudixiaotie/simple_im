@@ -6,14 +6,13 @@
 
 -module(listener).
 
--behaviour(gen_server).
+-behaviour(gen_msg).
 
 % APIs
 -export([start_link/1]).
 
-% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+% gen_msg callbacks
+-export([init/1, handle_msg/2, terminate/2]).
 
 -record(state, {listen_socket, cf_name, acceptor_ref}).
 
@@ -25,12 +24,12 @@
 
 start_link(Index) ->
     Name = erlang:list_to_atom("listener_" ++ erlang:integer_to_list(Index)),
-    gen_server:start_link({local, Name}, ?MODULE, [Index], []).
+    gen_msg:start_link({local, Name}, ?MODULE, [Index]).
 
 
 
 %% ===================================================================
-%% gen_server callbacks
+%% gen_msg callbacks
 %% ===================================================================
 
 init([Index]) ->
@@ -57,11 +56,7 @@ init([Index]) ->
     {ok, State}.
 
 
-handle_call(_Msg, _From, State) -> {reply, _Msg, State}.
-handle_cast(_Msg, State) -> {noreply, State}.
-
-
-handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
+handle_msg({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
              #state{listen_socket = ListenSocket, acceptor_ref = AcceptorRef} = State) ->
     %% Taken from prim_inet.  We are merely copying some socket options from the
     %% listening socket to the new TCP socket.
@@ -77,16 +72,15 @@ handle_info({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
             ok
     end,
     {ok, NewAcceptorRef} = prim_inet:async_accept(ListenSocket, -1),
-    {noreply, State#state{acceptor_ref = NewAcceptorRef}};
-handle_info(Info, State) ->
+    {ok, State#state{acceptor_ref = NewAcceptorRef}};
+handle_msg(Info, State) ->
     log:e("[IM] Listener got unknown request:~p~n", [Info]),
-    {noreply, State}.
+    {ok, State}.
 
 
 terminate(_Reason, State) ->
     ok = gen_tcp:close(State#state.listen_socket),
     ok.
-code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 
 
