@@ -6,14 +6,13 @@
 
 -module(cf_worker).
 
--behaviour(gen_server).
+-behaviour(gen_msg).
 
 % APIs
 -export([start_link/2]).
 
-% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+% gen_msg callbacks
+-export([init/1, handle_msg/2, terminate/2]).
 
 -record(state, {name :: atom(),
                 cf_name :: atom(),
@@ -30,11 +29,11 @@
 %% ===================================================================
 
 start_link(Name, CFName) ->
-    gen_server:start_link({local, Name}, ?MODULE, [Name, CFName], []).
+    gen_msg:start_link({local, Name}, ?MODULE, [Name, CFName]).
 
 
 %% ===================================================================
-%% gen_server callbacks
+%% gen_msg callbacks
 %% ===================================================================
 
 init([Name, CFName]) ->
@@ -43,11 +42,7 @@ init([Name, CFName]) ->
     {ok, #state{name = Name, cf_name = CFName, ssl_configs = SslConfigs}}.
 
 
-handle_call(_Request, _From, State) -> {reply, nomatch, State}.
-handle_cast(_Msg, State) -> {noreply, State}.
-
-
-handle_info({make, Socket}, State) ->
+handle_msg({make, Socket}, State) ->
     NewState = case ssl:ssl_accept(Socket, State#state.ssl_configs) of
         {ok, SslSocket} -> 
             ok = ssl:setopts(SslSocket, [{active, once}, {packet, 0}, binary]),
@@ -56,8 +51,8 @@ handle_info({make, Socket}, State) ->
         _ ->
             State
     end,
-    {noreply, NewState};
-handle_info({ssl, SslSocket, Bin}, State) ->
+    {ok, NewState};
+handle_msg({ssl, SslSocket, Bin}, State) ->
     timer:cancel(State#state.timer_ref),
     {ok, Toml} = toml:binary_2_term(Bin),
     [{<<"r">>, Attrs}|_] = Toml,
@@ -127,12 +122,11 @@ handle_info({ssl, SslSocket, Bin}, State) ->
     end,
     free_worker(State#state.name, State#state.cf_name),
     timer:cancel(State#state.timer_ref),
-    {noreply, State#state{timer_ref = undefined}};
-handle_info(_Info, State) -> {noreply, State}.
+    {ok, State#state{timer_ref = undefined}};
+handle_msg(_Info, State) -> {ok, State}.
 
 
 terminate(_Reason, _State) -> ok.
-code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 
 %% ===================================================================

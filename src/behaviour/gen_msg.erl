@@ -86,6 +86,8 @@ do_loop(Parent, Debug, Module, State, Msg) ->
             loop(Parent, Debug, Module, NewState, infinity);
         {ok, NewState, NewTimeout} ->
             loop(Parent, Debug, Module, NewState, NewTimeout);
+        {stop, Reason, NewState} ->
+            terminate(Reason, Module, NewState);
         {'EXIT', Reason} ->
             terminate(Reason, Module, State);
         Other ->

@@ -6,14 +6,13 @@
 
 -module(agent).
 
--behaviour(gen_server).
+-behaviour(gen_msg).
 
 % APIs
 -export([work_for_master/0, work_for_hunter/0, offer_a_reward/1]).
 
-% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+% gen_msg callbacks
+-export([init/1, handle_msg/2, terminate/2]).
 
 -record(state, {socket, role}).
 
@@ -27,21 +26,21 @@
 %% ===================================================================
 
 work_for_master() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [master], []).
+    gen_msg:start_link({local, ?MODULE}, ?MODULE, [master]).
 
 
 work_for_hunter() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [hunter], []).
+    gen_msg:start_link({local, ?MODULE}, ?MODULE, [hunter]).
 
 
 offer_a_reward(TomlBin) ->
-    ok = gen_server:call(?MODULE, {offer_a_reward, TomlBin}),
+    ?MODULE ! {offer_a_reward, TomlBin},
     ok.
 
 
 
 %% ===================================================================
-%% gen_server callbacks
+%% gen_msg callbacks
 %% ===================================================================
 
 init([Role]) ->
@@ -62,29 +61,22 @@ init([Role]) ->
 
 
 % master agent send message to middleman
-handle_call({offer_a_reward, TomlBin}, _From, #state{role = master} = State) ->
+handle_msg({offer_a_reward, TomlBin}, #state{role = master} = State) ->
     ok = gen_tcp:send(State#state.socket, TomlBin),
-    {reply, ok, State};
-handle_call(_Request, _From, State) -> {reply, nomatch, State}.
-
-
-handle_cast(_Msg, State) -> {noreply, State}.
-
-
+    {ok, State};
 % hunter agent got message from middleman
-handle_info({tcp, _Socket, TomlBin}, #state{role = hunter} = State) ->
+handle_msg({tcp, _Socket, TomlBin}, #state{role = hunter} = State) ->
     {ok, TomlList} = toml:binary_2_term(TomlBin),
     ok = process_toml(TomlList),
-    {noreply, State};
-handle_info({tcp_closed, _Socket}, State) ->
+    {ok, State};
+handle_msg({tcp_closed, _Socket}, State) ->
     {stop, tcp_closed, State};
-handle_info(_Info, State) -> {noreply, State}.
+handle_msg(_Info, State) -> {ok, State}.
 
 
 terminate(Reason, _State) ->
     log:e("[Middleman] Agent is down! Reason: ~p~n", [Reason]),
     ok.
-code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 
 

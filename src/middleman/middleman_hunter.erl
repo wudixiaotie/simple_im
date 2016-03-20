@@ -6,14 +6,13 @@
 
 -module(middleman_hunter).
 
--behaviour(gen_server).
+-behaviour(gen_msg).
 
 % APIs
 -export([start_link/1]).
 
-% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+% gen_msg callbacks
+-export([init/1, handle_msg/2, terminate/2]).
 
 
 -record(state, {name, socket}).
@@ -25,12 +24,12 @@
 %% ===================================================================
 
 start_link(Socket) ->
-    gen_server:start_link(?MODULE, [Socket], []).
+    gen_msg:start_link(?MODULE, [Socket]).
 
 
 
 %% ===================================================================
-%% gen_server callbacks
+%% gen_msg callbacks
 %% ===================================================================
 
 init([Socket]) ->
@@ -39,23 +38,18 @@ init([Socket]) ->
     {ok, #state{name = HunterName, socket = Socket}}.
 
 
-handle_call(_Request, _From, State) -> {reply, nomatch, State}.
-handle_cast(_Msg, State) -> {noreply, State}.
-
-
-handle_info({job, Bin}, State) ->
+handle_msg({job, Bin}, State) ->
     ok = gen_tcp:send(State#state.socket, Bin),
-    {noreply, State};
-handle_info({tcp_closed, _Socket}, State) ->
+    {ok, State};
+handle_msg({tcp_closed, _Socket}, State) ->
     {stop, tcp_closed, State};
-handle_info(_Info, State) -> {noreply, State}.
+handle_msg(_Info, State) -> {ok, State}.
 
 
 terminate(Reason, State) ->
     ok = notify_all_master(hunter_terminate),
     log:e("[Middleman] Middleman worker ~p has down! Reason: ~p~n", [State#state.name, Reason]),
     ok.
-code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 
 
