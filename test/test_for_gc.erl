@@ -1,4 +1,4 @@
--module (test_for_gen_server1).
+-module (test_for_gc).
 
 -export ([test1/1, test2/1, test3/1, test4/1, test5/1, test6/1]).
 -export ([bigheap2/2, bigheap3/2, bigheap4/2, bigheap5/2, bigheap6/2]).
