@@ -1,6 +1,7 @@
 -module (test_for_gen_server1).
 
 -export ([test1/1, test2/1, test3/1, test4/1, test5/1, test6/1]).
+-export ([bigheap2/2, bigheap3/2, bigheap4/2, bigheap5/2, bigheap6/2]).
 
 -record (state, {timestamp, times}).
 
@@ -12,7 +13,7 @@ send_msg(N) ->
 
 % test for running function without GC
 test1(N) ->
-    Pid = spawn(fun() -> loop1(undefined, 0) end), Pid ! {start, N}, ok.
+    Pid = spawn(fun() -> loop1(undefined, 0) end), Pid ! {start, N}.
 
 loop1(Timestamp, Times) ->
     receive
@@ -33,7 +34,9 @@ loop1(Timestamp, Times) ->
 
 % test for running function with record GC
 test2(N) ->
-    Pid = spawn(fun() -> loop2(#state{timestamp = undefined, times = 0}) end), Pid ! {start, N}, ok.
+    Pid = spawn(fun() -> loop2(#state{timestamp = undefined, times = 0}) end), Pid ! {start, N}.
+bigheap2(N, Size) ->
+    Pid = spawn_opt(fun() -> loop2(#state{timestamp = undefined, times = 0}) end, [{min_heap_size, Size}]), Pid ! {start, N}.
 
 loop2(State) ->
     receive
@@ -56,7 +59,9 @@ loop2(State) ->
 
 % test for running function with map GC
 test3(N) ->
-    Pid = spawn(fun() -> loop3(#{timestamp => undefined, times => 0}) end), Pid ! {start, N}, ok.
+    Pid = spawn(fun() -> loop3(#{timestamp => undefined, times => 0}) end), Pid ! {start, N}.
+bigheap3(N, Size) ->
+    Pid = spawn_opt(fun() -> loop3(#{timestamp => undefined, times => 0}) end, [{min_heap_size, Size}]), Pid ! {start, N}.
 
 loop3(State) ->
     receive
@@ -81,7 +86,9 @@ loop3(State) ->
 
 % test for running function with map GC
 test4(N) ->
-    Pid = spawn(fun() -> loop4(#{timestamp => undefined, times => 0}) end), Pid ! {start, N}, ok.
+    Pid = spawn(fun() -> loop4(#{timestamp => undefined, times => 0}) end), Pid ! {start, N}.
+bigheap4(N, Size) ->
+    Pid = spawn_opt(fun() -> loop4(#{timestamp => undefined, times => 0}) end, [{min_heap_size, Size}]), Pid ! {start, N}.
 
 loop4(State) ->
     receive
@@ -106,7 +113,9 @@ loop4(State) ->
 
 % test for running function with list GC
 test5(N) ->
-    Pid = spawn(fun() -> loop5([undefined, 0]) end), Pid ! {start, N}, ok.
+    Pid = spawn(fun() -> loop5([undefined, 0]) end), Pid ! {start, N}.
+bigheap5(N, Size) ->
+    Pid = spawn_opt(fun() -> loop5([undefined, 0]) end, [{min_heap_size, Size}]), Pid ! {start, N}.
 
 loop5([Timestamp, Times]) ->
     receive
@@ -127,7 +136,9 @@ loop5([Timestamp, Times]) ->
 
 % test for running function with tuple GC
 test6(N) ->
-    Pid = spawn(fun() -> loop6({undefined, 0}) end), Pid ! {start, N}, ok.
+    Pid = spawn(fun() -> loop6({undefined, 0}) end), Pid ! {start, N}.
+bigheap6(N, Size) ->
+    Pid = spawn_opt(fun() -> loop6({undefined, 0}) end, [{min_heap_size, Size}]), Pid ! {start, N}.
 
 loop6({Timestamp, Times}) ->
     receive
