@@ -11,5 +11,11 @@
 8. Reconnect will not create new process, but reuse the old one.
 
 
+Build
+-----
+
+    $ rebar3 compile
+
+
 ### Get started: [get started](https://github.com/wudixiaotie/simple_im/wiki/8.Getting-started).
 ### Wiki: [simple_im wiki](https://github.com/wudixiaotie/simple_im/wiki).
