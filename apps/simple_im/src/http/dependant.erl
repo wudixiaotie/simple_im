@@ -56,7 +56,7 @@ start_app(AppName, KeyProcessName) ->
                 undefined ->
                     ok;
                 KeyProcessPid ->
-                    true = erlang:exit(KeyProcessPid, restart)
+                    true = erlang:exit(KeyProcessPid, kill)
             end,
             timer:sleep(1000),
             start_app(AppName, KeyProcessName)
