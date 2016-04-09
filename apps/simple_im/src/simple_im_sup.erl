@@ -36,7 +36,7 @@
 %%====================================================================
 
 start_link() ->
-    {ok, AppMode} = application:get_env(simple_im, app_mode),
+    AppMode = env:get(app_mode),
     supervisor:start_link({local, ?MODULE}, ?MODULE, [AppMode]).
 
 

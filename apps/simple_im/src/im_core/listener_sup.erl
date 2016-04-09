@@ -27,7 +27,7 @@
 %% ===================================================================
 
 start_link() ->
-    ok = ssl:start(),
+    ssl:start(),
     {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
     ListenerPoolsize = env:get(im_listener_poolsize),
     ok = start_listener(ListenerPoolsize),

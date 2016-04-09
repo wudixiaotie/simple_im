@@ -8,11 +8,13 @@
 
 -export([get/1]).
 
--define(CACERTFILE, "cowboy-ca.crt").
+-define(DEFAULT_APP_MODE, im).
 
--define(CERTFILE, "server.crt").
+-define(DEFAULT_CACERTFILE, "cowboy-ca.crt").
 
--define(KEYFILE, "server.key").
+-define(DEFAULT_CERTFILE, "server.crt").
+
+-define(DEFAULT_KEYFILE, "server.key").
 
 -define(DEFAULT_IM_LISTENER_POOLSIZE, 2).
 
@@ -72,7 +74,7 @@
 get(Key) ->
     case application:get_env(simple_im, Key) of
         {ok, Value} -> Value;
-        undefined -> get_default(Key)
+        _ -> get_default(Key)
     end.
 
 
@@ -81,9 +83,10 @@ get(Key) ->
 %% Internal functions
 %% ===================================================================
 
-get_default(cacertfile) -> ?CACERTFILE;
-get_default(certfile) -> ?CERTFILE;
-get_default(keyfile) -> ?KEYFILE;
+get_default(app_mode) -> ?DEFAULT_APP_MODE;
+get_default(cacertfile) -> ?DEFAULT_CACERTFILE;
+get_default(certfile) -> ?DEFAULT_CERTFILE;
+get_default(keyfile) -> ?DEFAULT_KEYFILE;
 get_default(im_listener_poolsize) -> ?DEFAULT_IM_LISTENER_POOLSIZE;
 get_default(im_port) -> ?DEFAULT_IM_PORT;
 get_default(http_port) -> ?DEFAULT_HTTP_PORT;
@@ -107,6 +110,9 @@ get_default(redis_pools) -> ?DEFAULT_REDIS_POOLS;
 get_default(redis_global_or_local) -> ?DEFAULT_REDIS_GLOBAL_OR_LOCAL;
 
 get_default(device_list) -> ?DEFAULT_DEVICE_LIST;
+
+% http server config
 get_default(audio_dir) -> ?DEFAULT_AUDIO_DIR;
 get_default(video_dir) -> ?DEFAULT_VIDEO_DIR;
-get_default(image_dir) -> ?DEFAULT_IMAGE_DIR.
+get_default(image_dir) -> ?DEFAULT_IMAGE_DIR;
+get_default(_) -> undefined.

@@ -1,5 +1,5 @@
 {application, simple_im,
- [{description, "An OTP application"},
+ [{description, "Amazing instant messaging service, include IM Service, HTTP Sevice, Message Transmission Pipeline."},
   {vsn, "0.6.0"},
   {registered, []},
   {mod, { simple_im_app, []}},
