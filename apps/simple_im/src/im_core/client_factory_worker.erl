@@ -4,7 +4,7 @@
 %% client factory worker
 %% ===================================================================
 
--module(cf_worker).
+-module(client_factory_worker).
 
 -behaviour(gen_msg).
 
@@ -15,7 +15,7 @@
 -export([init/1, handle_msg/2, terminate/2]).
 
 -record(state, {name :: atom(),
-                cf_name :: atom(),
+                client_factory :: atom(),
                 ssl_configs :: list(),
                 timer_ref}).
 
@@ -28,18 +28,18 @@
 %% APIs
 %% ===================================================================
 
-start_link(Name, CFName) ->
-    gen_msg:start_link({local, Name}, ?MODULE, [Name, CFName]).
+start_link(Name, ClientFactory) ->
+    gen_msg:start_link({local, Name}, ?MODULE, [Name, ClientFactory]).
 
 
 %% ===================================================================
 %% gen_msg callbacks
 %% ===================================================================
 
-init([Name, CFName]) ->
+init([Name, ClientFactory]) ->
     {ok, SslConfigs} = utility:ssl_configs(),
-    free_worker(Name, CFName),
-    {ok, #state{name = Name, cf_name = CFName, ssl_configs = SslConfigs}}.
+    free_worker(Name, ClientFactory),
+    {ok, #state{name = Name, client_factory = ClientFactory, ssl_configs = SslConfigs}}.
 
 
 handle_msg({make, Socket}, State) ->
@@ -120,7 +120,7 @@ handle_msg({ssl, SslSocket, Bin}, State) ->
         {error, Reason} ->
             send_error(SslSocket, MsgId, Reason)
     end,
-    free_worker(State#state.name, State#state.cf_name),
+    free_worker(State#state.name, State#state.client_factory),
     timer:cancel(State#state.timer_ref),
     {ok, State#state{timer_ref = undefined}};
 handle_msg(_Info, State) -> {ok, State}.
@@ -133,8 +133,8 @@ terminate(_Reason, _State) -> ok.
 %% Internal functions
 %% ===================================================================
 
-free_worker(Name, CFName) ->
-    CFName ! {free_worker, Name}.
+free_worker(Name, ClientFactory) ->
+    ClientFactory ! {free_worker, Name}.
 
 
 send_error(SslSocket, MsgId, Reason) ->

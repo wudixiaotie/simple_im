@@ -13,15 +13,15 @@ start() ->
 
 
 start(im) ->
-    application:set_env(simple_im, app_mode, im),
-    application:start(simple_im);
+    application:set_env(?MODULE, app_mode, im),
+    application:start(?MODULE);
 start(http) ->
-    application:set_env(simple_im, app_mode, http),
-    application:start(simple_im);
+    application:set_env(?MODULE, app_mode, http),
+    application:start(?MODULE);
 start(middleman) ->
-    application:set_env(simple_im, app_mode, middleman),
-    application:start(simple_im).
+    application:set_env(?MODULE, app_mode, middleman),
+    application:start(?MODULE).
 
 
 stop() ->
-    application:stop(simple_im).
+    application:stop(?MODULE).

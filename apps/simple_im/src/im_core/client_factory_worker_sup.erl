@@ -4,7 +4,7 @@
 %% client factory supervisor
 %% ===================================================================
 
--module(cf_worker_sup).
+-module(client_factory_worker_sup).
 
 -behaviour(supervisor).
 
@@ -15,8 +15,8 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD, #{id         => cf_worker,
-                 start      => {cf_worker, start_link, []},
+-define(CHILD, #{id         => client_factory_worker,
+                 start      => {client_factory_worker, start_link, []},
                  restart    => permanent,
                  type       => worker}).
 

@@ -8,7 +8,7 @@
 %% to it.
 %% ===================================================================
 
--module(cf).
+-module(client_factory).
 
 -behaviour(gen_server).
 
@@ -20,7 +20,7 @@
          terminate/2, code_change/3]).
 
 -record(state, {name :: atom(),
-                cf_worker_sup_name :: atom(),
+                supervisor_name :: atom(),
                 queue,
                 max :: integer()}).
 
@@ -31,12 +31,12 @@
 %% ===================================================================
 
 start_link(Index) ->
-    Name = erlang:list_to_atom("cf_" ++ erlang:integer_to_list(Index)),
+    Name = erlang:list_to_atom("client_factory_" ++ erlang:integer_to_list(Index)),
     gen_server:start_link({local, Name}, ?MODULE, [Name], []).
 
 
-make(CFPid, Socket) ->
-    {ok, WorkerName} = gen_server:call(CFPid, get_worker),
+make(ClientFactory, Socket) ->
+    {ok, WorkerName} = gen_server:call(ClientFactory, get_worker),
     case whereis(WorkerName) of
         undefined ->
             error;
@@ -52,14 +52,14 @@ make(CFPid, Socket) ->
 %% ===================================================================
 
 init([Name]) ->
-    CFWorkerSupName = erlang:list_to_atom(erlang:atom_to_list(Name) ++ "_cf_worker_sup"),
-    cf_worker_sup:start_link(CFWorkerSupName),
-    CFSize = env:get(cf_size),
-    ok = create_multiple_worker(Name, CFWorkerSupName, CFSize),
+    SupervisorName = erlang:list_to_atom(erlang:atom_to_list(Name) ++ "_supervisor"),
+    client_factory_worker_sup:start_link(SupervisorName),
+    ClientFactorySize = env:get(client_factory_size),
+    ok = create_multiple_worker(Name, SupervisorName, ClientFactorySize),
     State = #state{name = Name,
-                   cf_worker_sup_name = CFWorkerSupName,
+                   supervisor_name = SupervisorName,
                    queue = queue:new(),
-                   max = CFSize},
+                   max = ClientFactorySize},
     {ok, State}.
 
 
@@ -68,7 +68,7 @@ handle_call(get_worker, _From, State) ->
         {empty, _} ->
             NewMax = State#state.max + 1,
             {ok, WorkerName} = create_single_worker(State#state.name,
-                                                    State#state.cf_worker_sup_name,
+                                                    State#state.supervisor_name,
                                                     NewMax),
             State#state{max = NewMax};
         {{value, WorkerName}, NewQueue} ->
@@ -100,18 +100,18 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 
 create_multiple_worker(_, _, 0) ->
     ok;
-create_multiple_worker(CFName, CFWorkerSupName, N) ->
-    create_single_worker(CFName, CFWorkerSupName, N),
-    create_multiple_worker(CFName, CFWorkerSupName, N - 1).
+create_multiple_worker(ClientFactory, SupervisorName, N) ->
+    create_single_worker(ClientFactory, SupervisorName, N),
+    create_multiple_worker(ClientFactory, SupervisorName, N - 1).
 
 
-create_single_worker(CFName, CFWorkerSupName, WorkerIndex) ->
-    Name = worker_name(CFName, WorkerIndex),
-    supervisor:start_child(CFWorkerSupName, [Name, CFName]),
+create_single_worker(ClientFactory, SupervisorName, WorkerIndex) ->
+    Name = worker_name(ClientFactory, WorkerIndex),
+    {ok, _} = supervisor:start_child(SupervisorName, [Name, ClientFactory]),
     {ok, Name}.
 
 
-worker_name(CFName, WorkerIndex) ->
-    erlang:list_to_atom(erlang:atom_to_list(CFName) ++
-                        "_cf_worker_" ++
+worker_name(ClientFactory, WorkerIndex) ->
+    erlang:list_to_atom(erlang:atom_to_list(ClientFactory) ++
+                        "_worker_" ++
                         erlang:integer_to_list(WorkerIndex)).

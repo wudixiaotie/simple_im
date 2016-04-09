@@ -26,7 +26,7 @@
 
 -define(DEFAULT_MIDDLEMAN_PORT, 10000).
 
--define(DEFAULT_CF_SIZE, 10).
+-define(DEFAULT_CLIENT_FACTORY_SIZE, 10).
 
 % 10 minutes
 -define(DEFAULT_HEARTBEAT_TIMEOUT, 600000).
@@ -92,7 +92,7 @@ get_default(im_port) -> ?DEFAULT_IM_PORT;
 get_default(http_port) -> ?DEFAULT_HTTP_PORT;
 get_default(middleman_host) -> ?DEFAULT_MIDDLEMAN_HOST;
 get_default(middleman_port) -> ?DEFAULT_MIDDLEMAN_PORT;
-get_default(cf_size) -> ?DEFAULT_CF_SIZE;
+get_default(client_factory_size) -> ?DEFAULT_CLIENT_FACTORY_SIZE;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
 get_default(node_list) -> ?DEFAULT_NODE_LIST;
 

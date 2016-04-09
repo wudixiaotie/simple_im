@@ -14,7 +14,7 @@
 % gen_msg callbacks
 -export([init/1, handle_msg/2, terminate/2]).
 
--record(state, {listen_socket, cf_name, acceptor_ref}).
+-record(state, {listen_socket, client_factory, acceptor_ref}).
 
 
 
@@ -33,7 +33,7 @@ start_link(Index) ->
 %% ===================================================================
 
 init([Index]) ->
-    {ok, CfName} = cf:start_link(Index),
+    {ok, ClientFactory} = client_factory:start_link(Index),
 
     DefaultIMPort = env:get(im_port),
     {ok, Port} = utility:free_port(DefaultIMPort),
@@ -47,7 +47,7 @@ init([Index]) ->
     {ok, ListenSocket} = gen_tcp:listen(Port, Opts),
     {ok, AcceptorRef} = prim_inet:async_accept(ListenSocket, -1),
     State = #state{listen_socket = ListenSocket,
-                   cf_name = CfName,
+                   client_factory = ClientFactory,
                    acceptor_ref = AcceptorRef},
 
     {ok, [{IP, _, _}, _]} = inet:getif(),
@@ -67,7 +67,7 @@ handle_msg({inet_async, ListenSocket, AcceptorRef, {ok, ClientSocket}},
         {{ok, {ServerAddr, ServerPort}}, {ok, {ClientAddr, ClientPort}}} ->
             log:i("[IM] Listener accept socket:(~w), server:~w(~p), client:~w(~p)~n",
                   [ClientSocket, ServerAddr, ServerPort, ClientAddr, ClientPort]),
-            cf:make(State#state.cf_name, ClientSocket);
+            client_factory:make(State#state.client_factory, ClientSocket);
         _ ->
             ok
     end,

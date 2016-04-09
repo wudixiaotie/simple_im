@@ -88,5 +88,5 @@ code_change(_OldVer, State, _Extra) -> {ok, State}.
 create_connection(0) ->
     ok;
 create_connection(N) ->
-    supervisor:start_child(postgresql_sup, [N]),
+    {ok, _} = supervisor:start_child(postgresql_sup, [N]),
     create_connection(N - 1).
