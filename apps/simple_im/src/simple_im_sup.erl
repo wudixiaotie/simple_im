@@ -48,7 +48,8 @@ start_link() ->
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([im]) ->
     {ok, { {one_for_one, 5, 10},
-           [?CHILD(postgresql, worker),
+           [?CHILD(log_server, worker),
+            ?CHILD(postgresql, worker),
             ?CHILD(redis, worker),
             ?CHILD(session, worker),
             ?CHILD(client_sup, supervisor),
@@ -56,7 +57,8 @@ init([im]) ->
             ?AGENT_CHILD(work_for_hunter)]} };
 init([http]) ->
     {ok, { {one_for_one, 5, 10},
-           [?HTTP_CHILD(postgresql, postgresql, [http], worker),
+           [?CHILD(log_server, worker),
+            ?HTTP_CHILD(postgresql, postgresql, [http], worker),
             ?HTTP_CHILD(redis, redis, [], worker),
             ?HTTP_CHILD(ranch, dependant, [ranch], supervisor),
             ?HTTP_CHILD(cowboy_app, dependant, [cowboy_app], supervisor),
@@ -64,7 +66,8 @@ init([http]) ->
             ?AGENT_CHILD(work_for_master)]} };
 init([middleman]) ->
     {ok, { {one_for_one, 5, 10},
-           [?CHILD(middleman_worker_sup, supervisor),
+           [?CHILD(log_server, worker),
+            ?CHILD(middleman_worker_sup, supervisor),
             ?CHILD(middleman_listener, worker)]} }.
 
 

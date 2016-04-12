@@ -10,6 +10,8 @@
 
 -define(DEFAULT_APP_MODE, im).
 
+-define(DEFAULT_LOG_DIR, "/tmp/log/").
+
 -define(DEFAULT_CACERTFILE, "cowboy-ca.crt").
 
 -define(DEFAULT_CERTFILE, "server.crt").
@@ -84,6 +86,7 @@ get(Key) ->
 %% ===================================================================
 
 get_default(app_mode) -> ?DEFAULT_APP_MODE;
+get_default(log_dir) -> ?DEFAULT_LOG_DIR;
 get_default(cacertfile) -> ?DEFAULT_CACERTFILE;
 get_default(certfile) -> ?DEFAULT_CERTFILE;
 get_default(keyfile) -> ?DEFAULT_KEYFILE;
