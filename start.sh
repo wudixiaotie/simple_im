@@ -14,10 +14,10 @@ case $1 in
         erl_command="$erl_start -name s3@simple_im.com"
         ;;
     "http" )
-        erl_command="$erl_start -eval simple_im:start(http)."
+        erl_command="$erl_start -config config/http/sys.config -eval simple_im:start(http)."
         ;;
     "middleman" )
-        erl_command="$erl_start -eval simple_im:start(middleman)."
+        erl_command="$erl_start -config config/middleman/sys.config -eval simple_im:start(middleman)."
         ;;
     "task" )
         erl_command="$erl_start -eval postgresql:start_link()."
@@ -35,7 +35,7 @@ case $2 in
         erl_command="$erl_command -eval observer:start()."
         ;;
     "im" )
-        erl_command="$erl_command -eval simple_im:start()."
+        erl_command="$erl_command -config config/im/sys.config -eval simple_im:start()."
         ;;
     "" )
         erl_command=$erl_command

@@ -49,8 +49,6 @@
 
 -define(DEFAULT_DB_POOLSIZE, 5).
 
--define(DEFAULT_HTTP_DB_POOLSIZE, 10).
-
 -define(DEFAULT_REDIS_POOLS, [{pool0, [{size, 10},
                                        {max_overflow, 20},
                                        {host, "127.0.0.1"},
@@ -106,7 +104,6 @@ get_default(db_password) -> ?DEFAULT_DB_PASSWORD;
 get_default(db_database) -> ?DEFAULT_DB_DATABASE;
 get_default(db_port) -> ?DEFAULT_DB_PORT;
 get_default(db_poolsize) -> ?DEFAULT_DB_POOLSIZE;
-get_default(http_db_poolsize) -> ?DEFAULT_HTTP_DB_POOLSIZE;
 
 % redis
 get_default(redis_pools) -> ?DEFAULT_REDIS_POOLS;

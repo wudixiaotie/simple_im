@@ -1,0 +1,8 @@
+-sname http
+
+-setcookie simple_im_cookie
+
++K true
++A30
++Q 1100000
++P 1100000

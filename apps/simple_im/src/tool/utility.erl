@@ -102,16 +102,15 @@ strip_head(Rest) ->
 
 
 ssl_configs() ->
-    {ok, ApplicationName} = application:get_application(),
-    case code:priv_dir(ApplicationName) of
+    case code:priv_dir(simple_im) of
         {error, bad_name} ->
             PrivDir = "priv";
         PrivDir ->
             ok
     end,
     SslConfigs = [{cacertfile, PrivDir ++ "/ssl/" ++ env:get(cacertfile)},
-                 {certfile, PrivDir ++ "/ssl/" ++ env:get(certfile)},
-                 {keyfile, PrivDir ++ "/ssl/" ++ env:get(keyfile)}],
+                  {certfile, PrivDir ++ "/ssl/" ++ env:get(certfile)},
+                  {keyfile, PrivDir ++ "/ssl/" ++ env:get(keyfile)}],
     {ok, SslConfigs}.
 
 

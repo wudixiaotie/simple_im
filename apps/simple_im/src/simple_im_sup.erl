@@ -24,11 +24,6 @@
                             restart => permanent,
                             type    => worker}).
 
--define(HTTP_CHILD(Name, Mod, Args, Type), #{id      => Name,
-                                             start   => {Mod, start_link, Args},
-                                             restart => permanent,
-                                             type    => Type}).
-
 
 
 %%====================================================================
@@ -58,11 +53,9 @@ init([im]) ->
 init([http]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),
-            ?HTTP_CHILD(postgresql, postgresql, [http], worker),
-            ?HTTP_CHILD(redis, redis, [], worker),
-            ?HTTP_CHILD(ranch, dependant, [ranch], supervisor),
-            ?HTTP_CHILD(cowboy_app, dependant, [cowboy_app], supervisor),
-            ?HTTP_CHILD(cowboy_http, dependant, [cowboy_http], worker),
+            ?CHILD(postgresql, worker),
+            ?CHILD(redis, worker),
+            ?CHILD(http, worker),
             ?AGENT_CHILD(work_for_master)]} };
 init([middleman]) ->
     {ok, { {one_for_one, 5, 10},
