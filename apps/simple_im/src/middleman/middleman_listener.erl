@@ -7,7 +7,7 @@
 -module(middleman_listener).
 
 % APIs
--export([start_link/0]).
+-export([start_link/0, init/0]).
 
 -include("connection.hrl").
 
@@ -18,14 +18,9 @@
 %% ===================================================================
 
 start_link() ->
-    Pid = erlang:spawn_link(fun() -> init() end),
+    Pid = erlang:spawn_opt(?MODULE, init, [], [link]),
     {ok, Pid}.
 
-
-
-%% ===================================================================
-%% Internal functions
-%% ===================================================================
 
 init() ->
     true = erlang:register(?MODULE, self()),
@@ -37,6 +32,11 @@ init() ->
     {ok, MiddlemanListenSocket} = gen_tcp:listen(MiddlemanPort, Opts),
     accept(MiddlemanListenSocket).
 
+
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
 
 accept(MiddlemanListenSocket) ->
     {ok, Socket} = gen_tcp:accept(MiddlemanListenSocket),
