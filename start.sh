@@ -35,7 +35,7 @@ case $2 in
         erl_command="$erl_command -eval observer:start()."
         ;;
     "im" )
-        erl_command="$erl_command -config config/im/sys.config -eval simple_im:start()."
+        erl_command="$erl_command -config config/im/sys.config -eval simple_im:start(im)."
         ;;
     "" )
         erl_command=$erl_command
