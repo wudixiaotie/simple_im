@@ -1,7 +1,7 @@
 -module(gen_msg).
 
 % APIs
--export([start_link/2, init/3, start_link/3, init/4, enter_loop/2, enter_loop/3]).
+-export([start_link/3, init/3, start_link/4, init/4, enter_loop/2, enter_loop/3]).
 
 % system message
 -export([system_continue/3, system_terminate/4, system_get_state/1,
@@ -17,12 +17,12 @@
 -callback handle_msg(Msg :: term(), State :: term()) -> {ok, NewState :: term()} | {ok, State :: term(), timeout() | hibernate}.
 -callback terminate(Reason :: term(), State :: term()) -> ok.
 
-start_link(Module, Args) ->
-    proc_lib:start_link(?MODULE, init, [self(), Module, Args]).
+start_link(Module, Args, Opts) ->
+    proc_lib:spawn_opt(?MODULE, init, [self(), Module, Args], [link|Opts]).
 
 
-start_link(Name, Module, Args) ->
-    proc_lib:start_link(?MODULE, init, [self(), Name, Module, Args]).
+start_link(Name, Module, Args, Opts) ->
+    proc_lib:spawn_opt(?MODULE, init, [self(), Name, Module, Args], [link|Opts]).
 
 
 init(Parent, Module, Args) ->

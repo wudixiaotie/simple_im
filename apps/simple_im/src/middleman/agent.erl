@@ -26,11 +26,11 @@
 %% ===================================================================
 
 work_for_master() ->
-    gen_msg:start_link({local, ?MODULE}, ?MODULE, [master]).
+    gen_msg:start_link({local, ?MODULE}, ?MODULE, [master], []).
 
 
 work_for_hunter() ->
-    gen_msg:start_link({local, ?MODULE}, ?MODULE, [hunter]).
+    gen_msg:start_link({local, ?MODULE}, ?MODULE, [hunter], []).
 
 
 offer_a_reward(TomlBin) ->

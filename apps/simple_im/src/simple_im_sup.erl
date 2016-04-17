@@ -57,6 +57,11 @@ init([http]) ->
             ?CHILD(redis, worker),
             ?CHILD(http, worker),
             ?AGENT_CHILD(work_for_master)]} };
+init([session]) ->
+    {ok, { {one_for_one, 5, 10},
+           [?CHILD(log_server, worker),
+            ?CHILD(session_worker_sup, supervisor),
+            ?CHILD(session_listener, worker)]} };
 init([middleman]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),

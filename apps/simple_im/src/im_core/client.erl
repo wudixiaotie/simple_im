@@ -29,7 +29,7 @@
 %% ===================================================================
 
 start_link(Message, UserId, Device) ->
-    gen_msg:start_link(?MODULE, [Message, UserId, Device]).
+    gen_msg:start_link(?MODULE, [Message, UserId, Device], []).
 
 
 

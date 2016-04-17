@@ -24,7 +24,7 @@
 %% ===================================================================
 
 start_link(Socket) ->
-    gen_msg:start_link(?MODULE, [Socket]).
+    gen_msg:start_link(?MODULE, [Socket], []).
 
 
 

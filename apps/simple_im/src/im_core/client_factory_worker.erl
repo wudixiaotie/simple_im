@@ -29,7 +29,7 @@
 %% ===================================================================
 
 start_link(Name, ClientFactory) ->
-    gen_msg:start_link({local, Name}, ?MODULE, [Name, ClientFactory]).
+    gen_msg:start_link({local, Name}, ?MODULE, [Name, ClientFactory], []).
 
 
 %% ===================================================================

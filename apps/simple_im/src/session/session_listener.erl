@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-11-19
-%% middleman listener
+%% 2016-4-16
+%% session listener
 %% ===================================================================
 
--module(middleman_listener).
+-module(session_listener).
 
 % APIs
 -export([start_link/0, init/0]).
@@ -18,19 +18,25 @@
 %% ===================================================================
 
 start_link() ->
-    Pid = erlang:spawn_opt(?MODULE, init, [], [link]),
+    Pid = spawn_opt(?MODULE, init, [], [link]),
     {ok, Pid}.
 
 
 init() ->
+    ets:new(session, [named_table,
+                      public,
+                      {read_concurrency, true},
+                      {write_concurrency, true}]),
+
     true = erlang:register(?MODULE, self()),
-    MiddlemanPort = env:get(middleman_port),
-    log:i("[Middleman] Start to listen port: ~p~n", [MiddlemanPort]),
+
+    SessionPort = env:get(session_port),
+    log:i("[Session] Start to listen port: ~p~n", [SessionPort]),
     Opts = [binary,
             {packet, 0},
             {active, false}],
-    {ok, MiddlemanListenSocket} = gen_tcp:listen(MiddlemanPort, Opts),
-    accept(MiddlemanListenSocket).
+    {ok, ListenSocket} = gen_tcp:listen(SessionPort, Opts),
+    accept(ListenSocket).
 
 
 
@@ -38,29 +44,27 @@ init() ->
 %% Internal functions
 %% ===================================================================
 
-accept(MiddlemanListenSocket) ->
-    {ok, Socket} = gen_tcp:accept(MiddlemanListenSocket),
+accept(ListenSocket) ->
+    {ok, Socket} = gen_tcp:accept(ListenSocket),
     case inet:peername(Socket) of
         {ok, {ClientAddr, ClientPort}} ->
-            log:i("[Middleman] Got a connect from: ~p(~p)~n", [ClientAddr, ClientPort]),
+            log:i("[Session] Got a connect from: ~p(~p)~n", [ClientAddr, ClientPort]),
 
             ok = inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
             receive
-                {tcp, Socket, RoleBin} ->
-                    ok = gen_tcp:send(Socket, ?READY),
-                    WorkFor = erlang:binary_to_atom(RoleBin, utf8),
-                    case supervisor:start_child(middleman_worker_sup, [Socket, WorkFor]) of
+                {tcp, Socket, ?READY} ->
+                    case supervisor:start_child(session_worker_sup, [Socket]) of
                         {ok, Pid} ->
                             ok = gen_tcp:controlling_process(Socket, Pid);
                         _ ->
-                            log:e("[Middleman] Worker start failed~n"),
+                            log:i("[Session] Worker start failed~n"),
                             ok = gen_tcp:close(Socket)
                     end
             after
                 1000 ->
-                    log:e("[Middleman] The attempt to connect timeout~n")
+                    log:i("[Session] The attempt to connect timeout~n")
             end;
         _ ->
             ok
     end,
-    accept(MiddlemanListenSocket).
+    accept(ListenSocket).

@@ -24,7 +24,7 @@
 
 start_link(Index) ->
     Name = erlang:list_to_atom("listener_" ++ erlang:integer_to_list(Index)),
-    gen_msg:start_link({local, Name}, ?MODULE, [Index]).
+    gen_msg:start_link({local, Name}, ?MODULE, [Index], []).
 
 
 
