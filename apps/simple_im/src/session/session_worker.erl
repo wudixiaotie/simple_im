@@ -16,6 +16,8 @@
 
 -include("connection.hrl").
 
+-record(state, {socket}).
+
 
 
 %% ===================================================================
@@ -32,8 +34,7 @@ start_link(Socket) ->
 %% ===================================================================
 
 init([Socket]) ->
-    ok = inet:setopts(Socket, [{active, true}, {packet, 0}, list]),
-    {ok, []}.
+    {ok, #state{socket = Socket}}.
 
 
 handle_msg({tcp, Socket, [$r|T]}, State) ->
@@ -61,7 +62,7 @@ handle_msg({tcp, Socket, [$r|T]}, State) ->
 %     end,
 %     update_session(insert, Session).
 handle_msg({tcp, Socket, [$u|UserIdStr]}, State) ->
-    true = ets:delete(session, UserIdStr)
+    true = ets:delete(session, UserIdStr),
     ok = gen_tcp:send(Socket, ?OK),
     {ok, State};
 handle_msg({tcp, Socket, [$f|UserIdStr]}, State) ->
@@ -78,8 +79,9 @@ handle_msg({tcp_closed, _Socket}, State) ->
 handle_msg(_Info, State) -> {ok, State}.
 
 
-terminate(Reason, _State) ->
-    io:format("terminate:~p~n", [Reason]),
+terminate(Reason, State) ->
+    log:e("[Session] worker ~p terminate:~p~n", [self(), Reason]),
+    gen_tcp:close(State#state.socket),
     ok.
 
 

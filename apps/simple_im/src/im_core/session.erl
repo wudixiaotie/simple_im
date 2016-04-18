@@ -1,19 +1,22 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-8-2
-%% session store, search, synchronous from father node
+%% 2016-4-16
+%% session client
 %% ===================================================================
 
 -module(session).
 
--behaviour(gen_server).
+-behaviour(gen_msg).
 
 % APIs
--export([start_link/0, register/2, unregister/1, find/1]).
+-export ([start_link/0, register/2, unregister/1, find/1]).
 
-% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+% gen_msg callbacks
+-export([init/1, handle_msg/2, terminate/2]).
+
+-record(state, {socket}).
+
+-include("connection.hrl").
 
 
 
@@ -22,143 +25,116 @@
 %% ===================================================================
 
 start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+    gen_msg:start_link(?MODULE, [], []).
 
 
 register(UserId, Pid) ->
-    case ets:lookup(session, UserId) of
-        [] ->
-            ok;
-        [{UserId, OldPid}] ->
-            OldPid ! {replaced_by, Pid}
-    end,
-
-    Session = {UserId, Pid},
-
-    % This place I use catch to ensure update_session will always 
-    % be execuate wether session process is down or not.
-    case catch ets:insert(session, Session) of
-        true ->
-            ok;
-        Error ->
-            log:e("[IM] Session register error: ~p~n", [Error])
-    end,
-    update_session(insert, Session).
+    UserIdBin = erlang:integer_to_binary(UserId),
+    PidBin = erlang:term_to_binary(Pid),
+    ?MODULE ! {register, self(), UserIdBin, PidBin},
+    receive
+        Result ->
+            Result
+    end.
 
 
 unregister(undefined) ->
     ok;
 unregister(UserId) ->
-    case catch ets:delete(session, UserId) of
-        true ->
-            ok;
-        Error ->
-            log:e("[IM] Session unregister error: ~p~n", [Error])
-    end,
-    update_session(delete, UserId).
+    UserIdBin = erlang:integer_to_binary(UserId),
+    ?MODULE ! {unregister, self(), UserIdBin},
+    receive
+        Result ->
+            Result
+    end.
 
 
 find(UserId) ->
-    case ets:lookup(session, UserId) of
-        [] ->
-            offline;
-        [{UserId, Pid}] ->
-            {ok, Pid};
-        Error ->
-            {error, Error}
+    UserIdBin = erlang:integer_to_binary(UserId),
+    ?MODULE ! {find, self(), UserIdBin},
+    receive
+        Result ->
+            Result
     end.
 
 
 
 %% ===================================================================
-%% gen_server callbacks
+%% gen_msg callbacks
 %% ===================================================================
 
 init([]) ->
-    ets:new(session, [named_table,
-                      public,
-                      {read_concurrency, true},
-                      {write_concurrency, true}]),
-    Node = node(),
-    case get_available_node() of
-        {ok, Node} ->
-            ignore;
-        {ok, FatherNode} ->
-            % The aim is to ensure that the message "{copy_from, FatherNode}" 
-            % save at head of the session gen_server message queue, and 
-            % register process name as soon as possible. Then current node 
-            % will receive message when other node update session, so 
-            % gen_server:"session" will process update session after 
-            % copy session data from FatherNode, rather than the opposite.
-            self() ! {copy_from, FatherNode};
+    InitialNode = env:get(initial_node),
+    case net_adm:ping(InitialNode) of
+        pong ->
+            log:i("[IM] Connect to initial node succeed~n");
         _ ->
-            ignore
+            log:e("[IM] Connect to initial node failed~n")
     end,
-    {ok, []}.
+
+    SessionHost = env:get(session_host),
+    SessionPort = env:get(session_port),
+    {ok, Socket} = gen_tcp:connect(SessionHost, SessionPort, [{active, true}, {packet, 0}, binary]),
+    gen_tcp:send(Socket, ?READY),
+    {ok, #state{socket = Socket}}.
 
 
-handle_call(copy, _From, State) ->
-    SessionList = ets:tab2list(session),
-    {reply, SessionList, State};
-handle_call(_Request, _From, State) ->
-    {reply, nomatch, State}.
+handle_msg({register, From, UserIdBin, PidBin}, State) ->
+    ok = gen_tcp:send(State#state.socket, <<$r, UserIdBin, $:, PidBin>>),
 
-
-handle_cast(_Msg, State) ->
-    {noreply, State}.
-
-
-handle_info({copy_from, FatherNode}, State) ->
-    log:i("[IM] ~p start copy session data from ~p~n", [node(), FatherNode]),
-    SessionList = gen_server:call({?MODULE, FatherNode}, copy, infinity),
-    init_session(SessionList),
-    {noreply, State};
-% {update, insert, {UserId, Pid}} | {update, delete, UserId}
-handle_info({update, Type, Arg}, State) ->
-    case catch ets:Type(session, Arg) of
-        true ->
-            ok;
-        Error ->
-            log:e("[IM] Session update error: ~p~n", [Error])
+    Result = receive
+        {tcp, _Socket, ?OK} ->
+            ok
+    after
+        1000 ->
+            log:e("[IM]register session timeout~n"),
+            {error, timeout}
     end,
-    {noreply, State};
-handle_info(_Info, State) ->
-    {noreply, State}.
+
+    From ! Result,
+    {ok, State};
+handle_msg({unregister, From, UserIdBin}, State) ->
+    ok = gen_tcp:send(State#state.socket, <<$u, UserIdBin>>),
+
+    Result = receive
+        {tcp, _Socket, ?OK} ->
+            ok
+    after
+        1000 ->
+            log:e("[IM]unregister session timeout~n"),
+            {error, timeout}
+    end,
+
+    From ! Result,
+    {ok, State};
+handle_msg({find, From, UserIdBin}, State) ->
+    ok = gen_tcp:send(State#state.socket, <<$f, UserIdBin>>),
+
+    Result = receive
+        {tcp, _Socket, <<"offline">>} ->
+            offline;
+        {tcp, _Socket, PidBin} ->
+            Pid = erlang:binary_to_term(PidBin),
+            {ok, Pid}
+    after
+        1000 ->
+            log:e("[IM]find session timeout~n"),
+            {error, timeout}
+    end,
+
+    From ! Result,
+    {ok, State};
+handle_msg({tcp_closed, _Socket}, State) ->
+    {stop, tcp_closed, State};
+handle_msg(_Info, State) -> {ok, State}.
 
 
-terminate(_Reason, _State) -> ok.
-code_change(_OldVer, State, _Extra) -> {ok, State}.
+terminate(Reason, _State) ->
+    log:e("[IM] session terminate:~p~n", [Reason]),
+    ok.
+
 
 
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-get_available_node() ->
-    NodeList = env:get(node_list),
-    get_available_node(NodeList).
-get_available_node([H|T])  ->
-    case net_adm:ping(H) of
-        pong ->
-            {ok, H};
-        pang ->
-            get_available_node(T)
-    end;
-get_available_node([]) ->
-    {error, all_unavailable}.
-
-
-init_session([H|T]) ->
-    ets:insert(session, H),
-    init_session(T);
-init_session([]) ->
-    ok.
-
-
-update_session(Type, Arg) ->
-    update_session(Type, Arg, nodes()).
-update_session(Type, Arg, [H|T]) ->
-    {?MODULE, H} ! {update, Type, Arg},
-    update_session(Type, Arg, T);
-update_session(_, _, []) ->
-    ok.

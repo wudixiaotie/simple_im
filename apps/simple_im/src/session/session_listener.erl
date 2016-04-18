@@ -55,14 +55,15 @@ accept(ListenSocket) ->
                 {tcp, Socket, ?READY} ->
                     case supervisor:start_child(session_worker_sup, [Socket]) of
                         {ok, Pid} ->
-                            ok = gen_tcp:controlling_process(Socket, Pid);
-                        _ ->
-                            log:i("[Session] Worker start failed~n"),
+                            ok = gen_tcp:controlling_process(Socket, Pid),
+                            ok = inet:setopts(Socket, [{active, true}, {packet, 0}, list]);
+                        Error ->
+                            log:e("[Session] Worker start failed: ~p~n", [Error]),
                             ok = gen_tcp:close(Socket)
                     end
             after
                 1000 ->
-                    log:i("[Session] The attempt to connect timeout~n")
+                    log:e("[Session] The attempt to connect timeout~n")
             end;
         _ ->
             ok

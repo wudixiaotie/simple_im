@@ -22,6 +22,9 @@ case $1 in
     "task" )
         erl_command="$erl_start -eval postgresql:start_link()."
         ;;
+    "session" )
+        erl_command="$erl_start -config config/session/sys.config -eval simple_im:start(session)."
+        ;;
     "" )
         erl_command="$erl_start"
         ;;

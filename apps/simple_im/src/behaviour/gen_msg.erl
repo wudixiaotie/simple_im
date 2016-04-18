@@ -7,6 +7,8 @@
 -export([system_continue/3, system_terminate/4, system_get_state/1,
          system_replace_state/2, format_status/2]).
 
+-define(TIMEOUT, 5000).
+
 
 
 %% ===================================================================
@@ -18,11 +20,11 @@
 -callback terminate(Reason :: term(), State :: term()) -> ok.
 
 start_link(Module, Args, Opts) ->
-    proc_lib:spawn_opt(?MODULE, init, [self(), Module, Args], [link|Opts]).
+    proc_lib:start_link(?MODULE, init, [self(), Module, Args], ?TIMEOUT, Opts).
 
 
 start_link(Name, Module, Args, Opts) ->
-    proc_lib:spawn_opt(?MODULE, init, [self(), Name, Module, Args], [link|Opts]).
+    proc_lib:start_link(?MODULE, init, [self(), Name, Module, Args], ?TIMEOUT, Opts).
 
 
 init(Parent, Module, Args) ->

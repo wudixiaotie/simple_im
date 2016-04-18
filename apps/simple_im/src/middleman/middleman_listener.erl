@@ -51,9 +51,10 @@ accept(MiddlemanListenSocket) ->
                     WorkFor = erlang:binary_to_atom(RoleBin, utf8),
                     case supervisor:start_child(middleman_worker_sup, [Socket, WorkFor]) of
                         {ok, Pid} ->
-                            ok = gen_tcp:controlling_process(Socket, Pid);
-                        _ ->
-                            log:e("[Middleman] Worker start failed~n"),
+                            ok = gen_tcp:controlling_process(Socket, Pid),
+                            ok = inet:setopts(Socket, [{active, true}, {packet, 0}, binary]);
+                        Error ->
+                            log:e("[Middleman] Worker start failed: ~p~n", [Error]),
                             ok = gen_tcp:close(Socket)
                     end
             after

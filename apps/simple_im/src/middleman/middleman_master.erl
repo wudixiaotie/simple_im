@@ -33,7 +33,6 @@ start_link(Socket) ->
 %% ===================================================================
 
 init([Socket]) ->
-    ok = inet:setopts(Socket, [{active, true}, {packet, 0}, binary]),
     {ok, MasterName} = register_master(),
     {ok, HunterCount} = hunter_count(),
     {ok, #state{name = MasterName, socket = Socket, hunter_count = HunterCount}}.
@@ -54,8 +53,9 @@ handle_msg(hunter_terminate, State) ->
 handle_msg(_Info, State) -> {ok, State}.
 
 
-terminate(Reason, _State) ->
-    log:e("[Middleman] Middleman work for master has down! Reason: ~p~n", [Reason]),
+terminate(Reason, State) ->
+    log:e("[Middleman] Middleman worker ~p has down! Reason: ~p~n", [State#state.name, Reason]),
+    gen_tcp:close(State#state.socket),
     ok.
 
 
