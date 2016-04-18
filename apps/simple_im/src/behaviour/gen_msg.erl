@@ -149,8 +149,13 @@ format_status(_Opt, StatusData) ->
 %% ===================================================================
 
 register_name({local, Name}) when is_atom(Name) ->
-    erlang:register(Name, self()),
-    ok;
+    case erlang:whereis(Name) of
+        undefined ->
+            erlang:register(Name, self()),
+            ok;
+        _ ->
+            erlang:error("register name exist!")
+    end;
 register_name({global, Name}) ->
     global:register_name(Name, self()),
     ok.

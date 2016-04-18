@@ -22,7 +22,10 @@ route_to_single_user(UserId, Message) ->
             ok = offline:store(UserId, [Message]),
             log:i("[IM] Client store offline msg: ~p~n", [Message]);
         {ok, ToPid} ->
-            ToPid ! Message
+            ToPid ! Message;
+        Reason ->
+            ok = offline:store(UserId, [Message]),
+            log:i("[IM] Find session error:~p store offline msg: ~p~n", [Reason, Message])
     end,
     ok.
 

@@ -126,7 +126,7 @@ handle_msg(Info, State) ->
 
 terminate(Reason, #state{user_id = UserId} = State) ->
     ok = delete_useless_token(State#state.device_list),
-    log:i("[IM] Client ~p terminate with reason: ~p~n", [self(), Reason]),
+    log:e("[IM] Client ~p terminate with reason: ~p~n", [self(), Reason]),
     ok = offline:store(UserId, State#state.msg_cache),
     ok = close_connection(State#state.device_list),
     session:unregister(UserId).

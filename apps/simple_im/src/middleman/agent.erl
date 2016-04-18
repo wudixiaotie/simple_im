@@ -50,11 +50,11 @@ init([Role]) ->
     ok = gen_tcp:send(Socket, erlang:atom_to_list(Role)),
     receive
         {tcp, Socket, ?READY} ->
-            log:i("[Middleman] Agent init success!~n"),
+            log:i("[IM] Succeed to connect to the middleman server!~n"),
             {ok, #state{socket = Socket, role = Role}}
     after
         1000 ->
-            log:e("[Middleman] Agent init failed!~n"),
+            log:e("[IM] Failed to connect to the middleman server!~n"),
             ok = gen_tcp:close(Socket),
             {stop, connect_failed}
     end.
@@ -74,8 +74,9 @@ handle_msg({tcp_closed, _Socket}, State) ->
 handle_msg(_Info, State) -> {ok, State}.
 
 
-terminate(Reason, _State) ->
-    log:e("[Middleman] Agent is down! Reason: ~p~n", [Reason]),
+terminate(Reason, State) ->
+    log:e("[IM] Middleman client is down! Reason: ~p~n", [Reason]),
+    ok = gen_tcp:closed(State#state.socket),
     ok.
 
 

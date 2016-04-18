@@ -98,13 +98,14 @@ handle_msg({ssl, SslSocket, Bin}, State) ->
                                             ok = ssl:controlling_process(Device#device.ssl_socket, Pid);
                                         _ ->
                                             {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
-                                            log:i("[IM] Start a new client ~p ~p~n", [{UserId, Device}, Pid]),
+                                            log:i("[IM] Start a new client to replace old one ~p ~p~n", [{UserId, Device}, Pid]),
                                             ok = ssl:controlling_process(Device#device.ssl_socket, Pid)
                                     end;
                                 {error, _} ->
                                     send_error(SslSocket, MsgId, <<"Unknown error">>)
                             end;
                         _ ->
+                            log:e("[IM] Start client error: ~p~n", [<<"Token not match">>]),
                             RR = {<<"rr">>,
                                   [{<<"id">>, MsgId},
                                    {<<"t">>, <<"login">>},
@@ -138,6 +139,7 @@ free_worker(Name, ClientFactory) ->
 
 
 send_error(SslSocket, MsgId, Reason) ->
+    log:e("[IM] Start client error: ~p~n", [Reason]),
     RR = {<<"rr">>,
           [{<<"id">>, MsgId},
            {<<"s">>, 1},

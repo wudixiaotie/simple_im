@@ -40,27 +40,15 @@ init([Socket]) ->
 handle_msg({tcp, Socket, [$r|T]}, State) ->
     [UserIdBin, PidBin] = re:split(T, ":"),
     UserIdStr = erlang:binary_to_list(UserIdBin),
-    ok = ets:insert(session, {UserIdStr, PidBin}),
-    ok = gen_tcp:send(Socket, ?OK),
+    Return = case ets:lookup(session, UserIdStr) of
+        [] ->
+            ?OK;
+        [{_, OldPidBin}] ->
+            OldPidBin
+    end,
+    true = ets:insert(session, {UserIdStr, PidBin}),
+    ok = gen_tcp:send(Socket, Return),
     {ok, State};
-%     case ets:lookup(session, UserId) of
-%         [] ->
-%             ok;
-%         [{UserId, OldPid}] ->
-%             OldPid ! {replaced_by, Pid}
-%     end,
-
-%     Session = {UserId, Pid},
-
-%     % This place I use catch to ensure update_session will always 
-%     % be execuate wether session process is down or not.
-%     case catch ets:insert(session, Session) of
-%         true ->
-%             ok;
-%         Error ->
-%             log:e("[IM] Session register error: ~p~n", [Error])
-%     end,
-%     update_session(insert, Session).
 handle_msg({tcp, Socket, [$u|UserIdStr]}, State) ->
     true = ets:delete(session, UserIdStr),
     ok = gen_tcp:send(Socket, ?OK),

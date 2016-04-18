@@ -25,7 +25,7 @@
 %% ===================================================================
 
 start_link() ->
-    gen_msg:start_link(?MODULE, [], []).
+    gen_msg:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
 register(UserId, Pid) ->
@@ -33,7 +33,7 @@ register(UserId, Pid) ->
     PidBin = erlang:term_to_binary(Pid),
     ?MODULE ! {register, self(), UserIdBin, PidBin},
     receive
-        Result ->
+        {session, Result} ->
             Result
     end.
 
@@ -44,7 +44,7 @@ unregister(UserId) ->
     UserIdBin = erlang:integer_to_binary(UserId),
     ?MODULE ! {unregister, self(), UserIdBin},
     receive
-        Result ->
+        {session, Result} ->
             Result
     end.
 
@@ -53,7 +53,7 @@ find(UserId) ->
     UserIdBin = erlang:integer_to_binary(UserId),
     ?MODULE ! {find, self(), UserIdBin},
     receive
-        Result ->
+        {session, Result} ->
             Result
     end.
 
@@ -67,48 +67,54 @@ init([]) ->
     InitialNode = env:get(initial_node),
     case net_adm:ping(InitialNode) of
         pong ->
-            log:i("[IM] Connect to initial node succeed~n");
+            log:i("[IM] Succeed to connect to the initial node~n");
         _ ->
-            log:e("[IM] Connect to initial node failed~n")
+            log:e("[IM] Failed to connect to the initial node~n")
     end,
 
     SessionHost = env:get(session_host),
     SessionPort = env:get(session_port),
     {ok, Socket} = gen_tcp:connect(SessionHost, SessionPort, [{active, true}, {packet, 0}, binary]),
     gen_tcp:send(Socket, ?READY),
+    log:i("[IM] Succeed to connect to the session server~n"),
     {ok, #state{socket = Socket}}.
 
 
 handle_msg({register, From, UserIdBin, PidBin}, State) ->
-    ok = gen_tcp:send(State#state.socket, <<$r, UserIdBin, $:, PidBin>>),
+    ok = gen_tcp:send(State#state.socket, <<$r, UserIdBin/binary, $:, PidBin/binary>>),
 
     Result = receive
         {tcp, _Socket, ?OK} ->
+            ok;
+        {tcp, _Socket, OldPidBin} ->
+            OldPid = erlang:binary_to_term(OldPidBin),
+            Pid = erlang:binary_to_term(PidBin),
+            OldPid ! {replaced_by, Pid},
             ok
     after
         1000 ->
-            log:e("[IM]register session timeout~n"),
+            log:e("[IM] register session timeout~n"),
             {error, timeout}
     end,
 
-    From ! Result,
+    From ! {session, Result},
     {ok, State};
 handle_msg({unregister, From, UserIdBin}, State) ->
-    ok = gen_tcp:send(State#state.socket, <<$u, UserIdBin>>),
+    ok = gen_tcp:send(State#state.socket, <<$u, UserIdBin/binary>>),
 
     Result = receive
         {tcp, _Socket, ?OK} ->
             ok
     after
         1000 ->
-            log:e("[IM]unregister session timeout~n"),
+            log:e("[IM] unregister session timeout~n"),
             {error, timeout}
     end,
 
-    From ! Result,
+    From ! {session, Result},
     {ok, State};
 handle_msg({find, From, UserIdBin}, State) ->
-    ok = gen_tcp:send(State#state.socket, <<$f, UserIdBin>>),
+    ok = gen_tcp:send(State#state.socket, <<$f, UserIdBin/binary>>),
 
     Result = receive
         {tcp, _Socket, <<"offline">>} ->
@@ -118,11 +124,11 @@ handle_msg({find, From, UserIdBin}, State) ->
             {ok, Pid}
     after
         1000 ->
-            log:e("[IM]find session timeout~n"),
+            log:e("[IM] find session timeout~n"),
             {error, timeout}
     end,
 
-    From ! Result,
+    From ! {session, Result},
     {ok, State};
 handle_msg({tcp_closed, _Socket}, State) ->
     {stop, tcp_closed, State};
