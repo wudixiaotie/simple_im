@@ -40,6 +40,7 @@ init([Socket]) ->
 handle_msg({tcp, Socket, [$r|T]}, State) ->
     [UserIdBin, PidBin] = re:split(T, ":"),
     UserIdStr = erlang:binary_to_list(UserIdBin),
+    log:i("[Session] Session register UserId:~p~n", [UserIdStr]),
     Return = case ets:lookup(session, UserIdStr) of
         [] ->
             ?OK;
@@ -50,6 +51,7 @@ handle_msg({tcp, Socket, [$r|T]}, State) ->
     ok = gen_tcp:send(Socket, Return),
     {ok, State};
 handle_msg({tcp, Socket, [$u|UserIdStr]}, State) ->
+    log:i("[Session] Session unregister UserId:~p~n", [UserIdStr]),
     true = ets:delete(session, UserIdStr),
     ok = gen_tcp:send(Socket, ?OK),
     {ok, State};

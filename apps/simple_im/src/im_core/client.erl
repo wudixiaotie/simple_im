@@ -108,6 +108,7 @@ handle_msg({replaced_by, NewPid}, State) ->
     NewPid ! {msg_cache, State#state.msg_cache},
     {stop, {replaced_by, NewPid}, State};
 handle_msg({msg_cache, OriginalMsgCache}, State) ->
+    log:i("[IM] Client ~p got msg_cache!~n", [self()]),
     case OriginalMsgCache of
         [] ->
             NewState = State;
@@ -129,7 +130,14 @@ terminate(Reason, #state{user_id = UserId} = State) ->
     log:e("[IM] Client ~p terminate with reason: ~p~n", [self(), Reason]),
     ok = offline:store(UserId, State#state.msg_cache),
     ok = close_connection(State#state.device_list),
-    session:unregister(UserId).
+    case Reason of
+        {replaced_by, _} ->
+            % If the client is replaced by a new client, the session of the user
+            % can not be unregistered.
+            ok;
+        _ ->
+            ok = session:unregister(UserId)
+    end.
 
 
 

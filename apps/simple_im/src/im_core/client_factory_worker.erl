@@ -97,9 +97,9 @@ handle_msg({ssl, SslSocket, Bin}, State) ->
                                             Pid ! {replace_socket, Message, Device},
                                             ok = ssl:controlling_process(Device#device.ssl_socket, Pid);
                                         _ ->
-                                            {ok, Pid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
-                                            log:i("[IM] Start a new client to replace old one ~p ~p~n", [{UserId, Device}, Pid]),
-                                            ok = ssl:controlling_process(Device#device.ssl_socket, Pid)
+                                            {ok, NewPid} = supervisor:start_child(client_sup, [Message, UserId, Device]),
+                                            log:i("[IM] Start a new client of userid ~p to replace old client ~p~n", [UserId, NewPid]),
+                                            ok = ssl:controlling_process(Device#device.ssl_socket, NewPid)
                                     end;
                                 {error, _} ->
                                     send_error(SslSocket, MsgId, <<"Unknown error">>)
