@@ -9,14 +9,14 @@
 -behaviour(gen_msg).
 
 % APIs
--export([start_link/1]).
+-export([start_link/2]).
 
 % gen_msg callbacks
 -export([init/1, handle_msg/2, terminate/2]).
 
 -include("connection.hrl").
 
--record(state, {socket}).
+-record(state, {socket, table_ref}).
 
 
 
@@ -24,8 +24,8 @@
 %% APIs
 %% ===================================================================
 
-start_link(Socket) ->
-    gen_msg:start_link(?MODULE, [Socket], []).
+start_link(Socket, TableRef) ->
+    gen_msg:start_link(?MODULE, [Socket, TableRef], []).
 
 
 
@@ -33,30 +33,30 @@ start_link(Socket) ->
 %% gen_msg callbacks
 %% ===================================================================
 
-init([Socket]) ->
-    {ok, #state{socket = Socket}}.
+init([Socket, TableRef]) ->
+    {ok, #state{socket = Socket, table_ref = TableRef}}.
 
 
 handle_msg({tcp, Socket, [$r|T]}, State) ->
     [UserIdBin, PidBin] = re:split(T, ":"),
     UserIdStr = erlang:binary_to_list(UserIdBin),
     log:i("[Session] Session register UserId:~p~n", [UserIdStr]),
-    Return = case ets:lookup(session, UserIdStr) of
+    Return = case dets:lookup(State#state.table_ref, UserIdStr) of
         [] ->
             ?OK;
         [{_, OldPidBin}] ->
             OldPidBin
     end,
-    true = ets:insert(session, {UserIdStr, PidBin}),
+    ok = dets:insert(State#state.table_ref, {UserIdStr, PidBin}),
     ok = gen_tcp:send(Socket, Return),
     {ok, State};
 handle_msg({tcp, Socket, [$u|UserIdStr]}, State) ->
     log:i("[Session] Session unregister UserId:~p~n", [UserIdStr]),
-    true = ets:delete(session, UserIdStr),
+    ok = dets:delete(State#state.table_ref, UserIdStr),
     ok = gen_tcp:send(Socket, ?OK),
     {ok, State};
 handle_msg({tcp, Socket, [$f|UserIdStr]}, State) ->
-    Result = case ets:lookup(session, UserIdStr) of
+    Result = case dets:lookup(State#state.table_ref, UserIdStr) of
         [] ->
             <<"offline">>;
         [{UserIdStr, PidBin}] ->

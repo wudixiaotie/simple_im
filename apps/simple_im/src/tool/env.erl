@@ -32,6 +32,8 @@
 
 -define(DEFAULT_SESSION_PORT, 10001).
 
+-define(DEFAULT_SESSION_FILE, "/tmp/session.dets").
+
 -define(DEFAULT_CLIENT_FACTORY_SIZE, 10).
 
 % 10 minutes
@@ -97,6 +99,7 @@ get_default(middleman_host) -> ?DEFAULT_MIDDLEMAN_HOST;
 get_default(middleman_port) -> ?DEFAULT_MIDDLEMAN_PORT;
 get_default(session_host) -> ?DEFAULT_SESSION_HOST;
 get_default(session_port) -> ?DEFAULT_SESSION_PORT;
+get_default(session_file) -> ?DEFAULT_SESSION_FILE;
 get_default(client_factory_size) -> ?DEFAULT_CLIENT_FACTORY_SIZE;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
 get_default(initial_node) -> ?DEFAULT_INITIAL_NODE;

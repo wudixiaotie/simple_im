@@ -23,10 +23,17 @@ start_link() ->
 
 
 init() ->
-    ets:new(session, [named_table,
-                      public,
-                      {read_concurrency, true},
-                      {write_concurrency, true}]),
+    SessionFile = env:get(session_file),
+    {ok, TableRef} = case filelib:is_file(SessionFile) of
+        true ->
+            dets:open_file(SessionFile);
+        false ->
+            dets:open_file(session, [{access, read_write},
+                                     {auto_save, 60000}, % 1 minute
+                                     {file, "/tmp/session.dets"},
+                                     {keypos, 1},
+                                     {ram_file, true}])
+    end,
 
     true = erlang:register(?MODULE, self()),
 
@@ -36,7 +43,7 @@ init() ->
             {packet, 0},
             {active, false}],
     {ok, ListenSocket} = gen_tcp:listen(SessionPort, Opts),
-    accept(ListenSocket).
+    accept(ListenSocket, TableRef).
 
 
 
@@ -44,7 +51,7 @@ init() ->
 %% Internal functions
 %% ===================================================================
 
-accept(ListenSocket) ->
+accept(ListenSocket, TableRef) ->
     {ok, Socket} = gen_tcp:accept(ListenSocket),
     case inet:peername(Socket) of
         {ok, {ClientAddr, ClientPort}} ->
@@ -53,7 +60,7 @@ accept(ListenSocket) ->
             ok = inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
             receive
                 {tcp, Socket, ?READY} ->
-                    case supervisor:start_child(session_worker_sup, [Socket]) of
+                    case supervisor:start_child(session_worker_sup, [Socket, TableRef]) of
                         {ok, Pid} ->
                             ok = gen_tcp:controlling_process(Socket, Pid),
                             ok = inet:setopts(Socket, [{active, true}, {packet, 0}, list]);
@@ -68,4 +75,4 @@ accept(ListenSocket) ->
         _ ->
             ok
     end,
-    accept(ListenSocket).
+    accept(ListenSocket, TableRef).
