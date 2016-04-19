@@ -1,5 +1,4 @@
 # simple_im
-## Master branch is unuseable for now!!! Use Tag V0.6 or Release Version.
 ## Erlang/OTP Version: 18
 ## Rebar Version: rebar3
 
