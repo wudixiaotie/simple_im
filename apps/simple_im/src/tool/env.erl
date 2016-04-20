@@ -34,7 +34,7 @@
 
 -define(DEFAULT_SESSION_FILE, "/tmp/session.dets").
 
--define(DEFAULT_SESSION_FINDER_SIZE, 5).
+-define(DEFAULT_SESSION_FINDER_SIZE, 50).
 
 -define(DEFAULT_CLIENT_FACTORY_SIZE, 10).
 
