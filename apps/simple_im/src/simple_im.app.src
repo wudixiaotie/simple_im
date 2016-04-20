@@ -1,6 +1,6 @@
 {application, simple_im,
  [{description, "Amazing instant messaging service, include IM Service, HTTP Sevice, Message Transmission Pipeline."},
-  {vsn, "0.7.0"},
+  {vsn, "0.8.0"},
   {registered, []},
   {mod, { simple_im_app, []}},
   {applications,

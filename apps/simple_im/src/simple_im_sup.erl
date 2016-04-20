@@ -46,7 +46,8 @@ init([im]) ->
            [?CHILD(log_server, worker),
             ?CHILD(postgresql, worker),
             ?CHILD(redis, worker),
-            ?CHILD(session, worker),
+            ?CHILD(session_registrar, worker),
+            ?CHILD(session_finder_worker_sup, supervisor),
             ?CHILD(client_sup, supervisor),
             ?CHILD(listener_sup, supervisor),
             ?AGENT_CHILD(work_for_hunter)]} };
@@ -57,19 +58,13 @@ init([http]) ->
             ?CHILD(redis, worker),
             ?CHILD(http, worker),
             ?AGENT_CHILD(work_for_master)]} };
-init([session]) ->
+init([session_server]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),
-            ?CHILD(session_worker_sup, supervisor),
-            ?CHILD(session_listener, worker)]} };
+            ?CHILD(session_server_worker_sup, supervisor),
+            ?CHILD(session_server_listener, worker)]} };
 init([middleman]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),
             ?CHILD(middleman_worker_sup, supervisor),
             ?CHILD(middleman_listener, worker)]} }.
-
-
-
-%%====================================================================
-%% Internal functions
-%%====================================================================

@@ -1,15 +1,15 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2016-4-16
-%% session client
+%% 2016-4-20
+%% session registrar, only handle session register and unregister
 %% ===================================================================
 
--module(session).
+-module(session_registrar).
 
 -behaviour(gen_msg).
 
 % APIs
--export ([start_link/0, register/2, unregister/1, find/1]).
+-export([start_link/0]).
 
 % gen_msg callbacks
 -export([init/1, handle_msg/2, terminate/2]).
@@ -28,55 +28,17 @@ start_link() ->
     gen_msg:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
-register(UserId, Pid) ->
-    UserIdBin = erlang:integer_to_binary(UserId),
-    PidBin = erlang:term_to_binary(Pid),
-    ?MODULE ! {register, self(), UserIdBin, PidBin},
-    receive
-        {session, Result} ->
-            Result
-    end.
-
-
-unregister(undefined) ->
-    ok;
-unregister(UserId) ->
-    UserIdBin = erlang:integer_to_binary(UserId),
-    ?MODULE ! {unregister, self(), UserIdBin},
-    receive
-        {session, Result} ->
-            Result
-    end.
-
-
-find(UserId) ->
-    UserIdBin = erlang:integer_to_binary(UserId),
-    ?MODULE ! {find, self(), UserIdBin},
-    receive
-        {session, Result} ->
-            Result
-    end.
-
-
 
 %% ===================================================================
 %% gen_msg callbacks
 %% ===================================================================
 
 init([]) ->
-    InitialNode = env:get(initial_node),
-    case net_adm:ping(InitialNode) of
-        pong ->
-            log:i("[IM] Succeed to connect to the initial node~n");
-        _ ->
-            log:e("[IM] Failed to connect to the initial node~n")
-    end,
-
     SessionHost = env:get(session_host),
     SessionPort = env:get(session_port),
     {ok, Socket} = gen_tcp:connect(SessionHost, SessionPort, [{active, true}, {packet, 0}, binary]),
     gen_tcp:send(Socket, ?READY),
-    log:i("[IM] Succeed to connect to the session server~n"),
+    log:i("[IM] Session registrar succeed to connect to the session server~n"),
     {ok, #state{socket = Socket}}.
 
 

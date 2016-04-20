@@ -1,4 +1,4 @@
--sname session
+-sname session_server
 
 -setcookie simple_im_cookie
 

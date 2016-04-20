@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
 %% 2016-4-16
-%% session listener
+%% session server listener
 %% ===================================================================
 
--module(session_listener).
+-module(session_server_listener).
 
 % APIs
 -export([start_link/0, init/0]).
@@ -82,7 +82,7 @@ accept(ListenSocket) ->
             ok = inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
             receive
                 {tcp, Socket, ?READY} ->
-                    case supervisor:start_child(session_worker_sup, [Socket]) of
+                    case supervisor:start_child(session_server_worker_sup, [Socket]) of
                         {ok, Pid} ->
                             ok = gen_tcp:controlling_process(Socket, Pid),
                             ok = inet:setopts(Socket, [{active, true}, {packet, 0}, list]);

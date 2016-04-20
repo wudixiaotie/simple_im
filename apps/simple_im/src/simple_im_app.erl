@@ -22,7 +22,7 @@ start(_StartType, _StartArgs) ->
 %%--------------------------------------------------------------------
 stop(_State) ->
     case env:get(app_mode) of
-        session ->
+        session_server ->
             dets:close(session);
         _ ->
             ok

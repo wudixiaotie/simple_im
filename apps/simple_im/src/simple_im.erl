@@ -14,8 +14,8 @@ start(im) ->
 start(http) ->
     application:set_env(?MODULE, app_mode, http),
     application:start(?MODULE);
-start(session) ->
-    application:set_env(?MODULE, app_mode, session),
+start(session_server) ->
+    application:set_env(?MODULE, app_mode, session_server),
     application:start(?MODULE);
 start(middleman) ->
     application:set_env(?MODULE, app_mode, middleman),

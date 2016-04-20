@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
 %% 2016-4-16
-%% session worker
+%% session server worker
 %% ===================================================================
 
--module(session_worker).
+-module(session_server_worker).
 
 -behaviour(gen_msg).
 
