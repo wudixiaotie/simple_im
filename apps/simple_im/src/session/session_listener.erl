@@ -24,7 +24,7 @@ start_link() ->
 
 init() ->
     dets:open_file(session, [{access, read_write},
-                             {auto_save, 60000}, % 1 minute
+                             {auto_save, timer:minutes(1)},
                              {file, "/tmp/session.dets"},
                              {keypos, 1},
                              {ram_file, true}]),
