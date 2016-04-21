@@ -41,21 +41,32 @@ init(Index) ->
 
 loop(Socket) ->
     receive
-        {find, From, UserIdBin} ->
-            ok = gen_tcp:send(Socket, <<$f, UserIdBin/binary>>),
-
-            Result = receive
-                {tcp, _Socket, <<"offline">>} ->
-                    offline;
-                {tcp, _Socket, PidBin} ->
-                    Pid = erlang:binary_to_term(PidBin),
-                    {ok, Pid}
-            after
-                1000 ->
-                    log:e("[IM] find session timeout~n"),
-                    {error, timeout}
-            end,
-
-            From ! {session, Result}
+        Message -> 
+            do_loop(Message, Socket)
     end,
     loop(Socket).
+
+
+do_loop({find, From, UserIdBin}, Socket) ->
+    ok = gen_tcp:send(Socket, <<$f, UserIdBin/binary>>),
+
+    receive
+        {tcp, _Socket, <<"offline">>} ->
+            From ! {session, offline};
+        {tcp, _Socket, PidBin} ->
+            Pid = erlang:binary_to_term(PidBin),
+            From ! {session, {ok, Pid}};
+        {tcp_closed, _Socket} ->
+            From ! {session, offline},
+            erlang:error(tcp_closed)
+    after
+        1000 ->
+            log:e("[IM] find session timeout~n"),
+            From ! {session, {error, timeout}}
+    end;
+do_loop(stop, Socket) ->
+    ok = gen_tcp:close(Socket),
+    log:e("[IM] Session finder terminate~n"),
+    erlang:exit(normal);
+do_loop(_, _) ->
+    log:e("[IM] Session finder got unexpected message~n").

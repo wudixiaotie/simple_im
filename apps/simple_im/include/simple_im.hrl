@@ -1,0 +1,1 @@
+-define(APPLICATION_NAME, simple_im).

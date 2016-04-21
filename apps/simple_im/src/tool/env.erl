@@ -6,7 +6,9 @@
 
 -module(env).
 
--export([get/1]).
+-export([get/1, set/2]).
+
+-include("simple_im.hrl").
 
 -define(DEFAULT_APP_MODE, im).
 
@@ -78,10 +80,19 @@
 
 % @spec get(Key) -> Value
 get(Key) ->
-    case application:get_env(simple_im, Key) of
+    case application:get_env(?APPLICATION_NAME, Key) of
         {ok, Value} -> Value;
-        _ -> get_default(Key)
+        _ ->
+            Value = get_default(Key),
+            ok = set(Key, Value),
+            Value
     end.
+
+
+% @spec set(Key, Value) -> ok
+set(Key, Value) ->
+    ok = application:set_env(?APPLICATION_NAME, Key, Value),
+    ok.
 
 
 

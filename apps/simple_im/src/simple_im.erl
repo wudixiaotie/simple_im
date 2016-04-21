@@ -2,6 +2,8 @@
 
 -export([start/1, stop/0]).
 
+-include("simple_im.hrl").
+
 
 
 %% ===================================================================
@@ -9,18 +11,18 @@
 %% ===================================================================
 
 start(im) ->
-    application:set_env(?MODULE, app_mode, im),
-    application:start(?MODULE);
+    application:set_env(?APPLICATION_NAME, app_mode, im),
+    application:start(?APPLICATION_NAME);
 start(http) ->
-    application:set_env(?MODULE, app_mode, http),
-    application:start(?MODULE);
+    application:set_env(?APPLICATION_NAME, app_mode, http),
+    application:start(?APPLICATION_NAME);
 start(session_server) ->
-    application:set_env(?MODULE, app_mode, session_server),
-    application:start(?MODULE);
+    application:set_env(?APPLICATION_NAME, app_mode, session_server),
+    application:start(?APPLICATION_NAME);
 start(middleman) ->
-    application:set_env(?MODULE, app_mode, middleman),
-    application:start(?MODULE).
+    application:set_env(?APPLICATION_NAME, app_mode, middleman),
+    application:start(?APPLICATION_NAME).
 
 
 stop() ->
-    application:stop(?MODULE).
+    application:stop(?APPLICATION_NAME).

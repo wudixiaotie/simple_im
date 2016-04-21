@@ -1,1 +1,1 @@
--record (message, {id :: binary(), bin :: binary()}).
+-record(message, {id :: binary(), bin :: binary()}).
