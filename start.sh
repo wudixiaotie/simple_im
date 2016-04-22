@@ -17,13 +17,13 @@ case $1 in
         erl_command="$erl_start -config config/http/sys.config -eval simple_im:start(http)."
         ;;
     "middleman" )
-        erl_command="$erl_start -config config/middleman/sys.config -eval simple_im:start(middleman)."
+        erl_command="$erl_start -name middleman@simple_im.com -config config/middleman/sys.config -eval simple_im:start(middleman)."
         ;;
     "task" )
         erl_command="$erl_start -eval postgresql:start_link()."
         ;;
     "session_server" )
-        erl_command="$erl_start -config config/session_server/sys.config -eval simple_im:start(session_server)."
+        erl_command="$erl_start -name session_server@simple_im.com -config config/session_server/sys.config -eval simple_im:start(session_server)."
         ;;
     "" )
         erl_command="$erl_start"
