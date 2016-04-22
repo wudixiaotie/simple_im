@@ -20,7 +20,7 @@ increase_session_finder(N) ->
     case env:get(app_mode) of
         im ->
             SessionFinderSize = env:get(session_finder_size),
-            ok = increase_session_finder(N, SessionFinderSize);
+            ok = increase_session_finder(N, SessionFinderSize + 1);
         _ ->
             log:e("[Admin] Call increase_session_finder in wrong node.~n"),
             error
@@ -56,7 +56,8 @@ count_session_finder() ->
 %% Internal functions
 %% ===================================================================
 
-increase_session_finder(0, NewSessionFinderSize) ->
+increase_session_finder(0, Index) ->
+    NewSessionFinderSize = Index - 1,
     ok = env:set(session_finder_size, NewSessionFinderSize),
     log:i("[Admin] session_finder increased to ~p.~n", [NewSessionFinderSize]),
     ok;
@@ -64,6 +65,7 @@ increase_session_finder(N, Index) ->
     FinderName = session_finder:name(Index),
     case whereis(FinderName) of
         undefined ->
+            log:i("[Admin] Start session finder:~p~n", [FinderName]),
             {ok, _} = supervisor:start_child(session_finder_worker_sup, [Index]);
         _ ->
             ok

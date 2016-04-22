@@ -55,8 +55,8 @@ find(UserId) ->
 
     UserIdBin = erlang:integer_to_binary(UserId),
     case catch FinderName ! {find, self(), UserIdBin} of
-        {'EXIT', _} ->
-            log:e("[IM] Session find failed~n"),
+        {'EXIT', Reason} ->
+            log:e("[IM] Session find failed~n", [Reason]),
             offline;
         _ ->
             receive

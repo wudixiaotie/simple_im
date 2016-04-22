@@ -68,5 +68,5 @@ do_loop({stop, From}, Socket) ->
     ok = gen_tcp:close(Socket),
     log:e("[IM] Session finder terminate~n"),
     From ! ok;
-do_loop(_, _) ->
-    log:e("[IM] Session finder got unexpected message~n").
+do_loop(Message, _) ->
+    log:e("[IM] Session finder got unexpected message:~p~n", [Message]).
