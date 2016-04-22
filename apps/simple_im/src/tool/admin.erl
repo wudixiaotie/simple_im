@@ -7,7 +7,8 @@
 -module(admin).
 
 %% API
--export([increase_session_finder/1, decrease_session_finder/1]).
+-export([increase_session_finder/1, decrease_session_finder/1,
+         count_session_finder/0]).
 
 
 
@@ -35,13 +36,19 @@ decrease_session_finder(N) ->
                 ok ->
                     ok;
                 _ ->
-                    SessionFinderSizeNow = supervisor:count_children(session_finder_worker_sup),
+                    SessionFinderSizeNow = count_session_finder(),
                     env:set(session_finder_size, SessionFinderSizeNow)
             end;
         _ ->
             log:e("[Admin] Call decrease_session_finder in wrong node.~n"),
             error
     end.
+
+
+count_session_finder() ->
+    Result = supervisor:count_children(session_finder_worker_sup),
+    {workers, Number} = lists:keyfind(workers, 1, Result),
+    Number.
 
 
 
@@ -73,6 +80,13 @@ decrease_session_finder(N, Index) ->
         undefined ->
             log:e("[Admin] Can not decrease session finder:~p~n", [FinderName]);
         Pid ->
-            Pid ! stop
+            Pid ! {stop, self()},
+            receive
+                ok ->
+                    ok = supervisor:terminate_child(session_finder_worker_sup, Pid)
+            after
+                2000 ->
+                    erlang:error(timeout)
+            end
     end,
     decrease_session_finder(N - 1, Index - 1).

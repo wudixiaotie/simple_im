@@ -64,9 +64,9 @@ do_loop({find, From, UserIdBin}, Socket) ->
             log:e("[IM] find session timeout~n"),
             From ! {session, {error, timeout}}
     end;
-do_loop(stop, Socket) ->
+do_loop({stop, From}, Socket) ->
     ok = gen_tcp:close(Socket),
     log:e("[IM] Session finder terminate~n"),
-    erlang:exit(normal);
+    From ! ok;
 do_loop(_, _) ->
     log:e("[IM] Session finder got unexpected message~n").
