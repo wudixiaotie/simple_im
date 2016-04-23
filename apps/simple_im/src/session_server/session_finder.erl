@@ -1,13 +1,13 @@
 %% ===================================================================
 %% Author xiaotie
 %% 2016-4-22
-%% session server finder
+%% session finder
 %% ===================================================================
 
--module(session_server_finder).
+-module(session_finder).
 
 % APIs
--export([start_link/1, init/1]).
+-export([start_link/1, name/1, init/1]).
 
 -include("connection.hrl").
 
@@ -22,10 +22,15 @@ start_link(Index) ->
     {ok, Pid}.
 
 
+name(Index) ->
+    IndexStr = erlang:integer_to_list(Index),
+    erlang:list_to_atom("session_finder_" ++ IndexStr).
+
+
 init(Index) ->
-    Name = session_finder:name(Index),
+    Name = name(Index),
     true = erlang:register(Name, self()),
-    loop().
+    loop(Name).
 
 
 
@@ -33,15 +38,15 @@ init(Index) ->
 %% Internal functions
 %% ===================================================================
 
-loop() ->
+loop(Name) ->
     receive
         Message -> 
-            do_loop(Message)
+            do_loop(Message, Name)
     end,
-    loop().
+    loop(Name).
 
 
-do_loop({find, From, UserId}) ->
+do_loop({find, From, UserId}, _) ->
     Result = case dets:lookup(session, UserId) of
         [] ->
             offline;
@@ -49,5 +54,8 @@ do_loop({find, From, UserId}) ->
             {ok, Pid}
     end,
     From ! {session, Result};
-do_loop(Message) ->
+do_loop({stop, From}, Name) ->
+    log:i("[Session] Session finder ~p stopped by admin~n", [Name]),
+    From ! ok;
+do_loop(Message, _) ->
     log:e("[IM] Session finder got unexpected message:~p~n", [Message]).

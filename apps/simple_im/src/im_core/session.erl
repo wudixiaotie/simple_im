@@ -16,9 +16,8 @@
 %% ===================================================================
 
 register(UserId, Pid) ->
-    UserIdBin = erlang:integer_to_binary(UserId),
-    PidBin = erlang:term_to_binary(Pid),
-    case catch session_registrar ! {register, self(), UserIdBin, PidBin} of
+    Creator = get_creator(),
+    case catch Creator ! {register, self(), UserId, Pid} of
         {'EXIT', _} ->
             ErrorMsg = "Session register failed",
             log:e("[IM] ~p~n", [ErrorMsg]),
@@ -34,8 +33,8 @@ register(UserId, Pid) ->
 unregister(undefined) ->
     ok;
 unregister(UserId) ->
-    UserIdBin = erlang:integer_to_binary(UserId),
-    case catch session_registrar ! {unregister, self(), UserIdBin} of
+    Creator = get_creator(),
+    case catch Creator ! {unregister, self(), UserId} of
         {'EXIT', _} ->
             ErrorMsg = "Session unregister failed",
             log:e("[IM] ~p~n", [ErrorMsg]),
@@ -52,9 +51,10 @@ find(UserId) ->
     FinderSize = env:get(session_finder_size),
     {ok, Index} = utility:random_number(FinderSize),
     FinderName = session_finder:name(Index),
+    SessionServerNode = env:get(session_server_node),
+    Finder = {FinderName, SessionServerNode},
 
-    UserIdBin = erlang:integer_to_binary(UserId),
-    case catch FinderName ! {find, self(), UserIdBin} of
+    case catch Finder ! {find, self(), UserId} of
         {'EXIT', Reason} ->
             log:e("[IM] Session find failed~n", [Reason]),
             offline;
@@ -70,3 +70,10 @@ find(UserId) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+get_creator() ->
+    CreatorSize = env:get(session_creator_size),
+    {ok, Index} = utility:random_number(CreatorSize),
+    CreatorName = session_creator:name(Index),
+    SessionServerNode = env:get(session_server_node),
+    {CreatorName, SessionServerNode}.

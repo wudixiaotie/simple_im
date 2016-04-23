@@ -7,7 +7,14 @@
 -module(admin).
 
 %% API
--export([increase_session_finder/1, decrease_session_finder/1,
+% -export([increase_session_finder_to/1,
+%          decrease_session_finder_to/1,
+%          count_session_finder/0,
+%          increase_session_creator_to/1,
+%          decrease_session_creator_to/1,
+%          count_session_creator/0]).
+-export([increase_session_finder_to/1,
+         decrease_session_finder_to/1,
          count_session_finder/0]).
 
 
@@ -16,39 +23,46 @@
 %% API functions
 %% ===================================================================
 
-increase_session_finder(N) ->
+increase_session_finder_to(NewSize) ->
     case env:get(app_mode) of
-        im ->
+        session_server ->
             SessionFinderSize = env:get(session_finder_size),
-            ok = increase_session_finder(N, SessionFinderSize + 1);
+            ok = increase_session_worker_to(session_finder_sup, NewSize, SessionFinderSize),
+            rpc:multicall(env, set, [session_finder_size, NewSize]);
         _ ->
-            log:e("[Admin] Call increase_session_finder in wrong node.~n"),
+            log:e("[Admin] Call increase_session_finder_to in wrong node.~n"),
             error
     end.
 
 
-decrease_session_finder(N) ->
+decrease_session_finder_to(NewSize) ->
     case env:get(app_mode) of
-        im ->
+        session_server ->
             SessionFinderSize = env:get(session_finder_size),
-            ok = env:set(session_finder_size, SessionFinderSize - N),
-            case catch decrease_session_finder(N, SessionFinderSize) of
+            rpc:multicall(env, set, [session_finder_size, NewSize]),
+            case catch decrease_session_worker_to(session_finder_sup, NewSize, SessionFinderSize) of
                 ok ->
                     ok;
                 _ ->
                     SessionFinderSizeNow = count_session_finder(),
-                    env:set(session_finder_size, SessionFinderSizeNow)
+                    rpc:multicall(env, set, [session_finder_size, SessionFinderSizeNow])
             end;
         _ ->
-            log:e("[Admin] Call decrease_session_finder in wrong node.~n"),
+            log:e("[Admin] Call decrease_session_finder_to in wrong node.~n"),
             error
     end.
 
 
 count_session_finder() ->
-    Result = supervisor:count_children(session_finder_worker_sup),
-    {workers, Number} = lists:keyfind(workers, 1, Result),
-    Number.
+    case env:get(app_mode) of
+        session_server ->
+            Result = supervisor:count_children(session_finder_sup),
+            {workers, Number} = lists:keyfind(workers, 1, Result),
+            Number;
+        _ ->
+            log:e("[Admin] Call count_session_finder in wrong node.~n"),
+            error
+    end.
 
 
 
@@ -56,27 +70,23 @@ count_session_finder() ->
 %% Internal functions
 %% ===================================================================
 
-increase_session_finder(0, Index) ->
-    NewSessionFinderSize = Index - 1,
-    ok = env:set(session_finder_size, NewSessionFinderSize),
-    log:i("[Admin] session_finder increased to ~p.~n", [NewSessionFinderSize]),
-    ok;
-increase_session_finder(N, Index) ->
-    FinderName = session_finder:name(Index),
+increase_session_worker_to(WorkerSup, NewSize, Index) when NewSize > Index ->
+    NewIndex = Index + 1,
+    FinderName = session_finder:name(NewIndex),
     case whereis(FinderName) of
         undefined ->
             log:i("[Admin] Start session finder:~p~n", [FinderName]),
-            {ok, _} = supervisor:start_child(session_finder_worker_sup, [Index]);
+            {ok, _} = supervisor:start_child(WorkerSup, [NewIndex]);
         _ ->
             ok
     end,
-    increase_session_finder(N - 1, Index + 1).
+    increase_session_worker_to(WorkerSup, NewSize, NewIndex);
+increase_session_worker_to(WorkerSup, NewSize, _) ->
+    log:i("[Admin] ~p's child increased to ~p.~n", [WorkerSup, NewSize]),
+    ok.
 
 
-decrease_session_finder(0, NewSessionFinderSize) ->
-    log:i("[Admin] session finder decreased to ~p.~n", [NewSessionFinderSize]),
-    ok;
-decrease_session_finder(N, Index) ->
+decrease_session_worker_to(WorkerSup, NewSize, Index) when NewSize < Index ->
     FinderName = session_finder:name(Index),
     case whereis(FinderName) of
         undefined ->
@@ -85,10 +95,13 @@ decrease_session_finder(N, Index) ->
             Pid ! {stop, self()},
             receive
                 ok ->
-                    ok = supervisor:terminate_child(session_finder_worker_sup, Pid)
+                    ok = supervisor:terminate_child(WorkerSup, Pid)
             after
                 2000 ->
                     erlang:error(timeout)
             end
     end,
-    decrease_session_finder(N - 1, Index - 1).
+    decrease_session_worker_to(WorkerSup, NewSize, Index - 1);
+decrease_session_worker_to(WorkerSup, NewSize, _) ->
+    log:i("[Admin] ~p's child decreased to ~p.~n", [WorkerSup, NewSize]),
+    ok.

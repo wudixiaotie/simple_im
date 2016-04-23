@@ -17,19 +17,24 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
-    simple_im_sup:start_link().
+    AppMode = env:get(app_mode),
+    {ok, Pid} = simple_im_sup:start_link(AppMode),
+
+    case AppMode of
+        im ->
+            ok = im:start();
+        session_server ->
+            ok = session_server:start();
+        _ ->
+            ok
+    end,
+    {ok, Pid}.
 
 %%--------------------------------------------------------------------
 stop(_State) ->
     case env:get(app_mode) of
         session_server ->
-            dets:close(session);
+            ok = session_server:stop();
         _ ->
             ok
     end.
-
-
-
-%%====================================================================
-%% Internal functions
-%%====================================================================

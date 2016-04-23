@@ -8,7 +8,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -30,8 +30,7 @@
 %% API functions
 %%====================================================================
 
-start_link() ->
-    AppMode = env:get(app_mode),
+start_link(AppMode) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, [AppMode]).
 
 
@@ -46,8 +45,6 @@ init([im]) ->
            [?CHILD(log_server, worker),
             ?CHILD(postgresql, worker),
             ?CHILD(redis, worker),
-            ?CHILD(session_registrar, worker),
-            ?CHILD(session_finder_worker_sup, supervisor),
             ?CHILD(client_sup, supervisor),
             ?CHILD(listener_sup, supervisor),
             ?AGENT_CHILD(work_for_hunter)]} };
@@ -61,8 +58,8 @@ init([http]) ->
 init([session_server]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),
-            ?CHILD(session_server_worker_sup, supervisor),
-            ?CHILD(session_server_listener, worker)]} };
+            ?CHILD(session_finder_sup, supervisor),
+            ?CHILD(session_creator_sup, supervisor)]} };
 init([middleman]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),

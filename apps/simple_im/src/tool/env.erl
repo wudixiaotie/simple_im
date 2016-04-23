@@ -30,13 +30,7 @@
 
 -define(DEFAULT_MIDDLEMAN_PORT, 10000).
 
--define(DEFAULT_SESSION_HOST, "localhost").
-
--define(DEFAULT_SESSION_PORT, 10001).
-
 -define(DEFAULT_SESSION_FILE, "/tmp/session.dets").
-
--define(DEFAULT_SESSION_FINDER_SIZE, 50).
 
 -define(DEFAULT_CLIENT_FACTORY_SIZE, 10).
 
@@ -44,6 +38,8 @@
 -define(DEFAULT_HEARTBEAT_TIMEOUT, 600000).
 
 -define(DEFAULT_INITIAL_NODE, 's1@simple_im.com').
+
+-define(DEFAULT_SESSION_SERVER_NODE, 'session_server@simple_im.com').
 
 -define(DEFAULT_DB_HOST, "localhost").
 
@@ -110,13 +106,11 @@ get_default(im_port) -> ?DEFAULT_IM_PORT;
 get_default(http_port) -> ?DEFAULT_HTTP_PORT;
 get_default(middleman_host) -> ?DEFAULT_MIDDLEMAN_HOST;
 get_default(middleman_port) -> ?DEFAULT_MIDDLEMAN_PORT;
-get_default(session_host) -> ?DEFAULT_SESSION_HOST;
-get_default(session_port) -> ?DEFAULT_SESSION_PORT;
 get_default(session_file) -> ?DEFAULT_SESSION_FILE;
-get_default(session_finder_size) -> ?DEFAULT_SESSION_FINDER_SIZE;
 get_default(client_factory_size) -> ?DEFAULT_CLIENT_FACTORY_SIZE;
 get_default(heartbeat_timeout) -> ?DEFAULT_HEARTBEAT_TIMEOUT;
 get_default(initial_node) -> ?DEFAULT_INITIAL_NODE;
+get_default(session_server_node) -> ?DEFAULT_SESSION_SERVER_NODE;
 
 % database
 get_default(db_host) -> ?DEFAULT_DB_HOST;

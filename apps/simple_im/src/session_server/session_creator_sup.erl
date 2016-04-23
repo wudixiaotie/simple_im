@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2016-4-20
-%% session finder worker sup
+%% 2016-4-23
+%% session server creator supervisor
 %% ===================================================================
 
--module(session_finder_worker_sup).
+-module(session_creator_sup).
 
 -behaviour(supervisor).
 
@@ -21,9 +21,7 @@
 %% ===================================================================
 
 start_link() ->
-    {ok, Pid} = supervisor:start_link({local, ?MODULE}, ?MODULE, []),
-    ok = session_finder:start(),
-    {ok, Pid}.
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 
 
@@ -33,8 +31,8 @@ start_link() ->
 
 init([]) ->
     {ok, { {simple_one_for_one, 5, 10},
-           [#{id        => session_finder_worker,
-              start     => {session_finder_worker, start_link, []},
-              restart   => permanent,
+           [#{id        => session_creator,
+              start     => {session_creator, start_link, []},
+              restart   => temporary,
               shutdown  => brutal_kill,
               type      => worker}]} }.
