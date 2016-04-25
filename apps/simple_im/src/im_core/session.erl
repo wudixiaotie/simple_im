@@ -24,8 +24,11 @@ register(UserId, Pid) ->
             erlang:error(ErrorMsg);
         _ ->
             receive
-                {session, Result} ->
-                    Result
+                {session, ok} ->
+                    ok;
+                {session, OldPid} ->
+                    OldPid ! {replaced_by, Pid},
+                    ok
             end
     end.
 
