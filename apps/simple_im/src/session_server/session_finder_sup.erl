@@ -33,6 +33,6 @@ init([]) ->
     {ok, { {simple_one_for_one, 5, 10},
            [#{id        => session_finder,
               start     => {session_finder, start_link, []},
-              restart   => temporary,
+              restart   => permanent,
               shutdown  => brutal_kill,
               type      => worker}]} }.
