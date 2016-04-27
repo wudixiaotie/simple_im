@@ -15,11 +15,11 @@
 %% ===================================================================
 
 init() ->
-    log:i("=============Database initializing..~n"),
+    io:format("=============Database initializing..~n"),
     ok = init_table(),
     ok = init_function(),
     ok = init_data(),
-    log:i("=============Database all set up.~n"),
+    io:format("=============Database all set up.~n"),
     ok.
 
 
@@ -29,17 +29,17 @@ init() ->
 %% ===================================================================
 
 init_table() ->
-    log:i("=============Tables initializing..~n"),
+    io:format("=============Tables initializing..~n"),
     Tables = ["users.sql", "groups.sql", "contacts.sql", "group_members.sql",
               "pre_contacts.sql"],
-    Path = "db/postgresql/table/",
+    Path = "doc/db/postgresql/table/",
     TablePathList = lists:map(fun(I) -> Path ++ I end, Tables),
     execute_sql(TablePathList).
 
 
 init_function() ->
-    log:i("=============Functions initializing..~n"),
-    SqlFileList = filelib:fold_files("db/postgresql/function",
+    io:format("=============Functions initializing..~n"),
+    SqlFileList = filelib:fold_files("doc/db/postgresql/function",
                                      ".*.sql",
                                      true,
                                      fun(F, AccIn) -> [F | AccIn] end,
@@ -48,7 +48,7 @@ init_function() ->
 
 
 execute_sql([SqlFilePath|T]) ->
-    log:i("execute sql file: ~p~n", [SqlFilePath]),
+    io:format("execute sql file: ~p~n", [SqlFilePath]),
     {ok, SqlFileHandler} = file:open(SqlFilePath, [read]),
     ok = parse_sql(SqlFileHandler, []),
     execute_sql(T);

@@ -13,7 +13,7 @@
 
 
 tc(M, F, A) ->
-    {Microsecond, _} = timer:tc (M, F, A),
+    {Microsecond, _} = timer:tc(M, F, A),
     Microsecond.
 
 distribution(List, Aver) ->
@@ -33,22 +33,22 @@ distribution([], _Aver, Greater, Less) ->
 %% ===================================================================
 
 t(M, F, A, N) ->
-    {Max, Min, Sum, Aver, Greater, Less} = loop ({M, F, A}, N),
-    io:format ("=====================~n"),
-    io:format ("execute [~p] times of {~p, ~p, ~p}:~n", [N, M, F, A]),
-    io:format ("Maximum: ~p(μs)\t~p(s)~n", [Max, Max / 1000000]),
-    io:format ("Minimum: ~p(μs)\t~p(s)~n", [Min, Min / 1000000]),
-    io:format ("Sum: ~p(μs)\t~p(s)~n", [Sum, Sum / 1000000]),
-    io:format ("Average: ~p(μs)\t~p(s)~n", [Aver, Aver / 1000000]),
-    io:format ("Greater: ~p~nLess: ~p~n", [Greater, Less]),
-    io:format ("=====================~n").
+    {Max, Min, Sum, Aver, Greater, Less} = loop({M, F, A}, N),
+    io:format("=====================~n"),
+    io:format("execute [~p] times of {~p, ~p, ~p}:~n", [N, M, F, A]),
+    io:format("Maximum: ~p(μs)\t~p(s)~n", [Max, Max / 1000000]),
+    io:format("Minimum: ~p(μs)\t~p(s)~n", [Min, Min / 1000000]),
+    io:format("Sum: ~p(μs)\t~p(s)~n", [Sum, Sum / 1000000]),
+    io:format("Average: ~p(μs)\t~p(s)~n", [Aver, Aver / 1000000]),
+    io:format("Greater: ~p~nLess: ~p~n", [Greater, Less]),
+    io:format("=====================~n").
 
 
 loop({M, F, A}, N) ->
-    loop ({M, F, A}, N, 1, 0, 0, 0, []).
+    loop({M, F, A}, N, 1, 0, 0, 0, []).
 
 loop({M, F, A}, N, I, Max, Min, Sum, List) when N >= I ->
-    Microsecond = tc (M, F, A),
+    Microsecond = tc(M, F, A),
     NewSum = Sum + Microsecond,
     if
         Max == 0 ->
@@ -63,7 +63,7 @@ loop({M, F, A}, N, I, Max, Min, Sum, List) when N >= I ->
             NewMax = Max,
             NewMin = Min
     end,
-    loop ({M, F, A}, N, I + 1, NewMax, NewMin, NewSum, [Microsecond|List]);
+    loop({M, F, A}, N, I + 1, NewMax, NewMin, NewSum, [Microsecond|List]);
 loop({_M, _F, _A}, N, _I, Max, Min, Sum, List) ->
     Aver = Sum / N,
     {Greater, Less} = distribution(List, Aver),
@@ -74,15 +74,15 @@ loop({_M, _F, _A}, N, _I, Max, Min, Sum, List) ->
 %% ===================================================================
 
 ct(M, F, A, N) ->
-    {Max, Min, Sum, Aver, Greater, Less} = cloop ({M, F, A}, N),
-    io:format ("=====================~n"),
-    io:format ("spawn [~p] processes of {~p, ~p, ~p}:~n", [N, M, F, A]),
-    io:format ("Maximum: ~p(μs)\t~p(s)~n", [Max, Max / 1000000]),
-    io:format ("Minimum: ~p(μs)\t~p(s)~n", [Min, Min / 1000000]),
-    io:format ("Sum: ~p(μs)\t~p(s)~n", [Sum, Sum / 1000000]),
-    io:format ("Average: ~p(μs)\t~p(s)~n", [Aver, Aver / 1000000]),
-    io:format ("Greater: ~p~nLess: ~p~n", [Greater, Less]),
-    io:format ("=====================~n").
+    {Max, Min, Sum, Aver, Greater, Less} = cloop({M, F, A}, N),
+    io:format("=====================~n"),
+    io:format("spawn [~p] processes of {~p, ~p, ~p}:~n", [N, M, F, A]),
+    io:format("Maximum: ~p(μs)\t~p(s)~n", [Max, Max / 1000000]),
+    io:format("Minimum: ~p(μs)\t~p(s)~n", [Min, Min / 1000000]),
+    io:format("Sum: ~p(μs)\t~p(s)~n", [Sum, Sum / 1000000]),
+    io:format("Average: ~p(μs)\t~p(s)~n", [Aver, Aver / 1000000]),
+    io:format("Greater: ~p~nLess: ~p~n", [Greater, Less]),
+    io:format("=====================~n").
 
 
 cloop({M, F, A}, N) ->
