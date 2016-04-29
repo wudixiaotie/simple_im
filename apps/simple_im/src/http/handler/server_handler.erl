@@ -116,7 +116,8 @@ handle_request(_, _, Req) ->
 
 
 get_node() ->
-    {ok, IMList} = redis:q([<<"HKEYS">>, <<"im_list">>]),
+    {ok, IMListKey} = redis:key(im_list),
+    {ok, IMList} = redis:q([<<"HKEYS">>, IMListKey]),
     {ok, Index} = utility:random_number(erlang:length(IMList)),
     IM = lists:nth(Index, IMList),
     IPPort = erlang:binary_to_list(IM),
