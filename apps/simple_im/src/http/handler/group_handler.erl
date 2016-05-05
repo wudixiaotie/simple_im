@@ -42,7 +42,7 @@ handle_request([], <<"POST">>, Req) ->
                                      {<<"d">>, DeviceName}],
                             {ok, N} = handler_helper:complete_group_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
-                            ok = agent:offer_a_reward(NBin),
+                            ok = agent:notify(NBin),
                             {ok, TomlBin} = handler_helper:success();
                         {error, Reason} ->
                             {ok, TomlBin} = handler_helper:error(3, Reason)
@@ -65,7 +65,7 @@ handle_request([GroupIdBin], <<"DELETE">>, Req) ->
                      {<<"d">>, DeviceName}],
             {ok, N} = handler_helper:complete_group_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
-            ok = agent:offer_a_reward(NBin),
+            ok = agent:notify(NBin),
             {ok, TomlBin} = handler_helper:success()
     end,
     handler_helper:return(200, TomlBin, Req);
@@ -87,7 +87,7 @@ handle_request([GroupIdBin, <<"member">>], <<"POST">>, Req) ->
                                      {<<"d">>, DeviceName}],
                             {ok, N} = handler_helper:complete_group_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
-                            ok = agent:offer_a_reward(NBin),
+                            ok = agent:notify(NBin),
                             {ok, TomlBin} = handler_helper:success();
                         {error, group_not_exist} ->
                             {ok, TomlBin} = handler_helper:error(3, <<"Group Not Exist!">>);
@@ -117,7 +117,7 @@ handle_request([GroupIdBin, <<"member">>, MemberIdBin], <<"POST">>, Req) ->
                              {<<"d">>, DeviceName}],
                     {ok, N} = handler_helper:complete_group_notification(Attrs),
                     {ok, NBin} = toml:term_2_binary(N),
-                    ok = agent:offer_a_reward(NBin),
+                    ok = agent:notify(NBin),
                     {ok, TomlBin} = handler_helper:success();
                 {error, group_not_exist} ->
                     {ok, TomlBin} = handler_helper:error(3, <<"Group Not Exist!">>);
@@ -142,7 +142,7 @@ handle_request([GroupIdBin, <<"member">>], <<"DELETE">>, Req) ->
                      {<<"d">>, DeviceName}],
             {ok, N} = handler_helper:complete_group_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
-            ok = agent:offer_a_reward(NBin),
+            ok = agent:notify(NBin),
             {ok, TomlBin} = handler_helper:success()
     end,
     handler_helper:return(200, TomlBin, Req);

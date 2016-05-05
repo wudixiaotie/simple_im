@@ -63,7 +63,7 @@ process(Type, FileDir, Extension, Req) ->
                                    {<<"d">>, DeviceName},
                                    {<<"id">>, <<"m_", FileId/binary>>}]},
                     {ok, MBin} = toml:term_2_binary(M),
-                    ok = agent:offer_a_reward(MBin),
+                    ok = agent:notify(MBin),
 
                     {ok, TomlBin} = handler_helper:success();
                 {error, Reason} ->

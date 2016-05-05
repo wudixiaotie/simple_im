@@ -19,10 +19,10 @@
                           restart   => permanent,
                           type      => Type}).
 
--define(AGENT_CHILD(FUN), #{id      => agent,
-                            start   => {agent, FUN, []},
-                            restart => permanent,
-                            type    => worker}).
+-define(AGENT_CHILD(AppMode), #{id      => agent,
+                                start   => {agent, start_link, [AppMode]},
+                                restart => permanent,
+                                type    => worker}).
 
 
 
@@ -47,14 +47,14 @@ init([im]) ->
             ?CHILD(redis, worker),
             ?CHILD(client_sup, supervisor),
             ?CHILD(listener_sup, supervisor),
-            ?AGENT_CHILD(work_for_hunter)]} };
+            ?AGENT_CHILD(im)]} };
 init([http]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),
             ?CHILD(postgresql, worker),
             ?CHILD(redis, worker),
             ?CHILD(http, worker),
-            ?AGENT_CHILD(work_for_master)]} };
+            ?AGENT_CHILD(http)]} };
 init([session_server]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),
@@ -63,5 +63,6 @@ init([session_server]) ->
 init([middleman]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),
-            ?CHILD(middleman_worker_sup, supervisor),
+            ?CHILD(middleman_im_worker_sup, supervisor),
+            ?CHILD(middleman_http_worker_sup, supervisor),
             ?CHILD(middleman_listener, worker)]} }.

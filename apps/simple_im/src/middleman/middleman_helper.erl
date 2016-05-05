@@ -6,7 +6,7 @@
 
 -module(middleman_helper).
 
--export([hunter_name/1, start_worker/2, master_name/1]).
+-export([im_worker_name/1, http_worker_name/1]).
 
 
 
@@ -14,17 +14,11 @@
 %% API functions
 %% ===================================================================
 
-hunter_name(Index) ->
-    HunterName = erlang:list_to_atom("hunter_" ++ erlang:integer_to_list(Index)),
-    {ok, HunterName}.
+im_worker_name(Index) ->
+    IMWorkerName = erlang:list_to_atom("im_worker_" ++ erlang:integer_to_list(Index)),
+    {ok, IMWorkerName}.
 
 
-start_worker(Socket, hunter) ->
-    middleman_hunter:start_link(Socket);
-start_worker(Socket, master) ->
-    middleman_master:start_link(Socket).
-
-
-master_name(Index) ->
-    HunterName = erlang:list_to_atom("master_" ++ erlang:integer_to_list(Index)),
-    {ok, HunterName}.
+http_worker_name(Index) ->
+    HttpWorkerName = erlang:list_to_atom("http_worker_" ++ erlang:integer_to_list(Index)),
+    {ok, HttpWorkerName}.

@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-11-19
-%% middleman worker supervisor
+%% 2016-05-05
+%% middleman http worker supervisor
 %% ===================================================================
 
--module(middleman_worker_sup).
+-module(middleman_http_worker_sup).
 
 -behaviour(supervisor).
 
@@ -31,8 +31,8 @@ start_link() ->
 
 init([]) ->
     {ok, { {simple_one_for_one, 5, 10},
-           [#{id        => middleman_worker,
-              start     => {middleman_helper, start_worker, []},
+           [#{id        => middleman_http_worker,
+              start     => {middleman_http_worker, start_link, []},
               restart   => temporary,
               shutdown  => brutal_kill,
               type      => worker}]} }.

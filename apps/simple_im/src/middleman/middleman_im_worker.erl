@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
 %% 2015-12-03
-%% middleman work for hunter
+%% middleman work for im
 %% ===================================================================
 
--module(middleman_hunter).
+-module(middleman_im_worker).
 
 -behaviour(gen_msg).
 
@@ -33,11 +33,11 @@ start_link(Socket) ->
 %% ===================================================================
 
 init([Socket]) ->
-    {ok, HunterName} = register_hunter(),
-    {ok, #state{name = HunterName, socket = Socket}}.
+    {ok, IMWorkerName} = register_im_worker(),
+    {ok, #state{name = IMWorkerName, socket = Socket}}.
 
 
-handle_msg({job, Bin}, State) ->
+handle_msg({notify, Bin}, State) ->
     ok = gen_tcp:send(State#state.socket, Bin),
     {ok, State};
 handle_msg({tcp_closed, _Socket}, State) ->
@@ -46,8 +46,8 @@ handle_msg(_Info, State) -> {ok, State}.
 
 
 terminate(Reason, State) ->
-    ok = notify_all_master(hunter_terminate),
-    log:e("[Middleman] Middleman worker ~p has down! Reason: ~p~n", [State#state.name, Reason]),
+    ok = notify_all_http_worker(im_worker_terminate),
+    log:e("[Middleman] Middleman im worker ~p has down! Reason: ~p~n", [State#state.name, Reason]),
     gen_tcp:close(State#state.socket),
     ok.
 
@@ -57,30 +57,30 @@ terminate(Reason, State) ->
 %% Internal functions
 %% ===================================================================
 
-register_hunter() ->
-    register_hunter(1).
-register_hunter(N) ->
-    {ok, HunterName} = middleman_helper:hunter_name(N),
-    case erlang:whereis(HunterName) of
+register_im_worker() ->
+    register_im_worker(1).
+register_im_worker(N) ->
+    {ok, IMWorkerName} = middleman_helper:im_worker_name(N),
+    case erlang:whereis(IMWorkerName) of
         undefined ->
-            erlang:register(HunterName, self()),
-            ok = notify_all_master(hunter_init),
-            {ok, HunterName};
+            erlang:register(IMWorkerName, self()),
+            ok = notify_all_http_worker(im_worker_init),
+            {ok, IMWorkerName};
         _ ->
-            register_hunter(N + 1)
+            register_im_worker(N + 1)
     end.
 
 
-notify_all_master(Content) ->
+notify_all_http_worker(Content) ->
     Names = erlang:registered(),
-    notify_all_master(Names, Content).
-notify_all_master([H|T], Content) ->
+    notify_all_http_worker(Names, Content).
+notify_all_http_worker([H|T], Content) ->
     case erlang:atom_to_list(H) of
-        [$m, $a, $s, $t, $e, $r, $_|_] ->
+        [$h, $t, $t, $p, $_|_] ->
             H ! Content;
         _ ->
             ok
     end,
-    notify_all_master(T, Content);
-notify_all_master([], _) ->
+    notify_all_http_worker(T, Content);
+notify_all_http_worker([], _) ->
     ok.

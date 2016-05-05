@@ -56,7 +56,7 @@ handle_request([ToUserIdBin], <<"POST">>, Req) ->
                                      {<<"d">>, DeviceName}],
                             {ok, N} = handler_helper:complete_notification(Attrs),
                             {ok, NBin} = toml:term_2_binary(N),
-                            ok = agent:offer_a_reward(NBin),
+                            ok = agent:notify(NBin),
                             {ok, TomlBin} = handler_helper:success();
                         {ok, 1} ->
                             {ok, TomlBin} = handler_helper:error(1, <<"Contact exists">>);
@@ -84,7 +84,7 @@ handle_request([AUserIdBin], <<"PUT">>, Req) ->
                              {<<"d">>, DeviceName}],
                     {ok, N} = handler_helper:complete_notification(Attrs),
                     {ok, NBin} = toml:term_2_binary(N),
-                    ok = agent:offer_a_reward(NBin),
+                    ok = agent:notify(NBin),
                     {ok, TomlBin} = handler_helper:success();
                 {error, unauthorized} ->
                     {ok, TomlBin} = handler_helper:error(1, <<"Unauthorized operate">>);
@@ -106,7 +106,7 @@ handle_request([ToUserIdBin], <<"DELETE">>, Req) ->
                      {<<"d">>, DeviceName}],
             {ok, N} = handler_helper:complete_notification(Attrs),
             {ok, NBin} = toml:term_2_binary(N),
-            ok = agent:offer_a_reward(NBin),
+            ok = agent:notify(NBin),
             {ok, TomlBin} = handler_helper:success()
     end,
     handler_helper:return(200, TomlBin, Req);

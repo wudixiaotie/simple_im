@@ -2,6 +2,7 @@
 ## Erlang/OTP Version: 18
 ## Rebar Version: [rebar3](https://www.rebar3.org/)
 
+0. Custom behaviour gen_msg more faster than gen_server.
 1. Message transform form one client to other client cost less than 300 microsecond.
 2. I use toml as transmission protocol instead of xml or json. It is much faster than json or xml(I use my own toml helper for toml to erlang terms instead of kalta/etoml, because it do not support Array of Tables, like <<"[[products]] sku = 738594937">>, and faster than etoml), contain more meanings in smaller size of binary.
 3. Use dets to store session, it is much faster than redis or ssdb, much faster than mnesia when multiple nodes are connected.

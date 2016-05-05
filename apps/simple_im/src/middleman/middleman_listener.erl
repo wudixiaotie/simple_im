@@ -46,10 +46,15 @@ accept(MiddlemanListenSocket) ->
 
             ok = inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
             receive
-                {tcp, Socket, RoleBin} ->
+                {tcp, Socket, AppModeBin} ->
                     ok = gen_tcp:send(Socket, ?READY),
-                    WorkFor = erlang:binary_to_atom(RoleBin, utf8),
-                    case supervisor:start_child(middleman_worker_sup, [Socket, WorkFor]) of
+                    Supervisor = case AppModeBin of
+                        <<"http">> ->
+                            middleman_http_worker_sup;
+                        <<"im">> ->
+                            middleman_im_worker_sup
+                    end,
+                    case supervisor:start_child(Supervisor, [Socket]) of
                         {ok, Pid} ->
                             ok = gen_tcp:controlling_process(Socket, Pid),
                             ok = inet:setopts(Socket, [{active, true}, {packet, 0}, binary]);
