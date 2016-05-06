@@ -53,16 +53,31 @@ loop(Name) ->
 
 do_loop({register, From, UserId, Pid}, _) ->
     log:i("[Session] Session register UserId:~p~n", [UserId]),
+
+    Node = erlang:node(Pid),
+    ok = dets:insert(node, {Node, UserId}),
+
     Result = case dets:lookup(session, UserId) of
         [] ->
             ok;
         [{_, OldPid}] ->
+            OldNode = erlang:node(OldPid),
+            ok = dets:delete_object(node, {OldNode, UserId}),
             OldPid
     end,
     ok = dets:insert(session, {UserId, Pid}),
     From ! {session, Result};
 do_loop({unregister, From, UserId}, _) ->
     log:i("[Session] Session unregister UserId:~p~n", [UserId]),
+
+    case dets:lookup(session, UserId) of
+        [] ->
+            ok;
+        [{_, OldPid}] ->
+            Node = erlang:node(OldPid),
+            ok = dets:delete_object(node, {Node, UserId})
+    end,
+
     ok = dets:delete(session, UserId),
     From ! {session, ok};
 do_loop({stop, From}, Name) ->

@@ -51,6 +51,7 @@ ping_nodes() ->
     SessionServerNode = env:get(session_server_node),
     case net_adm:ping(SessionServerNode) of
         pong ->
+            {im_node_monitor, SessionServerNode} ! {nodeinit, node()},
             log:i("[IM] Succeed to connect to the session server node~n");
         _ ->
             ErrorMsg2 = "Failed to connect to the session server node",

@@ -16,13 +16,23 @@
 %% ===================================================================
 
 start() ->
+    SessionFile = env:get(session_file),
     dets:open_file(session, [{access, read_write},
                              {auto_save, timer:minutes(1)},
-                             {file, "/tmp/session.dets"},
+                             {file, SessionFile},
                              {keypos, 1},
                              {ram_file, true}]),
 
-    ok = recover_data(),
+    % recover data
+    case filelib:is_file(SessionFile) of
+        true ->
+            {ok, OldTableRef} = dets:open_file(SessionFile),
+            Start = dets:bchunk(OldTableRef, start),
+            Input = init_bchunk(OldTableRef, Start),
+            ok = dets:init_table(session, Input, [{format, bchunk}]);
+        false ->
+            ok
+    end,
 
     SessionFinderSize = env:get(session_finder_size),
     ok = start_worker(session_finder_sup, SessionFinderSize),
@@ -40,19 +50,6 @@ stop() ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-recover_data() ->
-    SessionFile = env:get(session_file),
-    case filelib:is_file(SessionFile) of
-        true ->
-            {ok, OldTableRef} = dets:open_file(SessionFile),
-            Start = dets:bchunk(OldTableRef, start),
-            Input = init_bchunk(OldTableRef, Start),
-            ok = dets:init_table(session, Input, [{format,bchunk}]);
-        false ->
-            ok
-    end.
-
 
 init_bchunk(Tab, State) ->
     fun(read) when State =:= '$end_of_table' ->

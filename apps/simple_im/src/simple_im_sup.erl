@@ -58,6 +58,7 @@ init([http]) ->
 init([session_server]) ->
     {ok, { {one_for_one, 5, 10},
            [?CHILD(log_server, worker),
+            ?CHILD(im_node_monitor, worker),
             ?CHILD(session_finder_sup, supervisor),
             ?CHILD(session_creator_sup, supervisor)]} };
 init([middleman]) ->

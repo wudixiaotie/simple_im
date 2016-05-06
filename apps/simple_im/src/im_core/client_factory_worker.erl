@@ -91,8 +91,8 @@ handle_msg({ssl, SslSocket, Bin}, State) ->
                                     Device = #device{name = DeviceName,
                                                      ssl_socket = SslSocket,
                                                      token = Token},
-                                    Node = node(),
-                                    case node(Pid) of
+                                    Node = erlang:node(),
+                                    case catch erlang:node(Pid) of
                                         Node ->
                                             Pid ! {replace_socket, Message, Device},
                                             ok = ssl:controlling_process(Device#device.ssl_socket, Pid);
