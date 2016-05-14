@@ -15,12 +15,18 @@
 %% ===================================================================
 
 start_link() ->
-    ssdb_client:start_link().
+    {ok, Pid} = ssdb_client_sup:start_link(),
+    PoolSize = env:get(ssdb_poolsize),
+    ok = start_client(PoolSize),
+    {ok, Pid}.
 
 
 q(Request) ->
     Packet = pack(Request),
-    Reply = gen_server:call(ssdb_client, {q, Packet}),
+    PoolSize = env:get(ssdb_poolsize),
+    {ok, Index} = utility:random_number(PoolSize),
+    Name = client_name(Index),
+    Reply = gen_server:call(Name, {q, Packet}),
     unpack(Reply).
 
 
@@ -28,6 +34,18 @@ q(Request) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+start_client(0) ->
+    ok;
+start_client(PoolSize) ->
+    Name = client_name(PoolSize),
+    {ok, _} = supervisor:start_child(ssdb_client_sup, [Name]),
+    start_client(PoolSize - 1).
+
+
+client_name(Index) ->
+    erlang:list_to_atom("ssdb_client_" ++ erlang:integer_to_list(Index)).
+
 
 pack(Request) when is_list(Request), length(Request) > 0 ->
     pack(Request, <<>>);
