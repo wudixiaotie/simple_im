@@ -15,11 +15,11 @@
 %% ===================================================================
 
 init() ->
-    io:format("=============Database initializing..~n"),
+    log:i("=============Database initializing..~n"),
     ok = init_table(),
     ok = init_function(),
     ok = init_data(),
-    io:format("=============Database all set up.~n"),
+    log:i("=============Database all set up.~n"),
     ok.
 
 
@@ -29,7 +29,7 @@ init() ->
 %% ===================================================================
 
 init_table() ->
-    io:format("=============Tables initializing..~n"),
+    log:i("=============Tables initializing..~n"),
     Tables = ["users.sql", "groups.sql", "contacts.sql", "group_members.sql",
               "pre_contacts.sql"],
     Path = "doc/db/postgresql/table/",
@@ -38,7 +38,7 @@ init_table() ->
 
 
 init_function() ->
-    io:format("=============Functions initializing..~n"),
+    log:i("=============Functions initializing..~n"),
     SqlFileList = filelib:fold_files("doc/db/postgresql/function",
                                      ".*.sql",
                                      true,
@@ -48,7 +48,7 @@ init_function() ->
 
 
 execute_sql([SqlFilePath|T]) ->
-    io:format("execute sql file: ~p~n", [SqlFilePath]),
+    log:i("execute sql file: ~p~n", [SqlFilePath]),
     {ok, SqlFileHandler} = file:open(SqlFilePath, [read]),
     ok = parse_sql(SqlFileHandler, []),
     execute_sql(T);
