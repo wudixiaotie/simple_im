@@ -45,6 +45,7 @@ init([im]) ->
            [?CHILD(log_server, worker),
             ?CHILD(postgresql, worker),
             ?CHILD(redis, worker),
+            ?CHILD(ssdb, worker),
             ?CHILD(client_sup, supervisor),
             ?CHILD(listener_sup, supervisor),
             ?AGENT_CHILD(im)]} };
@@ -53,6 +54,7 @@ init([http]) ->
            [?CHILD(log_server, worker),
             ?CHILD(postgresql, worker),
             ?CHILD(redis, worker),
+            ?CHILD(ssdb, worker),
             ?CHILD(http, worker),
             ?AGENT_CHILD(http)]} };
 init([session_server]) ->

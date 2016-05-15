@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-9-14
-%% postgresql client supervisor
+%% 2016-05-14
+%% ssdb client supervisor
 %% ===================================================================
 
--module(postgresql_sup).
+-module(ssdb_client_sup).
 
 -behaviour(supervisor).
 
@@ -15,8 +15,8 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILD, #{id       => postgresql_worker,
-                 start    => {postgresql_worker, start_link, []},
+-define(CHILD, #{id       => ssdb_client,
+                 start    => {ssdb_client, start_link, []},
                  restart  => permanent,
                  type     => worker}).
 

@@ -58,6 +58,10 @@
                                        {host, "127.0.0.1"},
                                        {port, 6379}]}]).
 
+-define(DEFAULT_SSDB, [{host, "127.0.0.1"}, {port, 8888}]).
+
+-define(DEFAULT_SSDB_POOLSIZE, 30).
+
 -define(DEFAULT_REDIS_GLOBAL_OR_LOCAL, local).
 
 -define(DEFAULT_DEVICE_LIST, [<<"android">>, <<"iphone">>, <<"ipad">>]).
@@ -123,6 +127,10 @@ get_default(db_poolsize) -> ?DEFAULT_DB_POOLSIZE;
 % redis
 get_default(redis_pools) -> ?DEFAULT_REDIS_POOLS;
 get_default(redis_global_or_local) -> ?DEFAULT_REDIS_GLOBAL_OR_LOCAL;
+
+% ssdb
+get_default(ssdb) -> ?DEFAULT_SSDB;
+get_default(ssdb_poolsize) -> ?DEFAULT_SSDB_POOLSIZE;
 
 get_default(device_list) -> ?DEFAULT_DEVICE_LIST;
 
