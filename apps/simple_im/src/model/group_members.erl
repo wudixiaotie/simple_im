@@ -47,11 +47,11 @@ create_by_creator(GroupId, CreatorId, MemberId) ->
 find({group_id, GroupId}) ->
     SQL = <<"SELECT user_id FROM group_members WHERE group_id = $1;">>,
     {ok, _, UserIdList} = postgresql:exec(SQL, [GroupId]),
-    utility:unpack(UserIdList);
+    unpack(UserIdList);
 find({user_id, UserId}) ->
     SQL = <<"SELECT group_id FROM group_members WHERE user_id = $1;">>,
     {ok, _, GroupIdList} = postgresql:exec(SQL, [UserId]),
-    utility:unpack(GroupIdList).
+    unpack(GroupIdList).
 
 
 delete(GroupId, UserId) ->
@@ -65,3 +65,10 @@ delete(GroupId, UserId) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+unpack(TupleList) ->
+    unpack(TupleList, []).
+unpack([{Value}|T], Result) ->
+    unpack(T, [Value|Result]);
+unpack([], Result) ->
+    {ok, lists:reverse(Result)}.
