@@ -1,10 +1,10 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-10-05
-%% offline handler
+%% 2016-05-17
+%% pre_contact handler
 %% ===================================================================
 
--module(offline_handler).
+-module(pre_contact_handler).
 
 -export([init/2, handle_request/3]).
 
@@ -23,24 +23,17 @@ init(Req, Opts) ->
 %% Request handler
 %% ===================================================================
 
-handle_request([], <<"GET">>, Req) ->
+handle_request([TimestampBin], <<"GET">>, Req) ->
     case handler_helper:verify_token(Req) of
         {error, TomlBin} ->
             ok;
         {ok, UserId, _} ->
-            {ok, MsgList} = offline:get(UserId),
-            {ok, TomlBin1} = handler_helper:success(),
-            {ok, TomlBin2} = list_2_binary(MsgList),
+            Timestamp = erlang:binary_to_integer(TimestampBin),
+            {ok, Toml2} = pre_contacts:find(UserId, Timestamp),
+            Toml1 = {<<"response">>, [{<<"status">>, 0}]},
+            {ok, TomlBin1} = toml:term_2_binary(Toml1),
+            {ok, TomlBin2} = toml:term_2_binary(Toml2),
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
-    end,
-    handler_helper:return(200, TomlBin, Req);
-handle_request([], <<"DELETE">>, Req) ->
-    case handler_helper:verify_token(Req) of
-        {error, TomlBin} ->
-            ok;
-        {ok, UserId, _} ->
-            ok = offline:clean(UserId),
-            {ok, TomlBin} = handler_helper:success()
     end,
     handler_helper:return(200, TomlBin, Req);
 handle_request(_, _, Req) ->
@@ -51,11 +44,3 @@ handle_request(_, _, Req) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
-
-list_2_binary(MsgList) ->
-    list_2_binary(MsgList, <<>>).
-list_2_binary([H|T], Result) ->
-    list_2_binary(T, <<H/binary, "\r\n", Result/binary>>);
-list_2_binary([], Result) ->
-    NewResult = zlib:zip(Result),
-    {ok, NewResult}.

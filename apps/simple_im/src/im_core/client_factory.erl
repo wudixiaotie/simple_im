@@ -1,6 +1,6 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-9-26
+%% 2015-09-26
 %% Client factory:
 %% Two type of client connect: first login, should verify the token
 %% and create a client for it, or replace one if its exists.

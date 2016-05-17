@@ -17,6 +17,7 @@
 path() ->
     [{'_', [
         {"/contact/[...]", contact_handler, []},
+        {"/pre_contact/[...]", pre_contact_handler, []},
         {"/group/[...]", group_handler, []},
         {"/health", health_handler, []},
         {"/offline/[...]", offline_handler, []},
