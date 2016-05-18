@@ -77,7 +77,7 @@ handle_request([AUserIdBin], <<"PUT">>, Req) ->
         {ok, BUserId, DeviceName} ->
             AUserId = erlang:binary_to_integer(AUserIdBin),
             case contacts:create(AUserId, BUserId) of
-                ok ->
+                {ok, 0} ->
                     Attrs = [{<<"t">>, <<"accept_contact">>},
                              {<<"from">>, BUserId},
                              {<<"to">>, AUserId},
@@ -86,9 +86,9 @@ handle_request([AUserIdBin], <<"PUT">>, Req) ->
                     {ok, NBin} = toml:term_2_binary(N),
                     ok = agent:notify(NBin),
                     {ok, TomlBin} = handler_helper:success();
-                {error, unauthorized} ->
+                {ok, 1} ->
                     {ok, TomlBin} = handler_helper:error(1, <<"Unauthorized operate">>);
-                {error, unknown} ->
+                {ok, _} ->
                     {ok, TomlBin} = handler_helper:error(1, <<"Unkonw Error">>)
             end
     end,

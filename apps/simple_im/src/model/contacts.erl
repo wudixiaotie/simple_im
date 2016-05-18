@@ -20,12 +20,11 @@ create(AUserId, BUserId)
     {ok, _, [{Result}]} = postgresql:exec(SQL, [AUserId, BUserId]),
     case Result of
         0 ->
-            ok;
-        1 ->
-            {error, unauthorized};
+            [] = ssdb:q([<<"zset">>, ]),
         _ ->
-            {error, unknown}
-    end.
+          ok  
+    end,
+    {ok, Result}.
 
 
 delete(AUserId, BUserId)

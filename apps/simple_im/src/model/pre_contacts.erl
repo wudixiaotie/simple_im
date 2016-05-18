@@ -21,14 +21,20 @@ create(AUserId, BUserId, Message)
     SQL = <<"SELECT create_pre_contact($1, $2, $3);">>,
     {ok, _, [{Result}]} = postgresql:exec(SQL, [AUserId, BUserId, Message]),
 
-    Timestamp = utility:timestamp(),
-    TimestampBin = erlang:integer_to_binary(Timestamp),
-    AUserIdBin = erlang:integer_to_binary(AUserId),
-    BUserIdBin = erlang:integer_to_binary(BUserId),
-    [<<"ok">>, _] = ssdb:q([<<"zset">>,
-                            <<"pre_contacts_", BUserIdBin/binary>>,
-                            <<AUserIdBin/binary, ?SEPARATOR, Message/binary>>,
-                            TimestampBin]),
+    case Result of
+        % succeed
+        0 ->
+            Timestamp = utility:timestamp(),
+            TimestampBin = erlang:integer_to_binary(Timestamp),
+            AUserIdBin = erlang:integer_to_binary(AUserId),
+            BUserIdBin = erlang:integer_to_binary(BUserId),
+            [<<"ok">>, _] = ssdb:q([<<"zset">>,
+                                    <<"pre_contacts_", BUserIdBin/binary>>,
+                                    <<AUserIdBin/binary, ?SEPARATOR, Message/binary>>,
+                                    TimestampBin]);
+        _ ->
+            ok
+    end,
     {ok, Result}.
 
 
