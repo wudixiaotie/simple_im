@@ -8,7 +8,7 @@
 
 -export([create/3, find/2]).
 
--define(SEPARATOR, ":").
+-include("ssdb.hrl").
 
 
 
@@ -30,7 +30,7 @@ create(AUserId, BUserId, Message)
             BUserIdBin = erlang:integer_to_binary(BUserId),
             [<<"ok">>, _] = ssdb:q([<<"zset">>,
                                     <<"pre_contacts_", BUserIdBin/binary>>,
-                                    <<AUserIdBin/binary, ?SEPARATOR, Message/binary>>,
+                                    <<AUserIdBin/binary, ?SSDB_SEPARATOR, Message/binary>>,
                                     TimestampBin]);
         _ ->
             ok
@@ -68,8 +68,7 @@ unpack_ssdb(SSDBResult) ->
 unpack_ssdb([], Result) ->
     {ok, Result};
 unpack_ssdb([Key, TimestampBin|T], Result) ->
-    {match, [{IdLen, _}]} = re:run(Key, ?SEPARATOR),
-    <<UserIdBin:IdLen/binary, ?SEPARATOR, Message/binary>> = Key,
+    [UserIdBin, Message] = binary:split(Key, ?SSDB_SEPARATOR),
     UserId = erlang:binary_to_integer(UserIdBin),
     Timestamp = erlang:binary_to_integer(TimestampBin),
     Item = {UserId, Message, Timestamp},

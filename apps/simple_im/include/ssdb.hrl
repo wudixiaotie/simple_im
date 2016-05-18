@@ -1,0 +1,1 @@
+-define(SSDB_SEPARATOR, ":").

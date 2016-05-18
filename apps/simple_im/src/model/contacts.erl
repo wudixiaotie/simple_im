@@ -8,6 +8,8 @@
 
 -export([create/2, find/2, delete/2]).
 
+-include("ssdb.hrl").
+
 
 
 %% ===================================================================
@@ -20,6 +22,7 @@ create(AUserId, BUserId)
     {ok, _, [{Result}]} = postgresql:exec(SQL, [AUserId, BUserId]),
     case Result of
         0 ->
+        % hack new return type
             [] = ssdb:q([<<"zset">>, ]),
         _ ->
           ok  
