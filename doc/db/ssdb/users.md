@@ -1,5 +1,5 @@
 #### user info
-TYPE: HASH  
+TYPE: Hashmap  
 Name: <<"users_", UserIdBin/binary>>  
 Keys: [<<"name">>,  
        <<"phone">>,  
@@ -12,7 +12,7 @@ Commands:
 
 
 #### user info
-TYPE: HASH  
+TYPE: Hashmap  
 Key: <<"users_phone_", Phone/binary>>  
 Keys: [<<"name">>,  
        <<"id">>,  

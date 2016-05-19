@@ -8,8 +8,6 @@
 
 -export([create/3, find/2]).
 
--include("ssdb.hrl").
-
 
 
 %% ===================================================================
@@ -24,14 +22,15 @@ create(AUserId, BUserId, Message)
     case Result of
         % succeed
         0 ->
-            Timestamp = utility:timestamp(),
-            TimestampBin = erlang:integer_to_binary(Timestamp),
-            AUserIdBin = erlang:integer_to_binary(AUserId),
             BUserIdBin = erlang:integer_to_binary(BUserId),
-            [<<"ok">>, _] = ssdb:q([<<"zset">>,
-                                    <<"pre_contacts_", BUserIdBin/binary>>,
-                                    <<AUserIdBin/binary, ?SSDB_SEPARATOR, Message/binary>>,
-                                    TimestampBin]);
+            Name = <<"pre_contacts_", BUserIdBin/binary>>,
+            Key = erlang:term_to_binary({AUserId, Message}),
+            Score = erlang:integer_to_binary(utility:timestamp()),
+            [<<"ok">>, _] = ssdb:q([<<"zset">>, Name, Key, Score]),
+
+            Name1 = <<"pre_contacts_timestamp_", BUserIdBin/binary>>,
+            Key1 = erlang:integer_to_binary(AUserId),
+            [<<"ok">>, _] = ssdb:q([<<"hset">>, Name1, Key1, Score]);
         _ ->
             ok
     end,
@@ -40,7 +39,8 @@ create(AUserId, BUserId, Message)
 
 find(UserId, Timestamp) ->
     UserIdBin = erlang:integer_to_binary(UserId),
-    case ssdb:q([<<"zrscan">>, <<"pre_contacts_", UserIdBin/binary>>, <<>>, <<>>, <<>>, <<"100000000">>]) of
+    TimestampBin = erlang:integer_to_binary(Timestamp),
+    case ssdb:q([<<"zrscan">>, <<"pre_contacts_", UserIdBin/binary>>, <<>>, <<>>, TimestampBin, <<"100000000">>]) of
         [<<"ok">>|SSDBResult] ->
             {ok, PreContactsList} = unpack_ssdb(SSDBResult),
             {ok, Result} = to_toml(PreContactsList),
@@ -67,10 +67,9 @@ unpack_ssdb(SSDBResult) ->
     unpack_ssdb(SSDBResult, []).
 unpack_ssdb([], Result) ->
     {ok, Result};
-unpack_ssdb([Key, TimestampBin|T], Result) ->
-    [UserIdBin, Message] = binary:split(Key, ?SSDB_SEPARATOR),
-    UserId = erlang:binary_to_integer(UserIdBin),
-    Timestamp = erlang:binary_to_integer(TimestampBin),
+unpack_ssdb([Key, Score|T], Result) ->
+    {UserId, Message} = erlang:binary_to_term(Key),
+    Timestamp = erlang:binary_to_integer(Score),
     Item = {UserId, Message, Timestamp},
     unpack_ssdb(T, [Item|Result]).
 

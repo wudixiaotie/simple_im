@@ -1,8 +1,9 @@
 #### contact info
 TYPE: Sorted Set  
 Name: <<"contacts_", UserIdBin/binary>>  
-Key: FriendIdBin/binary,   
-Score: FriendVersion  
+Key: FriendIdBin  
+Score: ContactVersion  
 Commands:  
     zset name key score  
-    zrscan name '' '' '' limit  
+    zscan name '' ContactVersion '' limit  
+    zremrangebyscore name score score  

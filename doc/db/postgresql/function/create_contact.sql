@@ -1,5 +1,3 @@
--- CREATE TYPE create_contact_return(f1 varchar(10), f2 varchar(10), ... );
--- hack return type & transcation
 CREATE OR REPLACE FUNCTION create_contact(a_id INTEGER,
                                           b_id INTEGER)
 RETURNS INTEGER AS

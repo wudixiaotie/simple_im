@@ -1,1 +1,0 @@
--define(SSDB_SEPARATOR, ":").
