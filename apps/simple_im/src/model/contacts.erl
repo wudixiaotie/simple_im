@@ -7,7 +7,6 @@
 -module(contacts).
 
 -export([create/2, find/2, delete/2]).
--compile (export_all).
 
 
 
@@ -66,7 +65,7 @@ delete(AUserId, BUserId)
 
 find(UserId, 0) when is_integer(UserId) ->
     UserIdBin = erlang:integer_to_binary(UserId),
-    case ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, <<>>, <<>>, <<"100000000">>]) of
+    case ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, <<>>, <<>>, <<"-1">>]) of
         [<<"ok">>|SSDBResult] ->
             {ok, ContactsList} = unpack_ssdb(SSDBResult),
             % hack how to get current max version
@@ -90,7 +89,7 @@ find(UserId, ContactVersion)
     when is_integer(UserId), is_integer(ContactVersion) ->
     UserIdBin = erlang:integer_to_binary(UserId),
     ContactVersionBin = erlang:integer_to_binary(ContactVersion),
-    case ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, ContactVersionBin, <<>>, <<"100000000">>]) of
+    case ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, ContactVersionBin, <<>>, <<"-1">>]) of
         [<<"ok">>|SSDBResult] ->
             {ok, ContactsList} = unpack_ssdb(SSDBResult),
             % hack how to get current max version

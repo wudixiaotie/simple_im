@@ -5,7 +5,7 @@ Key: {FriendId, Message}
 Score: Timestamp  
 Commands:  
     zset name key score  
-    zrscan name '' '' '' limit  
+    zrscan name '' '' '' -1  
 
 #### pre_contact timestamp
 TYPE: Hashmap  

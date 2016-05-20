@@ -5,5 +5,5 @@ Key: FriendIdBin
 Score: ContactVersion  
 Commands:  
     zset name key score  
-    zscan name '' ContactVersion '' limit  
+    zscan name '' ContactVersion '' -1  
     zremrangebyscore name score score  

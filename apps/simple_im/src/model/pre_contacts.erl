@@ -40,7 +40,7 @@ create(AUserId, BUserId, Message)
 find(UserId, Timestamp) ->
     UserIdBin = erlang:integer_to_binary(UserId),
     TimestampBin = erlang:integer_to_binary(Timestamp),
-    case ssdb:q([<<"zrscan">>, <<"pre_contacts_", UserIdBin/binary>>, <<>>, <<>>, TimestampBin, <<"100000000">>]) of
+    case ssdb:q([<<"zrscan">>, <<"pre_contacts_", UserIdBin/binary>>, <<>>, <<>>, TimestampBin, <<"-1">>]) of
         [<<"ok">>|SSDBResult] ->
             {ok, PreContactsList} = unpack_ssdb(SSDBResult),
             {ok, Result} = to_toml(PreContactsList),
