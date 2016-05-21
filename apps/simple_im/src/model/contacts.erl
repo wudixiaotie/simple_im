@@ -31,13 +31,12 @@ create(AUserId, BUserId)
                                     TimestampBin,
                                     TimestampBin]),
 
-            SQL1 = <<"SELECT c.user_id, c.contact_id, u.name, u.phone, u.avatar, c.contact_version
-                      FROM users u, contacts c
-                      WHERE u.id = c.contact_id
-                      AND ((c.user_id = $1 AND c.contact_id = $2) OR
-                           (c.user_id = $2 AND c.contact_id = $1));">>,
-            {ok, _, ContactList} = postgresql:exec(SQL1, [AUserId, BUserId]),
-            ok = create_ssdb(ContactList);
+            SQL1 = <<"SELECT user_id, contact_id, contact_version
+                      FROM contacts
+                      WHERE (user_id = $1 AND contact_id = $2)
+                      OR (user_id = $2 AND contact_id = $1);">>,
+            {ok, _, Result1} = postgresql:exec(SQL1, [AUserId, BUserId]),
+            ok = create_ssdb(Result1);
         _ ->
           ok  
     end,
@@ -46,17 +45,14 @@ create(AUserId, BUserId)
 
 delete(AUserId, BUserId)
     when is_integer(AUserId), is_integer(BUserId) ->
-    SQL1 = <<"SELECT user_id, contact_version
-              FROM contacts
-              WHERE (user_id = $1 AND contact_id = $2)
-              OR (user_id = $2 AND contact_id = $1);">>,
-    {ok, _, VersionList} = postgresql:exec(SQL1, [AUserId, BUserId]),
-
     SQL = <<"SELECT delete_contact($1, $2);">>,
     {ok, _, [{Result}]} = postgresql:exec(SQL, [AUserId, BUserId]),
     case Result of
         0 ->
-            ok = delete_ssdb(VersionList),
+            AUserIdBin = erlang:integer_to_binary(AUserId),
+            BUserIdBin = erlang:integer_to_binary(BUserId),
+            [<<"ok">>, _] = ssdb:q([<<"zdel">>, <<"contacts_", AUserIdBin/binary>>, BUserIdBin]),
+            [<<"ok">>, _] = ssdb:q([<<"zdel">>, <<"contacts_", BUserIdBin/binary>>, AUserIdBin]),
             ok;
         _ ->
             ok
@@ -66,10 +62,10 @@ delete(AUserId, BUserId)
 find(UserId, 0) when is_integer(UserId) ->
     UserIdBin = erlang:integer_to_binary(UserId),
     case ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, <<>>, <<>>, <<"-1">>]) of
-        [<<"ok">>|SSDBResult] ->
-            {ok, ContactsList} = unpack_ssdb(SSDBResult),
+        [<<"ok">>|ContactIdList] ->
+            {ok, ContactsList} = find_contact_info(ContactIdList),
             % hack how to get current max version
-            {ok, 0, ContactsList};
+            {ok, ContactsList};
         _ ->
             log:e("[SSDB] contacts: find error id:~p version:0!~n", [UserId]),
             SQL = <<"SELECT u.id,
@@ -80,20 +76,16 @@ find(UserId, 0) when is_integer(UserId) ->
                      WHERE u.id = c.contact_id
                      AND c.user_id = $1;">>,
             {ok, _, Result} = postgresql:exec(SQL, [UserId]),
-
-            SQLVersion = <<"SELECT contact_version FROM users WHERE id = $1">>,
-            {ok, _, [{CurrentVersion}]} = postgresql:exec(SQLVersion, [UserId]),
-            {ok, CurrentVersion, Result}
+            {ok, Result}
     end;
 find(UserId, ContactVersion)
     when is_integer(UserId), is_integer(ContactVersion) ->
     UserIdBin = erlang:integer_to_binary(UserId),
     ContactVersionBin = erlang:integer_to_binary(ContactVersion),
     case ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, ContactVersionBin, <<>>, <<"-1">>]) of
-        [<<"ok">>|SSDBResult] ->
-            {ok, ContactsList} = unpack_ssdb(SSDBResult),
-            % hack how to get current max version
-            {ok, 0, ContactsList};
+        [<<"ok">>|ContactIdList] ->
+            {ok, ContactsList} = find_contact_info(ContactIdList),
+            {ok, ContactsList};
         _ ->
             log:e("[SSDB] contacts: find error id:~p version:0!~n", [UserId]),
             SQL = <<"SELECT u.id,
@@ -105,10 +97,7 @@ find(UserId, ContactVersion)
                      AND c.user_id = $1
                      AND c.contact_version > $2;">>,
             {ok, _, Result} = postgresql:exec(SQL, [UserId, ContactVersion]),
-
-            SQLVersion = <<"SELECT contact_version FROM users WHERE id = $1">>,
-            {ok, _, [{CurrentVersion}]} = postgresql:exec(SQLVersion, [UserId]),
-            {ok, CurrentVersion, Result}
+            {ok, Result}
     end.
 
 
@@ -117,10 +106,10 @@ find(UserId, ContactVersion)
 %% Internal functions
 %% ===================================================================
 
-create_ssdb([{UserId, ContactId, ContactName, ContactPhone, ContactAvatar, ContactVersion}|T]) ->
+create_ssdb([{UserId, ContactId, ContactVersion}|T]) ->
     UserIdBin = erlang:integer_to_binary(UserId),
     Name = <<"contacts_", UserIdBin/binary>>,
-    Key = erlang:term_to_binary({ContactId, ContactName, ContactPhone, ContactAvatar}),
+    Key = erlang:integer_to_binary(ContactId),
     Score = erlang:integer_to_binary(ContactVersion),
     [<<"ok">>, _] = ssdb:q([<<"zset">>, Name, Key, Score]),
     create_ssdb(T);
@@ -128,20 +117,16 @@ create_ssdb([]) ->
     ok.
 
 
-delete_ssdb([{UserId, ContactVersion}|T]) ->
-    UserIdBin = erlang:integer_to_binary(UserId),
-    Name = <<"contacts_", UserIdBin/binary>>,
-    Score = erlang:integer_to_binary(ContactVersion),
-    [<<"ok">>, _] = ssdb:q([<<"zremrangebyscore">>, Name, Score, Score]),
-    delete_ssdb(T);
-delete_ssdb([]) ->
-    ok.
-
-
-unpack_ssdb(SSDBResult) ->
-    unpack_ssdb(SSDBResult, []).
-unpack_ssdb([], Result) ->
+find_contact_info(ContactIdList) ->
+    find_contact_info(ContactIdList, []).
+find_contact_info([], Result) ->
     {ok, Result};
-unpack_ssdb([Key, _|T], Result) ->
-    {UserId, Name, Phone, Avatar} = erlang:binary_to_term(Key),
-    unpack_ssdb(T, [{UserId, Name, Phone, Avatar}|Result]).
+find_contact_info([ContactIdBin, _|T], Result) ->
+    [<<"ok">>, <<"name">>, Name, <<"phone">>, Phone,
+     <<"avatar">>, Avatar] = ssdb:q([<<"multi_hget">>,
+                                     <<"users_", ContactIdBin/binary>>,
+                                     <<"name">>,
+                                     <<"phone">>,
+                                     <<"avatar">>]),
+    UserId = erlang:binary_to_integer(ContactIdBin),
+    find_contact_info(T, [{UserId, Name, Phone, Avatar}|Result]).

@@ -1,12 +1,9 @@
 #### group members info
-TYPE: List  
+TYPE: Sorted Set  
 Name: <<"groups_members_", GroupIdBin/binary>>  
-Keys: [<<"uid1">>,  
-       <<"uid2">>,  
-       <<"uid3">>,  
-       <<"uid4">>,  
-       <<"uid5">>]  
+Keys: UserIdBin  
+Score: Timestamp  
 Commands:  
-    qrange name, 0, -1);
-    multi_hset name key1 value1 key2 value2 ...  
-    multi_hget name key1 key2 ...  
+    zset name key score  
+    zscan name '' '' '' -1  
+    zdel name key  

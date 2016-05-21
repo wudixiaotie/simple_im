@@ -6,7 +6,7 @@
 
 -module(users).
 
--export([create/3, verify/2, find/1, to_toml/1]).
+-export([create/3, verify/2, find/1, update/2, to_toml/1]).
 
 
 
@@ -89,6 +89,49 @@ find({phone, Phone}) ->
             SQL = <<"SELECT id, name, phone, avatar FROM users WHERE phone = $1;">>,
             {ok, _, Result} = postgresql:exec(SQL, [Phone]),
             {ok, Result}
+    end.
+
+
+update(UserId, {name, NewNameBin}) ->
+    SQL = <<"UPDATE users SET name = $2 WHERE id = $1;">>,
+    case postgresql:exec(SQL, [UserId, NewNameBin]) of
+        {ok, 1} ->
+            UserIdBin = erlang:integer_to_binary(UserId),
+            [<<"ok">>, PhoneBin] = ssdb:q([<<"hget">>, <<"users_", UserIdBin/binary>>, <<"phone">>]),
+
+            [<<"ok">>, _] = ssdb:q([<<"hset">>, <<"users_", UserIdBin/binary>>, <<"name">>, NewNameBin]),
+            [<<"ok">>, _] = ssdb:q([<<"hset">>, <<"users_phone_", PhoneBin/binary>>, <<"name">>, NewNameBin]),
+            ok;
+        _ ->
+            error
+    end;
+update(UserId, {phone, NewPhoneBin}) ->
+    SQL = <<"UPDATE users SET phone = $2 WHERE id = $1;">>,
+    case postgresql:exec(SQL, [UserId, NewPhoneBin]) of
+        {ok, 1} ->
+            UserIdBin = erlang:integer_to_binary(UserId),
+            [<<"ok">>, PhoneBin] = ssdb:q([<<"hget">>, <<"users_", UserIdBin/binary>>, <<"phone">>]),
+            [<<"ok">>|Result] = ssdb:q([<<"hgetall">>, <<"users_phone_", PhoneBin/binary>>]),
+
+            [<<"ok">>, _] = ssdb:q([<<"hset">>, <<"users_", UserIdBin/binary>>, <<"phone">>, NewPhoneBin]),
+            [<<"ok">>, _] = ssdb:q([<<"multi_hset">>, <<"users_phone_", NewPhoneBin/binary>>|Result]),
+            [<<"ok">>, _] = ssdb:q([<<"hclear">>, <<"users_phone_", PhoneBin/binary>>]),
+            ok;
+        _ ->
+            error
+    end;
+update(UserId, {avatar, NewAvatarBin}) ->
+    SQL = <<"UPDATE users SET avatar = $2 WHERE id = $1;">>,
+    case postgresql:exec(SQL, [UserId, NewAvatarBin]) of
+        {ok, 1} ->
+            UserIdBin = erlang:integer_to_binary(UserId),
+            [<<"ok">>, PhoneBin] = ssdb:q([<<"hget">>, <<"users_", UserIdBin/binary>>, <<"phone">>]),
+
+            [<<"ok">>, _] = ssdb:q([<<"hset">>, <<"users_", UserIdBin/binary>>, <<"avatar">>, NewAvatarBin]),
+            [<<"ok">>, _] = ssdb:q([<<"hset">>, <<"users_phone_", PhoneBin/binary>>, <<"avatar">>, NewAvatarBin]),
+            ok;
+        _ ->
+            error
     end.
 
 
