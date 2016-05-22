@@ -19,8 +19,22 @@
 create(Name, CreatorId, Members) ->
     {ok, MembersBin} = utility:join(Members, <<",">>),
     {ok, Key} = utility:random_binary_16(),
-    SQL = <<"SELECT create_group($1, $2, $3, '{", MembersBin/binary, "}');">>,
-    {ok, _, [{GroupId}]} = postgresql:exec(SQL, [Name, CreatorId, Key]),
+    CreatedAt = utility:timestamp(),
+    SQL = <<"SELECT create_group($1, $2, $3, $4, '{", MembersBin/binary, "}');">>,
+    {ok, _, [{GroupId}]} = postgresql:exec(SQL, [Name, CreatorId, Key, CreatedAt]),
+
+    GroupIdBin = erlang:integer_to_binary(GroupId),
+    CreatorIdBin = erlang:integer_to_binary(CreatorId),
+    CreatedAtBin = erlang:integer_to_binary(CreatedAt),
+    [<<"ok">>, _] = ssdb:q([<<"multi_hset">>, <<"groups_", GroupIdBin/binary>>,
+                            <<"name">>, Name,
+                            <<"creator_id">>, CreatorIdBin,
+                            <<"key">>, Key,
+                            <<"created_at">>, CreatedAtBin]),
+    [<<"ok">>, _] = ssdb:q([<<"zset">>, <<"user_groups_", CreatorIdBin/binary>>,
+                            GroupIdBin, CreatedAtBin]),
+    [<<"ok">>, _] = ssdb:q([<<"zset">>, <<"groups_members_", GroupIdBin/binary>>,
+                            CreatorIdBin, CreatedAtBin]),
     {ok, GroupId, Key}.
 
 
@@ -29,6 +43,10 @@ delete(GroupId, CreatorId) ->
     {ok, _, [{Result}]} = postgresql:exec(SQL, [GroupId, CreatorId]),
     case Result of
         0 ->
+            GroupIdBin = erlang:integer_to_binary(GroupId),
+            [<<"ok">>, _] = ssdb:q([<<"hclear">>, <<"groups_", GroupIdBin/binary>>]),
+            [<<"ok">>|GroupMembers] = ssdb:q([<<"zscan">>, <<"groups_members_", GroupIdBin/binary>>, <<>>, <<>>, <<>>, <<"-1">>]),
+            ok = delete_ssdb(GroupMembers, GroupIdBin),
             ok;
         1 ->
             {error, unauthorized};
@@ -38,12 +56,23 @@ delete(GroupId, CreatorId) ->
 
 
 find({group_id, GroupId}) ->
-    SQL = <<"SELECT * FROM groups WHERE id = $1;">>,
-    case postgresql:exec(SQL, [GroupId]) of
-        {ok, _, []} ->
-            {error, null};
-        {ok, _, [{A, B, C, D, E, F}]} ->
-            {ok, {group, A, B, C, D, E, F}}
+    GroupIdBin = erlang:integer_to_binary(GroupId),
+    case ssdb:q([<<"multi_hget">>, <<"groups_", GroupIdBin/binary>>, <<"name">>, <<"creator_id">>, <<"key">>, <<"created_at">>]) of
+        [<<"ok">>, <<"name">>, Name, <<"creator_id">>, CreatorIdBin,
+         <<"key">>, Key, <<"created_at">>, CreatedAtBin] ->
+            CreatorId = erlang:binary_to_integer(CreatorIdBin),
+            CreatedAt = erlang:binary_to_integer(CreatedAtBin),
+            {ok, {group, GroupId, Name, CreatorId, Key, CreatedAt}};
+        _ ->
+            log:e("[SSDB] groups: find error id:~p~n", [GroupId]),
+            SQL = <<"SELECT name, creator_id, key, extract(epoch from created_at)::integer
+                     FROM groups WHERE id = $1;">>,
+            case postgresql:exec(SQL, [GroupId]) of
+                {ok, _, []} ->
+                    {error, null};
+                {ok, _, [{Name, CreatorId, Key, CreatedAt}]} ->
+                    {ok, {group, GroupId, Name, CreatorId, Key, CreatedAt}}
+            end
     end.
 
 
@@ -51,3 +80,10 @@ find({group_id, GroupId}) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+delete_ssdb([UserIdBin, _|T], GroupIdBin) ->
+    [<<"ok">>, _] = ssdb:q([<<"zdel">>, <<"user_groups_", UserIdBin/binary>>, GroupIdBin]),
+    delete_ssdb(T, GroupIdBin);
+delete_ssdb([], GroupIdBin) ->
+    [<<"ok">>, _] = ssdb:q([<<"zclear">>, <<"groups_members_", GroupIdBin/binary>>]),
+    ok.

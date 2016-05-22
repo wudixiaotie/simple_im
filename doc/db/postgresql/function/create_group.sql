@@ -1,6 +1,7 @@
 CREATE OR REPLACE FUNCTION create_group(name        groups.name%TYPE,
                                         creator_id  INTEGER,
                                         key         groups.key%TYPE,
+                                        created_at  INTEGER,
                                         members     INTEGER[])
 RETURNS INTEGER AS
 $$
@@ -9,7 +10,7 @@ DECLARE
     group_id    INTEGER;
     member_id   INTEGER;
 BEGIN
-    now = now();
+    now = to_timestamp(created_at);
 
     group_id = nextval('groups_id_seq');
 

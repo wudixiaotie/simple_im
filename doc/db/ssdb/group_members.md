@@ -7,3 +7,4 @@ Commands:
     zset name key score  
     zscan name '' '' '' -1  
     zdel name key  
+    zclear name  

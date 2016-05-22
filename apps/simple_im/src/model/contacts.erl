@@ -108,10 +108,10 @@ find(UserId, ContactVersion)
 
 create_ssdb([{UserId, ContactId, ContactVersion}|T]) ->
     UserIdBin = erlang:integer_to_binary(UserId),
-    Name = <<"contacts_", UserIdBin/binary>>,
-    Key = erlang:integer_to_binary(ContactId),
-    Score = erlang:integer_to_binary(ContactVersion),
-    [<<"ok">>, _] = ssdb:q([<<"zset">>, Name, Key, Score]),
+    SSDBName = <<"contacts_", UserIdBin/binary>>,
+    SSDBKey = erlang:integer_to_binary(ContactId),
+    SSDBScore = erlang:integer_to_binary(ContactVersion),
+    [<<"ok">>, _] = ssdb:q([<<"zset">>, SSDBName, SSDBKey, SSDBScore]),
     create_ssdb(T);
 create_ssdb([]) ->
     ok.

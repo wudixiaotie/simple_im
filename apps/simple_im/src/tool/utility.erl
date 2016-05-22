@@ -177,7 +177,9 @@ join([H|T], Separator, Result) when is_list(H) ->
 join([H|T], Separator, Result) when is_atom(H) ->
     Bin = erlang:atom_to_binary(H, utf8),
     NewResult = <<Result/binary, " \"", Bin/binary, " \"", Separator/binary>>,
-    join(T, Separator, NewResult).
+    join(T, Separator, NewResult);
+join([], _, Result) ->
+    {ok, Result}.
 
 
 check_parameters([H|T], Attrs, Result) ->
