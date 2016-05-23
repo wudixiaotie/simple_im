@@ -11,7 +11,7 @@ Commands:
     hclear name  
 
 
-#### group info
+#### user group info
 TYPE: Sorted Set  
 Name: <<"user_groups_", UserIdBin/binary>>  
 Key: GroupIdBin  

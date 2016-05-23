@@ -1,7 +1,7 @@
 %% ===================================================================
 %% Author xiaotie
 %% 2015-09-14
-%% users data logic module
+%% contacts data logic module
 %% ===================================================================
 
 -module(contacts).
@@ -61,11 +61,10 @@ delete(AUserId, BUserId)
 
 find(UserId, 0) when is_integer(UserId) ->
     UserIdBin = erlang:integer_to_binary(UserId),
-    case ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, <<>>, <<>>, <<"-1">>]) of
+    case catch ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, <<>>, <<>>, <<"-1">>]) of
         [<<"ok">>|ContactIdList] ->
-            {ok, ContactsList} = find_contact_info(ContactIdList),
-            % hack how to get current max version
-            {ok, ContactsList};
+            {ok, ContactList} = find_contact_info(ContactIdList),
+            {ok, ContactList};
         _ ->
             log:e("[SSDB] contacts: find error id:~p version:0!~n", [UserId]),
             SQL = <<"SELECT u.id,
@@ -82,10 +81,10 @@ find(UserId, ContactVersion)
     when is_integer(UserId), is_integer(ContactVersion) ->
     UserIdBin = erlang:integer_to_binary(UserId),
     ContactVersionBin = erlang:integer_to_binary(ContactVersion),
-    case ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, ContactVersionBin, <<>>, <<"-1">>]) of
+    case catch ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, ContactVersionBin, <<>>, <<"-1">>]) of
         [<<"ok">>|ContactIdList] ->
-            {ok, ContactsList} = find_contact_info(ContactIdList),
-            {ok, ContactsList};
+            {ok, ContactList} = find_contact_info(ContactIdList),
+            {ok, ContactList};
         _ ->
             log:e("[SSDB] contacts: find error id:~p version:0!~n", [UserId]),
             SQL = <<"SELECT u.id,

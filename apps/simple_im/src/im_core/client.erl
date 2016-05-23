@@ -242,7 +242,7 @@ process_packet([{Type, Attrs}|T], State)
     case lists:keyfind(<<"g_id">>, 1, Attrs) of
         {<<"g_id">>, GroupId} ->
             UserId = State#state.user_id,
-            {ok, UserIdList} = group_members:find({group_id, GroupId}),
+            {ok, UserIdList} = groups:find_members(GroupId),
             ok = router:route_to_multiple_user(UserIdList, UserId, Message);
         _ ->
             ignore

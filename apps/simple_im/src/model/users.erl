@@ -6,7 +6,7 @@
 
 -module(users).
 
--export([create/3, verify/2, find/1, update/2, to_toml/1]).
+-export([create/3, verify/2, find/1, find_groups/2, update/2, to_toml/1]).
 
 
 
@@ -70,7 +70,7 @@ verify(Phone, Password) ->
 
 find({id, UserId}) ->
     UserIdBin = erlang:integer_to_binary(UserId),
-    case ssdb:q([<<"multi_hget">>, <<"users_", UserIdBin/binary>>, <<"name">>, <<"phone">>, <<"avatar">>]) of
+    case catch ssdb:q([<<"multi_hget">>, <<"users_", UserIdBin/binary>>, <<"name">>, <<"phone">>, <<"avatar">>]) of
         [<<"ok">>, <<"name">>, Name, <<"phone">>, Phone, <<"avatar">>, Avatar] ->
             {ok, [{UserId, Name, Phone, Avatar}]};
         _ ->
@@ -80,7 +80,7 @@ find({id, UserId}) ->
             {ok, Result}
     end;
 find({phone, Phone}) ->
-    case ssdb:q([<<"multi_hget">>, <<"users_phone_", Phone/binary>>, <<"id">>, <<"name">>, <<"avatar">>]) of
+    case catch ssdb:q([<<"multi_hget">>, <<"users_phone_", Phone/binary>>, <<"id">>, <<"name">>, <<"avatar">>]) of
         [<<"ok">>, <<"id">>, UserIdBin, <<"name">>, Name, <<"avatar">>, Avatar] ->
             UserId = erlang:binary_to_integer(UserIdBin),
             {ok, [{UserId, Name, Phone, Avatar}]};
@@ -89,6 +89,30 @@ find({phone, Phone}) ->
             SQL = <<"SELECT id, name, phone, avatar FROM users WHERE phone = $1;">>,
             {ok, _, Result} = postgresql:exec(SQL, [Phone]),
             {ok, Result}
+    end.
+
+
+find_groups(UserId, Timestamp) ->
+    UserIdBin = erlang:integer_to_binary(UserId),
+    TimestampBin = erlang:integer_to_binary(Timestamp),
+    case catch ssdb:q([<<"zscan">>, <<"user_groups_", UserIdBin/binary>>, <<>>, TimestampBin, <<>>, <<"-1">>]) of
+        [<<"ok">>|GroupIdList] ->
+            {ok, Toml} = find_group_info_ssdb(GroupIdList),
+            {ok, Toml};
+        _ ->
+            log:e("[SSDB] user: find_groups error id:~p timestamp:~p!~n", [UserId, Timestamp]),
+            SQL = <<"SELECT g.id,
+                            g.name,
+                            g.creator_id,
+                            g.key,
+                            extract(epoch from g.created_at):: integer
+                    FROM groups g, group_members gm
+                    WHERE g.id = gm.group_id
+                    AND gm.user_id = $1
+                    AND gm.created_at > $2;">>,
+            {ok, _, GroupInfoList} = postgresql:exec(SQL, [UserId, Timestamp]),
+            {ok, Toml} = find_group_info_odbc(GroupInfoList),
+            {ok, Toml}
     end.
 
 
@@ -150,6 +174,38 @@ verify(UserId, Password, EncryptedPassword, Salt) ->
         _ ->
             {ok, false}
     end.    
+
+
+find_group_info_ssdb(GroupIdList) ->
+    find_group_info_ssdb(GroupIdList, []).
+find_group_info_ssdb([GroupIdBin, _|T], Toml) ->
+    GroupId = erlang:binary_to_integer(GroupIdBin),
+    case ssdb:q([<<"multi_hget">>, <<"groups_", GroupIdBin/binary>>, <<"name">>, <<"creator_id">>, <<"key">>, <<"created_at">>]) of
+        [<<"ok">>, <<"name">>, Name, <<"creator_id">>, CreatorIdBin, <<"key">>, Key, <<"created_at">>, CreatedAtBin] ->
+            GroupToml = {<<"group">>, [{<<"id">>, GroupId},
+                                       {<<"name">>, Name},
+                                       {<<"creator_id">>, erlang:binary_to_integer(CreatorIdBin)},
+                                       {<<"key">>, Key},
+                                       {<<"created_at">>, erlang:binary_to_integer(CreatedAtBin)}]},
+            find_group_info_ssdb(T, [GroupToml|Toml]);
+        _ ->
+            find_group_info_ssdb(T, Toml)
+    end;
+find_group_info_ssdb([], Toml) ->
+    {ok, Toml}.
+
+
+find_group_info_odbc(GroupInfoList) ->
+    find_group_info_odbc(GroupInfoList, []).
+find_group_info_odbc([{GroupId, Name, CreatorId, Key, CreatedAt}|T], Toml) ->
+    GroupToml = {<<"group">>, [{<<"id">>, GroupId},
+                               {<<"name">>, Name},
+                               {<<"creator_id">>, CreatorId},
+                               {<<"key">>, Key},
+                               {<<"created_at">>, CreatedAt}]},
+    find_group_info_odbc(T, [GroupToml|Toml]);
+find_group_info_odbc([], Toml) ->
+    {ok, Toml}.
 
 
 to_toml([{UserId, Name, Phone, Avatar}|T], Toml) ->

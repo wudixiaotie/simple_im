@@ -1,6 +1,7 @@
 CREATE OR REPLACE FUNCTION create_group_member_by_creator(group_id      INTEGER,
                                                           creator_id    INTEGER,
-                                                          member_id     INTEGER)
+                                                          member_id     INTEGER,
+                                                          created_at    INTEGER)
 RETURNS INTEGER AS
 $$
 DECLARE
@@ -8,7 +9,7 @@ DECLARE
     real_creator_id INTEGER;
     count           INTEGER;
 BEGIN
-    now = now();
+    now = to_timestamp(created_at);
 
     SELECT g.creator_id INTO real_creator_id
     FROM groups g
