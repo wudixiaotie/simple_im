@@ -1,16 +1,14 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-9-12
+%% 2015-09-12
 %% utility for simple im
 %% ===================================================================
 
 -module(utility).
 
--export([md5_hex_32/1, random_binary_16/0, random_number/1,
-         guid/0, free_port/1, index_of/2, ip_port/2,
-         timestamp/0, delete_from_list/2, join/2,
-         unpack/1, check_parameters/2, strip_head/1,
-         ssl_configs/0]).
+-export([md5_hex_32/1, random_binary_16/0, random_number/1, guid/0, 
+         free_port/1, index_of/2, ip_port/2, delete_from_list/2, join/2, 
+         check_parameters/2, strip_head/1, ssl_configs/0]).
 
 
 
@@ -68,21 +66,12 @@ ip_port(IP, Port) ->
     <<IP/binary, ":", Port/binary>>.
 
 
-timestamp() ->
-    {A, B, _} = os:timestamp(),
-    A * 1000000 + B.
-
-
 delete_from_list(Element, List) ->
     delete_from_list(Element, List, []).
 
 
 join(List, Separator) ->
     join(List, Separator, <<>>).
-
-
-unpack(TupleList) ->
-    unpack(TupleList, []).
 
 
 check_parameters(Parameters, Attrs) ->
@@ -182,13 +171,9 @@ join([H|T], Separator, Result) when is_list(H) ->
 join([H|T], Separator, Result) when is_atom(H) ->
     Bin = erlang:atom_to_binary(H, utf8),
     NewResult = <<Result/binary, " \"", Bin/binary, " \"", Separator/binary>>,
-    join(T, Separator, NewResult).
-
-
-unpack([{Value}|T], Result) ->
-    unpack(T, [Value|Result]);
-unpack([], Result) ->
-    {ok, lists:reverse(Result)}.
+    join(T, Separator, NewResult);
+join([], _, Result) ->
+    {ok, Result}.
 
 
 check_parameters([H|T], Attrs, Result) ->

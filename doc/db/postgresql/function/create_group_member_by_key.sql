@@ -1,6 +1,7 @@
-CREATE OR REPLACE FUNCTION create_group_member_by_key(group_id  INTEGER,
-                                                      key       groups.key%TYPE,
-                                                      member_id INTEGER)
+CREATE OR REPLACE FUNCTION create_group_member_by_key(group_id      INTEGER,
+                                                      key           groups.key%TYPE,
+                                                      member_id     INTEGER,
+                                                      created_at    INTEGER)
 RETURNS INTEGER AS
 $$
 DECLARE
@@ -8,7 +9,7 @@ DECLARE
     real_key    groups.key%TYPE;
     count       INTEGER;
 BEGIN
-    now = now();
+    now = to_timestamp(created_at);
 
     SELECT g.key INTO real_key
     FROM groups g

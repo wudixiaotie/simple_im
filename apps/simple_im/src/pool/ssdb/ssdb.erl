@@ -7,7 +7,6 @@
 -module(ssdb).
 
 -export([start_link/0, q/1]).
--compile (export_all).
 
 
 %% ===================================================================
@@ -15,9 +14,14 @@
 %% ===================================================================
 
 start_link() ->
-    {ok, Pid} = ssdb_client_sup:start_link(),
-    PoolSize = env:get(ssdb_poolsize),
-    ok = start_client(PoolSize),
+    case erlang:whereis(ssdb_client_sup) of
+        undefined ->
+            {ok, Pid} = ssdb_client_sup:start_link(),
+            PoolSize = env:get(ssdb_poolsize),
+            ok = start_client(PoolSize);
+        Pid ->
+            ok
+    end,
     {ok, Pid}.
 
 

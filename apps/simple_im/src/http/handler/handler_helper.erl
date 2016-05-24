@@ -55,7 +55,7 @@ error(Status, Reason) ->
 
 
 complete_notification(Attrs) ->
-    Timestamp = utility:timestamp(),
+    Timestamp = erlang:system_time(seconds),
     TimestampBin = erlang:integer_to_binary(Timestamp),
     NewAttrs = [{<<"id">>, <<"n_", TimestampBin/binary>>},
                 {<<"ts">>, Timestamp}|Attrs],
@@ -63,7 +63,7 @@ complete_notification(Attrs) ->
 
 
 complete_group_notification(Attrs) ->
-    Timestamp = utility:timestamp(),
+    Timestamp = erlang:system_time(seconds),
     TimestampBin = erlang:integer_to_binary(Timestamp),
     NewAttrs = [{<<"id">>, <<"gn_", TimestampBin/binary>>},
                 {<<"ts">>, Timestamp}|Attrs],

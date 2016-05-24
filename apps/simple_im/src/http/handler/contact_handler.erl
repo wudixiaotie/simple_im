@@ -29,10 +29,8 @@ handle_request([<<"version">>, ContactVersionBin], <<"GET">>, Req) ->
             ok;
         {ok, UserId, _} ->
             ContactVersion = erlang:binary_to_integer(ContactVersionBin),
-            {ok, CurrentVersion, ContactList} = contacts:find(UserId, ContactVersion),
-            {ok, Toml2} = users:to_toml(ContactList),
-            Toml1 = {<<"response">>, [{<<"status">>, 0},
-                                      {<<"version">>, CurrentVersion}]},
+            {ok, Toml2} = contacts:find(UserId, ContactVersion),
+            Toml1 = {<<"response">>, [{<<"status">>, 0}]},
             {ok, TomlBin1} = toml:term_2_binary(Toml1),
             {ok, TomlBin2} = toml:term_2_binary(Toml2),
             TomlBin = <<TomlBin1/binary, "\r\n", TomlBin2/binary>>
@@ -77,7 +75,7 @@ handle_request([AUserIdBin], <<"PUT">>, Req) ->
         {ok, BUserId, DeviceName} ->
             AUserId = erlang:binary_to_integer(AUserIdBin),
             case contacts:create(AUserId, BUserId) of
-                ok ->
+                {ok, 0} ->
                     Attrs = [{<<"t">>, <<"accept_contact">>},
                              {<<"from">>, BUserId},
                              {<<"to">>, AUserId},
@@ -86,9 +84,9 @@ handle_request([AUserIdBin], <<"PUT">>, Req) ->
                     {ok, NBin} = toml:term_2_binary(N),
                     ok = agent:notify(NBin),
                     {ok, TomlBin} = handler_helper:success();
-                {error, unauthorized} ->
+                {ok, 1} ->
                     {ok, TomlBin} = handler_helper:error(1, <<"Unauthorized operate">>);
-                {error, unknown} ->
+                {ok, _} ->
                     {ok, TomlBin} = handler_helper:error(1, <<"Unkonw Error">>)
             end
     end,

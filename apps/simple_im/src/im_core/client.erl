@@ -1,6 +1,6 @@
 %% ===================================================================
 %% Author xiaotie
-%% 2015-8-2
+%% 2015-08-02
 %% server for client side
 %% ===================================================================
 
@@ -242,7 +242,7 @@ process_packet([{Type, Attrs}|T], State)
     case lists:keyfind(<<"g_id">>, 1, Attrs) of
         {<<"g_id">>, GroupId} ->
             UserId = State#state.user_id,
-            {ok, UserIdList} = group_members:find({group_id, GroupId}),
+            {ok, UserIdList} = groups:find_members(GroupId),
             ok = router:route_to_multiple_user(UserIdList, UserId, Message);
         _ ->
             ignore
@@ -290,7 +290,7 @@ process_message(State, {Type, Attrs}) ->
     AckMessage = #message{id = MsgId, bin = AckBin},
     {ok, NewStateTemp} = send_msg_2_single_device(Device, AckMessage, State),
 
-    Ts = {<<"ts">>, utility:timestamp()},
+    Ts = {<<"ts">>, erlang:system_time(seconds)},
     AttrsWithTs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
     From = {<<"from">>, State#state.user_id},
     NewAttrs = lists:keystore(<<"from">>, 1, AttrsWithTs, From),
