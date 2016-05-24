@@ -15,6 +15,7 @@
 %% ===================================================================
 
 init() ->
+    ssdb:start_link(),
     log:i("=============Database initializing..~n"),
     ok = init_table(),
     ok = init_function(),
