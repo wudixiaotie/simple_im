@@ -58,7 +58,7 @@ process(Type, FileDir, Extension, Req) ->
                     M = {<<"gm">>, [{<<"c">>, Url},
                                     {<<"from">>, UserId},
                                     {<<"g_id">>, GroupId},
-                                    {<<"ts">>, utility:timestamp()},
+                                    {<<"ts">>, erlang:system_time(seconds)},
                                     {<<"t">>, Type},
                                     {<<"d">>, DeviceName},
                                     {<<"id">>, <<"gm_", FileId/binary>>}]},

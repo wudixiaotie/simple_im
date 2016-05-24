@@ -63,19 +63,21 @@ find(UserId, 0) when is_integer(UserId) ->
     UserIdBin = erlang:integer_to_binary(UserId),
     case catch ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, <<>>, <<>>, <<"-1">>]) of
         [<<"ok">>|ContactIdList] ->
-            {ok, ContactList} = find_contact_info(ContactIdList),
-            {ok, ContactList};
+            {ok, Toml} = unpack_ssdb(ContactIdList),
+            {ok, Toml};
         _ ->
             log:e("[SSDB] contacts: find error id:~p version:0!~n", [UserId]),
             SQL = <<"SELECT u.id,
                             u.name,
                             u.phone,
-                            u.avatar
+                            u.avatar,
+                            c.contact_version
                      FROM users u, contacts c
                      WHERE u.id = c.contact_id
                      AND c.user_id = $1;">>,
-            {ok, _, Result} = postgresql:exec(SQL, [UserId]),
-            {ok, Result}
+            {ok, _, ODBCResult} = postgresql:exec(SQL, [UserId]),
+            {ok, Toml} = unpack_odbc(ODBCResult),
+            {ok, Toml}
     end;
 find(UserId, ContactVersion)
     when is_integer(UserId), is_integer(ContactVersion) ->
@@ -83,20 +85,22 @@ find(UserId, ContactVersion)
     ContactVersionBin = erlang:integer_to_binary(ContactVersion),
     case catch ssdb:q([<<"zscan">>, <<"contacts_", UserIdBin/binary>>, <<>>, ContactVersionBin, <<>>, <<"-1">>]) of
         [<<"ok">>|ContactIdList] ->
-            {ok, ContactList} = find_contact_info(ContactIdList),
-            {ok, ContactList};
+            {ok, Toml} = unpack_ssdb(ContactIdList),
+            {ok, Toml};
         _ ->
-            log:e("[SSDB] contacts: find error id:~p version:0!~n", [UserId]),
+            log:e("[SSDB] contacts: find error id:~p version:~p!~n", [UserId, ContactVersion]),
             SQL = <<"SELECT u.id,
                             u.name,
                             u.phone,
-                            u.avatar
+                            u.avatar,
+                            c.contact_version
                      FROM users u, contacts c
                      WHERE u.id = c.contact_id
                      AND c.user_id = $1
                      AND c.contact_version > $2;">>,
-            {ok, _, Result} = postgresql:exec(SQL, [UserId, ContactVersion]),
-            {ok, Result}
+            {ok, _, ODBCResult} = postgresql:exec(SQL, [UserId, ContactVersion]),
+            {ok, Toml} = unpack_odbc(ODBCResult),
+            {ok, Toml}
     end.
 
 
@@ -116,16 +120,34 @@ create_ssdb([]) ->
     ok.
 
 
-find_contact_info(ContactIdList) ->
-    find_contact_info(ContactIdList, []).
-find_contact_info([], Result) ->
-    {ok, Result};
-find_contact_info([ContactIdBin, _|T], Result) ->
-    [<<"ok">>, <<"name">>, Name, <<"phone">>, Phone,
-     <<"avatar">>, Avatar] = ssdb:q([<<"multi_hget">>,
-                                     <<"users_", ContactIdBin/binary>>,
-                                     <<"name">>,
-                                     <<"phone">>,
-                                     <<"avatar">>]),
-    UserId = erlang:binary_to_integer(ContactIdBin),
-    find_contact_info(T, [{UserId, Name, Phone, Avatar}|Result]).
+unpack_ssdb(ContactIdList) ->
+    unpack_ssdb(ContactIdList, []).
+unpack_ssdb([ContactIdBin, ContactVersionBin|T], Toml) ->
+    case ssdb:q([<<"multi_hget">>, <<"users_", ContactIdBin/binary>>, <<"name">>, <<"phone">>, <<"avatar">>]) of
+        [<<"ok">>, <<"name">>, Name, <<"phone">>, Phone, <<"avatar">>, Avatar] ->
+            UserId = erlang:binary_to_integer(ContactIdBin),
+            ContactVersion = erlang:binary_to_integer(ContactVersionBin),
+            ContactToml = {<<"contact">>, [{<<"id">>, UserId},
+                                           {<<"name">>, Name},
+                                           {<<"phone">>, Phone},
+                                           {<<"avatar">>, Avatar},
+                                           {<<"contact_version">>, ContactVersion}]},
+            unpack_ssdb(T, [ContactToml|Toml]);
+        _ ->
+            unpack_ssdb(T, Toml)
+    end;
+unpack_ssdb([], Toml) ->
+    {ok, Toml}.
+
+
+unpack_odbc(ODBCResult) ->
+    unpack_odbc(ODBCResult, []).
+unpack_odbc([{UserId, Name, Phone, Avatar, ContactVersion}|T], Toml) ->
+    ContactToml = {<<"contact">>, [{<<"id">>, UserId},
+                                   {<<"name">>, Name},
+                                   {<<"phone">>, Phone},
+                                   {<<"avatar">>, Avatar},
+                                   {<<"contact_version">>, ContactVersion}]},
+    unpack_odbc(T, [ContactToml|Toml]);
+unpack_odbc([], Toml) ->
+    {ok, Toml}.

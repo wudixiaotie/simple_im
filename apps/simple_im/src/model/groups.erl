@@ -19,7 +19,7 @@
 create(Name, CreatorId, Members) ->
     {ok, MembersBin} = utility:join(Members, <<",">>),
     {ok, Key} = utility:random_binary_16(),
-    CreatedAt = utility:timestamp(),
+    CreatedAt = erlang:system_time(seconds),
     SQL = <<"SELECT create_group($1, $2, $3, $4, '{", MembersBin/binary, "}');">>,
     {ok, _, [{GroupId}]} = postgresql:exec(SQL, [Name, CreatorId, Key, CreatedAt]),
 

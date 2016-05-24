@@ -25,7 +25,7 @@ create(AUserId, BUserId, Message)
             BUserIdBin = erlang:integer_to_binary(BUserId),
             SSDBName = <<"pre_contacts_", BUserIdBin/binary>>,
             SSDBKey = erlang:term_to_binary({AUserId, Message}),
-            SSDBScore = erlang:integer_to_binary(utility:timestamp()),
+            SSDBScore = erlang:integer_to_binary(erlang:system_time(seconds)),
             [<<"ok">>, _] = ssdb:q([<<"zset">>, SSDBName, SSDBKey, SSDBScore]),
 
             SSDBName1 = <<"pre_contacts_timestamp_", BUserIdBin/binary>>,

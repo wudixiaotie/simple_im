@@ -290,7 +290,7 @@ process_message(State, {Type, Attrs}) ->
     AckMessage = #message{id = MsgId, bin = AckBin},
     {ok, NewStateTemp} = send_msg_2_single_device(Device, AckMessage, State),
 
-    Ts = {<<"ts">>, utility:timestamp()},
+    Ts = {<<"ts">>, erlang:system_time(seconds)},
     AttrsWithTs = lists:keystore(<<"ts">>, 1, Attrs, Ts),
     From = {<<"from">>, State#state.user_id},
     NewAttrs = lists:keystore(<<"from">>, 1, AttrsWithTs, From),

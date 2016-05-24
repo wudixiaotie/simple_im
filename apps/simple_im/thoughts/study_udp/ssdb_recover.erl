@@ -19,6 +19,13 @@ start() ->
             ok;
         _ ->
             ok
+    end,
+    case postgresql:exec(<<"SELECT user_id, contact_id, contact_version FROM contacts;">>) of
+        {ok, _, ContactList} ->
+            ok = store_ssdb_contact(ContactList),
+            ok;
+        _ ->
+            ok
     end.
 
 
@@ -72,4 +79,14 @@ store_ssdb_group_member([{GroupId, UserId, CreatedAt}|T]) ->
                             UserIdBin, CreatedAtBin]),
     store_ssdb_group_member(T);
 store_ssdb_group_member([]) ->
+    ok.
+
+
+store_ssdb_contact([{UserId, ContactId, ContactVersion}|T]) ->
+    UserIdBin = erlang:integer_to_binary(UserId),
+    ContactIdBin = erlang:integer_to_binary(ContactId),
+    ContactVersionBin = erlang:integer_to_binary(ContactVersion),
+    [<<"ok">>, _] = ssdb:q([<<"zset">>, <<"contacts_", UserIdBin/binary>>, ContactIdBin, ContactVersionBin]),
+    store_ssdb_contact(T);
+store_ssdb_contact([]) ->
     ok.

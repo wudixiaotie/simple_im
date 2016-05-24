@@ -6,9 +6,8 @@
 
 -module(utility).
 
--export([md5_hex_32/1, random_binary_16/0, random_number/1,
-         guid/0, free_port/1, index_of/2, ip_port/2,
-         timestamp/0, delete_from_list/2, join/2, 
+-export([md5_hex_32/1, random_binary_16/0, random_number/1, guid/0, 
+         free_port/1, index_of/2, ip_port/2, delete_from_list/2, join/2, 
          check_parameters/2, strip_head/1, ssl_configs/0]).
 
 
@@ -65,11 +64,6 @@ ip_port(IP, Port) when is_list(IP) ->
     ip_port(IP, erlang:list_to_binary(Port));
 ip_port(IP, Port) ->
     <<IP/binary, ":", Port/binary>>.
-
-
-timestamp() ->
-    {A, B, _} = os:timestamp(),
-    A * 1000000 + B.
 
 
 delete_from_list(Element, List) ->

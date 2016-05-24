@@ -29,8 +29,7 @@ handle_request([<<"version">>, ContactVersionBin], <<"GET">>, Req) ->
             ok;
         {ok, UserId, _} ->
             ContactVersion = erlang:binary_to_integer(ContactVersionBin),
-            {ok, ContactList} = contacts:find(UserId, ContactVersion),
-            {ok, Toml2} = users:to_toml(ContactList),
+            {ok, Toml2} = contacts:find(UserId, ContactVersion),
             Toml1 = {<<"response">>, [{<<"status">>, 0}]},
             {ok, TomlBin1} = toml:term_2_binary(Toml1),
             {ok, TomlBin2} = toml:term_2_binary(Toml2),
