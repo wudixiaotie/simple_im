@@ -1,4 +1,4 @@
--module(ssdb_recover).
+-module(ssdb_synchronize).
 
 -export([start/0]).
 -compile (export_all).

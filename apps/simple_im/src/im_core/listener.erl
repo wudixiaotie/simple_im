@@ -41,7 +41,7 @@ init([Index]) ->
     Opts = [binary,
             {packet, 0},
             {reuseaddr, true},
-            {keepalive, true},
+            {keepalive, false},
             {backlog, 30000},
             {active, false}],
     {ok, ListenSocket} = gen_tcp:listen(Port, Opts),
